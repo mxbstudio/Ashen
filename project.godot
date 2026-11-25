@@ -15,6 +15,7 @@ boot_splash/show_image=false
 [autoload]
 
 Config="*res://scripts/config.gd"
+Lights="*res://scripts/light_system.gd"
 DebugOverlay="*res://scripts/debug_overlay.gd"
 
 [display]

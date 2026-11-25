@@ -18,11 +18,14 @@ var death_time_loss := 60.0        # s, die beim Tod vergehen
 var lantern_burn_time := 180.0     # s volle Brenndauer
 var lantern_radius_max := 8.0      # m
 var lantern_radius_min := 2.0      # m
+var lantern_refill_seconds := 3.0  # s am Feuer von leer bis voll
 var dark_damage_bonus := 0.5       # +50 % Gegnerschaden außerhalb des Lichts
 
 # --- Feuer & Festung -------------------------------------------------------
 var fire_wood_start := 20
 var fire_seconds_per_wood := 20.0
+var fire_light_radius := 10.0      # m Lichtkreis des Feuers
+var fire_refill_range := 3.5       # m – so nah ran, um die Laterne aufzufüllen
 var food_start := 15
 var food_seconds_per_person := 60.0
 var residents_start := 5

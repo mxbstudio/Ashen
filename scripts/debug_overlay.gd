@@ -9,7 +9,7 @@ const MAX_ERRORS := 6
 
 var _catcher := ErrorCatcher.new()
 var _info: Label
-var _errors: Label
+var _errors: RichTextLabel
 var _rotate: ColorRect
 var _watched := {}
 var _error_lines: Array[String] = []
@@ -33,7 +33,7 @@ func watch(key: String, value) -> void:
 
 ## Eigene Meldung in die Fehlerliste schreiben (z. B. für Hinweise beim Testen).
 func note(text: String) -> void:
-	_add_error_line("Info: " + text, false)
+	_add_error_line("[color=#ffd75a]Info: %s[/color]" % text, false)
 
 
 func _read_build_info() -> String:
@@ -56,13 +56,14 @@ func _build_ui() -> void:
 	_info.gui_input.connect(_on_info_input)
 	add_child(_info)
 
-	_errors = Label.new()
+	_errors = RichTextLabel.new()
+	_errors.bbcode_enabled = true
+	_errors.fit_content = true
+	_errors.scroll_active = false
 	_errors.position = Vector2(8, 34)
-	_errors.add_theme_font_size_override("font_size", 18)
-	_errors.add_theme_color_override("font_color", Color(1, 0.35, 0.3))
+	_errors.add_theme_font_size_override("normal_font_size", 18)
 	_errors.add_theme_color_override("font_outline_color", Color.BLACK)
 	_errors.add_theme_constant_override("outline_size", 5)
-	_errors.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_errors.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_errors)
 
@@ -91,6 +92,7 @@ func _on_info_input(event: InputEvent) -> void:
 func _add_error_line(text: String, is_error := true) -> void:
 	if is_error:
 		_error_count += 1
+		text = "[color=#ff5a4d]%s[/color]" % text.replace("[", "(")
 	_error_lines.append(text)
 	while _error_lines.size() > MAX_ERRORS:
 		_error_lines.pop_front()

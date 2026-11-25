@@ -11,8 +11,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Etappe | Inhalt | Status |
 |---|---|---|
 | 0 | Repository, GitHub Action, GitHub Pages, Testszene | fertig, am Handy getestet (>60 FPS) |
-| 1 | Kamera, Hüter bewegen und dashen, Testgelände | fertig – wartet auf Handy-Test |
-| 2 | Licht: Laterne, Feuer, Auffüllen | offen |
+| 1 | Kamera, Hüter bewegen und dashen, Testgelände | fertig, am Handy getestet (70–120 FPS) |
+| 2 | Licht: Laterne, Feuer, Auffüllen | fertig – wartet auf Handy-Test |
 | 3 | Skill-Leiste mit Sichelhieb und Bogenschuss | offen |
 | 4 | Gegner, Schaden, Tod, Wiedererscheinen | offen |
 | 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | offen |
@@ -35,6 +35,15 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - Testgelände 60 × 60 m mit Felsen, toten Bäumen und unsichtbarem Rand.
 - Alle Spielwerte stehen zentral in `scripts/config.gd`.
 - Neue Werte (nicht im Prompt vorgegeben, frei gewählt): Laufgeschwindigkeit 6 m/s, Dash 20 m/s für 0,18 s, Dash-Abklingzeit 0,6 s, Kameraausschnitt 14 m in der Breite.
+
+## Etappe 2 – fertig
+- Laterne am Hüter: 180 s Brenndauer, Lichtradius schrumpft von 8 m auf 2 m. Unter 20 % flackert sie stark und der Balken blinkt rot.
+- Feuer in der Mitte des Testgeländes: großer warmer Lichtkreis (10 m). Im Ring um das Feuer (3,5 m) füllt sich die Laterne in 3 s ganz auf.
+- Licht-Verwaltung (`scripts/light_system.gd`): kann für jede Stelle sagen, ob sie im Licht liegt (für die Gegner in Etappe 4).
+- HUD oben rechts: Laternen-Balken.
+- Debug-Anzeige: Fehler rot, Hinweise gelb.
+- Welt dunkler gemacht (Umgebungslicht, Mond), damit das Licht wirkt.
+- Neue Werte (frei gewählt): Auffüllen 3 s, Feuer-Lichtradius 10 m, Auffüll-Abstand 3,5 m.
 
 ## Geänderte Werte
 | Wert | vorher | jetzt | Grund |

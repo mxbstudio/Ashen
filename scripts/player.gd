@@ -6,6 +6,7 @@ signal dashed
 @export var camera_rig: Node3D
 
 @onready var model: Node3D = $Model
+@onready var lantern: Node3D = $Model/Lantern
 
 var facing := Vector3(0, 0, 1)     # Blickrichtung auf dem Boden
 var _dash_time := 0.0
