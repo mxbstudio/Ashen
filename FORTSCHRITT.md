@@ -17,8 +17,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | 4 | Gegner, Schaden, Tod, Wiedererscheinen | fertig, am Handy getestet |
 | 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | fertig, am Handy getestet |
 | 6 | Festung, Ressourcen, Gebäude, Bewohner | fertig, am Handy getestet |
-| 7 | Belagerung, Leuchtfeuer, Boss, Sieg/Niederlage | fertig – wartet auf Handy-Test |
-| 8 | HUD fertig, Werte einstellen | offen |
+| 7 | Belagerung, Leuchtfeuer, Boss, Sieg/Niederlage | fertig, am Handy getestet |
+| 8 | HUD fertig, Werte einstellen | HUD fertig – Werte-Feintuning läuft |
 
 ## Etappe 0 – fertig
 - Testszene: sich drehender Würfel im flackernden Feuerschein.
@@ -134,6 +134,12 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - **Vorzeichen deutlicher** (war draußen nicht zu bemerken): Feuer-Zeile im HUD flackert („Feuer flackert …“), Laterne zuckt mit, alle 7 s ein dumpfes Grollen.
 - **Platzhalter-Sound** (im Code erzeugt, kein FMOD, keine Dateien): Glocke, Grollen, Treffer, Schwung, Schuss, Schlag, Verletzung, Tod, Aufsammeln, Level-up, Entzünden. Lautstärke: `volume_db` in `scripts/sfx.gd`.
 - **Boss leichter zu finden**: rotes Glühen über der Arena, Schild „Arena des Hauptmanns“, Hinweis nach dem Entzünden des Leuchtfeuers.
+
+## Etappe 8 – HUD fertig
+- **Werte-Menü** (Knopf „Werte“ oben Mitte): 18 wichtige Werte mit − / + im Spiel verändern (Belagerung, Tor, Feuer, Nahrung, Laterne, Gegnerzahl/-schaden, Boss, Skill-Schaden, EP, Tempo, Kamera, Lautstärke). Spiel pausiert solange. Werte gelten bis zum Schließen des Browsers, auch nach „Neu starten“. „Änderungen anzeigen / kopieren“ listet die Abweichungen vom Standard und kopiert sie in die Zwischenablage → an Claude schicken, dann werden sie fest in `config.gd` übernommen.
+- **Wegweiser** am Bildschirmrand: Pfeil zum Tor (orange) und zum entzündeten Leuchtfeuer (blau), wenn sie nicht im Bild sind und der Hüter draußen ist.
+- **Ziel-Hinweis** beim Start (3 Zeilen, 6 s).
+- HUD-Übersicht: oben links Festung (Feuer/Holz mit Restzeit bzw. „Feuer flackert …“ als Vorzeichen, Nahrung, Bewohner); oben rechts Leben, Laterne, Tränke, Stufe/EP, Trage, Vorrat; oben Mitte Belagerung/Boss; Mitte kurze Meldungen; unten Skill-Leiste mit Marker über Joystick/Dash/Trank.
 
 ## Ideen für später (v0.2) – von Max beim Testen
 - ~~**Wald** außerhalb der Festung~~ → in Etappe 7 umgesetzt.

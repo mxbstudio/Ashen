@@ -38,8 +38,8 @@ func bell() -> void:
 
 
 ## Kurze Meldung in der Bildschirmmitte (z. B. "Abgeladen: +5 Holz").
-func toast(text: String) -> void:
-	_toasts.append([text, 2.5])
+func toast(text: String, duration := 2.5) -> void:
+	_toasts.append([text, duration])
 	if _toasts.size() > 4:
 		_toasts.pop_front()
 
@@ -98,6 +98,7 @@ func _draw() -> void:
 		draw_string(font, Vector2(x, y + 22), "Vorrat: %d Skill(s)" % player.skill_bar.stash.size(),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.85, 0.5, 0.9))
 	_draw_fortress(font)
+	_draw_pointers(font)
 	_draw_siege(font)
 	_draw_boss(font)
 	_draw_toasts(font)
@@ -296,3 +297,40 @@ func _draw_bar_at(font: Font, x: float, y: float, w: float, label: String, frac:
 	draw_rect(Rect2(x, by, w, 22), Color(0, 0, 0, 0.65))
 	draw_rect(Rect2(x + 2, by + 2, (w - 4) * clampf(frac, 0.0, 1.0), 18), col)
 	draw_rect(Rect2(x, by, w, 22), Color(1, 1, 1, 0.35), false, 2.0)
+
+
+## Wegweiser am Bildschirmrand: zum Tor (orange) und zum Leuchtfeuer (blau),
+## wenn sie gerade nicht im Bild sind und der Hüter draußen ist.
+func _draw_pointers(font: Font) -> void:
+	if not player.is_alive() or player.global_position.z > -11.0:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	_pointer(font, cam, Vector3(0, 0, -12), "Tor", Color(1, 0.7, 0.3))
+	var beacon := get_tree().get_first_node_in_group("beacon")
+	if beacon and beacon.lit:
+		_pointer(font, cam, beacon.global_position, "Leuchtfeuer", Color(0.6, 0.8, 1.0))
+
+
+func _pointer(font: Font, cam: Camera3D, world: Vector3, label: String, col: Color) -> void:
+	var p := cam.unproject_position(world)
+	var inner := Rect2(Vector2(70, 230), size - Vector2(140, 230 + 420))
+	if inner.grow(60).has_point(p):
+		return   # sichtbar genug, kein Pfeil nötig
+	var center := size / 2.0
+	var dir := (p - center).normalized()
+	# Schnittpunkt mit dem inneren Rechteck
+	var t := INF
+	if dir.x != 0.0:
+		t = minf(t, ((inner.end.x if dir.x > 0 else inner.position.x) - center.x) / dir.x)
+	if dir.y != 0.0:
+		t = minf(t, ((inner.end.y if dir.y > 0 else inner.position.y) - center.y) / dir.y)
+	var at := center + dir * t
+	var side := Vector2(-dir.y, dir.x)
+	var pts := PackedVector2Array([at + dir * 26.0, at - dir * 10.0 + side * 18.0, at - dir * 10.0 - side * 18.0])
+	draw_colored_polygon(pts, Color(col, 0.85))
+	var ts := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
+	var lp := at - dir * 40.0 - Vector2(ts.x / 2.0, -6)
+	draw_string_outline(font, lp, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 6, Color(0, 0, 0, 0.8))
+	draw_string(font, lp, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, col)

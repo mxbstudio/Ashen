@@ -14,6 +14,10 @@ func _ready() -> void:
 	fortress.fire_out.connect(_on_fire_out)
 	siege.siege_ended.connect(_on_siege_ended)
 	_spawn_boss()
+	# kurzer Ziel-Hinweis beim Start
+	get_tree().call_group("hud", "toast", "Halte das Feuer am Brennen.", 6.0)
+	get_tree().call_group("hud", "toast", "Sammle draußen Holz und Nahrung.", 6.0)
+	get_tree().call_group("hud", "toast", "Besiege den Hauptmann im Norden.", 6.0)
 
 
 func _spawn_boss() -> void:

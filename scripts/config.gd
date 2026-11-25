@@ -171,7 +171,8 @@ var joystick_analog := false       # false = sofort volle Geschwindigkeit
 var button_radius := 80.0
 
 
-var _defaults := {}
+var _defaults := {}                # Werte, auf die "Neu starten" zurücksetzt
+var _originals := {}               # Werte genau wie in dieser Datei
 
 
 func _ready() -> void:
@@ -179,7 +180,18 @@ func _ready() -> void:
 	for prop in get_property_list():
 		if prop["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE and not prop["name"].begins_with("_"):
 			_defaults[prop["name"]] = get(prop["name"])
+			_originals[prop["name"]] = get(prop["name"])
 	_setup_input()
+
+
+## Im Werte-Menü verstellter Wert soll auch nach "Neu starten" gelten.
+func keep_as_default(key: String) -> void:
+	_defaults[key] = get(key)
+
+
+## Ursprünglicher Wert aus dieser Datei (für "Änderungen anzeigen").
+func original(key: String):
+	return _originals.get(key)
 
 
 ## Alle Werte auf die Startwerte zurücksetzen (z. B. nach Niederlage/Neustart).
