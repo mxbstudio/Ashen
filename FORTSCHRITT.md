@@ -1,5 +1,7 @@
 # Aschen – Fortschritt Prototyp v0.1
 
+**Stand: Prototyp v0.1 fertig (alle 8 Etappen, Build #14).**
+
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
 
@@ -18,7 +20,7 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | fertig, am Handy getestet |
 | 6 | Festung, Ressourcen, Gebäude, Bewohner | fertig, am Handy getestet |
 | 7 | Belagerung, Leuchtfeuer, Boss, Sieg/Niederlage | fertig, am Handy getestet |
-| 8 | HUD fertig, Werte einstellen | HUD fertig – Werte-Feintuning läuft |
+| 8 | HUD fertig, Werte einstellen | fertig – Werte vorerst so belassen |
 
 ## Etappe 0 – fertig
 - Testszene: sich drehender Würfel im flackernden Feuerschein.
