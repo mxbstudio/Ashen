@@ -1,7 +1,7 @@
 ## Kurz sichtbarer Bogen für den Sichelhieb (fächerförmige Fläche, verblasst schnell).
 extends MeshInstance3D
 
-const LIFETIME := 0.18
+const LIFETIME := 0.28
 var _t := 0.0
 var _mat: StandardMaterial3D
 

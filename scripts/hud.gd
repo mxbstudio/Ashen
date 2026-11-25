@@ -9,15 +9,34 @@ const BAR_H := 26.0
 const MARGIN := 16.0
 
 var _t := 0.0
+var _slot_flash := {}      # Feld-Nummer -> Restzeit des Aufblitzens
+var _popups: Array = []    # [text, farbe, restzeit] – Skillname, der beim Auslösen aufsteigt
+const FLASH_TIME := 0.3
+const POPUP_TIME := 0.7
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if player:
+		player.skill_bar.skill_fired.connect(_on_skill_fired)
+
+
+## Wird aufgerufen, sobald ein Skill ausgelöst wird (Feld war voll).
+func _on_skill_fired(id: String, slot: int) -> void:
+	_slot_flash[slot] = FLASH_TIME
+	_popups.append([SkillData.DEFS[id]["name"] + "!", SkillData.color(id), POPUP_TIME])
 
 
 func _process(delta: float) -> void:
 	_t += delta
+	for k in _slot_flash.keys():
+		_slot_flash[k] -= delta
+		if _slot_flash[k] <= 0.0:
+			_slot_flash.erase(k)
+	for p in _popups:
+		p[2] -= delta
+	_popups = _popups.filter(func(p): return p[2] > 0.0)
 	queue_redraw()
 
 
@@ -51,6 +70,9 @@ func _draw_skill_bar(font: Font, bar: Node) -> void:
 	for i in n:
 		var id: String = bar.slots[i]
 		var r := Rect2(x0 + i * (slot_w + gap), y0, slot_w, slot_h)
+		var flash: float = _slot_flash.get(i, 0.0) / FLASH_TIME   # 1 -> 0
+		if flash > 0.0:
+			r = r.grow(10.0 * flash)   # Feld springt beim Auslösen kurz größer
 		var col := SkillData.color(id)
 		var is_current: bool = i == bar.index
 		draw_rect(r, Color(col, 0.18 if id != "" else 0.06))
@@ -58,6 +80,8 @@ func _draw_skill_bar(font: Font, bar: Node) -> void:
 			# Fortschritt des Casts als Füllung
 			var fr: float = bar.fraction()
 			draw_rect(Rect2(r.position, Vector2(r.size.x * fr, r.size.y)), Color(col, 0.45))
+		if flash > 0.0:
+			draw_rect(r, Color(1, 1, 1, 0.75 * flash))
 		var border := Color(1, 0.85, 0.5, 0.9) if is_current and running else Color(1, 1, 1, 0.25)
 		draw_rect(r, border, false, 3.0 if is_current and running else 2.0)
 		var label := SkillData.short_name(id) if id != "" else "leer"
@@ -79,6 +103,16 @@ func _draw_skill_bar(font: Font, bar: Node) -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(mx - 11, my - 14), Vector2(mx + 11, my - 14),
 			Vector2(mx, my + 2)]), mcol)
 	draw_line(Vector2(mx, y0), Vector2(mx, y0 + slot_h), Color(mcol, 0.8 if running else 0.2), 3.0)
+
+	# Skillname steigt beim Auslösen über der Leiste auf
+	for p in _popups:
+		var k: float = 1.0 - p[2] / POPUP_TIME
+		var txt: String = p[0]
+		var ps := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 34)
+		draw_string_outline(font, Vector2((size.x - ps.x) / 2.0, y0 - 40 - k * 50), txt,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 34, 8, Color(0, 0, 0, 1.0 - k))
+		draw_string(font, Vector2((size.x - ps.x) / 2.0, y0 - 40 - k * 50), txt,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(p[1].lightened(0.3), 1.0 - k))
 
 	# vorgemerkte Modifikatoren anzeigen
 	if not bar.pending_mods.is_empty():

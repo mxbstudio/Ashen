@@ -1,4 +1,5 @@
 ## Die Skill-Leiste (Kern des Kampfes).
+## Ablauf pro Feld: erst ausholen (Cast-Zeit, Feld füllt sich) -> wenn voll: Skill wird ausgelöst.
 ## - 3 Slots, werden automatisch von links nach rechts abgearbeitet, dann wieder links (Kreis).
 ## - Kein Cooldown: jeder Skill hat eine Cast-Zeit, danach ist der nächste Slot dran.
 ## - Angriffe wirken selbst. Modifikatoren werden "vorgemerkt" und verändern den
@@ -8,7 +9,7 @@
 ## - Ein Dash unterbricht den aktuellen Cast (Fortschritt geht verloren).
 extends Node
 
-signal skill_fired(id: String)
+signal skill_fired(id: String, slot: int)
 
 var slots: Array[String] = ["sickle", "bow", ""]
 var index := 0                     # aktueller Slot
@@ -68,4 +69,4 @@ func _execute(id: String) -> void:
 	else:
 		player.combat.perform(id, pending_mods.duplicate())
 		pending_mods.clear()
-	skill_fired.emit(id)
+	skill_fired.emit(id, index)

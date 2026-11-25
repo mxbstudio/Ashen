@@ -53,6 +53,7 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - Steht der Hüter still, dreht er sich automatisch zum nächsten Gegner.
 - Modifikator-Logik ist schon eingebaut (wird in Etappe 5 freigeschaltet).
 - HUD: Leiste über den Touch-Knöpfen, Marker wandert über das aktive Feld, Füllung zeigt den Cast-Fortschritt.
+- Rückmeldung beim Auslösen (nach Max' Test: unklar, wann ein Skill auslöst): Ablauf ist *erst ausholen (Feld füllt sich), dann auslösen*. Beim Auslösen blitzt das Feld auf, der Skillname steigt auf, und ein Ring am Boden um den Hüter füllt sich während des Ausholens und platzt beim Auslösen auf. Sichelhieb-Bogen länger sichtbar (0,28 s).
 - 4 Übungspuppen (60 Leben, stehen nach 3 s wieder auf) mit Schadenszahlen.
 - Neue Werte (frei gewählt): Sichelhieb 12 Schaden / 2,8 m / 150°, Bogenschuss 9 Schaden / 14 m, Kampfreichweite 14 m.
 
