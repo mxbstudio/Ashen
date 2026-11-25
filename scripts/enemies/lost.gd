@@ -15,6 +15,8 @@ func _build() -> void:
 	max_hp = Config.hp_lost
 	speed = Config.lost_speed
 	hit_radius = 0.9
+	gate_dps = Config.gate_dps_lost
+	_gate_slot = randf_range(-1.7, 1.7)
 	xp = Config.xp_lost
 	var body := CapsuleMesh.new()
 	body.radius = 0.75

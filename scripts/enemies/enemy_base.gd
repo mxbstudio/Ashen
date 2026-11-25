@@ -17,6 +17,11 @@ var hit_radius := 0.5              # Körperradius (für Treffer)
 var xp := 1
 var model: Node3D                  # dreht sich in Laufrichtung
 
+# Belagerung: Gegner mit gesetztem siege_gate laufen zum Tor und beschädigen es
+var siege_gate: Node3D = null
+var gate_dps := 1.0
+var _gate_slot := 0.0              # wo am Tor (seitlich) er angreift
+
 var _knock := Vector3.ZERO
 var _flash := 0.0
 var _dying := -1.0
@@ -137,7 +142,11 @@ func _physics_process(delta: float) -> void:
 			take_damage(_burn_dps * 0.5)
 			if not is_alive():
 				return
-	var desired := _think(delta)
+	var desired: Vector3
+	if _in_siege_mode():
+		desired = _siege_think(delta)
+	else:
+		desired = _think(delta)
 	velocity = desired + _knock
 	_knock = _knock.move_toward(Vector3.ZERO, 25.0 * delta)
 	move_and_slide()
@@ -208,3 +217,27 @@ func add_collision(radius: float, height: float) -> void:
 	shape.shape = c
 	shape.position.y = height / 2.0
 	add_child(shape)
+
+
+# --- Belagerung --------------------------------------------------------------
+
+func _in_siege_mode() -> bool:
+	if siege_gate == null or not is_instance_valid(siege_gate) or not siege_gate.is_intact():
+		return false
+	# steht der Hüter direkt daneben, wird er angegriffen
+	if player_available() and flat_to_player().length() < Config.siege_player_engage:
+		return false
+	return true
+
+
+## Zum Tor laufen und dagegen schlagen.
+func _siege_think(delta: float) -> Vector3:
+	var target := siege_gate.global_position + Vector3(_gate_slot, 0, -1.2 - hit_radius)
+	var v := target - global_position
+	v.y = 0
+	if v.length() > 0.5:
+		return v.normalized() * speed
+	siege_gate.take_damage(gate_dps * delta)
+	# kleines Wackeln beim Schlagen
+	model.rotation.x = sin(Time.get_ticks_msec() / 90.0) * 0.15
+	return Vector3.ZERO

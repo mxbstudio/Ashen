@@ -10,6 +10,8 @@ const FORT_HALF := 12.0            # Festung: x und z von -12 bis +12
 const GATE_WIDTH := 4.0
 const OUT_MIN := Vector2(-30, -92) # Außengebiet (x, z)
 const OUT_MAX := Vector2(30, -12)
+const BEACON_POS := Vector3(0, 0, -50)
+const BOSS_POS := Vector3(0, 0, -80)
 
 const ResourceScript := preload("res://scripts/resource_node.gd")
 const WOOD_SPOTS := [Vector3(-8, 0, -20), Vector3(9, 0, -24), Vector3(-18, 0, -30), Vector3(20, 0, -34),
@@ -151,26 +153,95 @@ func _box_body(pos: Vector3, size: Vector3, mat: Material) -> void:
 	add_child(body)
 
 
+## Freie Flächen im Wald: Weg vom Tor nach Norden, Platz vor dem Tor (Belagerung),
+## Leuchtfeuer, Boss-Arena, Fundstellen.
+func _is_clearing(p: Vector3) -> bool:
+	if absf(p.x - _path_x(p.z)) < 3.5:
+		return true
+	if absf(p.x) < 11.0 and p.z > -37.0:
+		return true
+	if p.distance_to(BEACON_POS) < 7.0 or p.distance_to(BOSS_POS) < 13.0:
+		return true
+	return _near_resource(p)
+
+
+## Der Weg schlängelt sich leicht.
+func _path_x(z: float) -> float:
+	return sin(z * 0.08) * 5.0 if z < -37.0 else 0.0
+
+
 func _make_obstacles() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
-	var placed := 0
-	var tries := 0
-	while placed < 55 and tries < 400:
-		tries += 1
-		var p := Vector3(rng.randf_range(-28, 28), 0, rng.randf_range(-90, -15))
-		# Weg vor dem Tor und Boss-Platz freihalten
-		if absf(p.x) < 4.0 and p.z > -26.0:
-			continue
-		if p.distance_to(Vector3(0, 0, -80)) < 10.0 or p.distance_to(Vector3(0, 0, -50)) < 5.0:
-			continue   # Boss-Platz und Leuchtfeuer frei
-		if _near_resource(p):
-			continue
-		if placed % 2 == 0:
-			_make_rock(p, rng.randf_range(0.6, 1.6))
-		else:
-			_make_tree(p, rng.randf_range(2.0, 3.5))
-		placed += 1
+	var trees: Array[Transform3D] = []
+	var x := -28.0
+	while x <= 28.0:
+		var z := -14.0
+		while z >= -90.0:
+			var p := Vector3(x + rng.randf_range(-1.2, 1.2), 0, z + rng.randf_range(-1.2, 1.2))
+			z -= 3.3
+			if _is_clearing(p) or rng.randf() < 0.25:
+				continue
+			if rng.randf() < 0.12:
+				_make_rock(p, rng.randf_range(0.6, 1.4))
+				continue
+			var h := rng.randf_range(2.5, 5.0)
+			var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(1, h / 3.0, 1)), p)
+			trees.append(t)
+			_tree_collision(p)
+		x += 3.3
+	_tree_multimesh(trees)
+	# Steinkreis um die Boss-Arena
+	for i in 14:
+		var a := TAU * i / 14.0
+		_make_rock(BOSS_POS + Vector3(cos(a), 0, sin(a)) * 12.0, rng.randf_range(0.7, 1.1))
+
+
+## Alle Baumstämme zusammen zeichnen (spart viel Leistung im Browser).
+func _tree_multimesh(trees: Array[Transform3D]) -> void:
+	var trunk := CylinderMesh.new()
+	trunk.top_radius = 0.06
+	trunk.bottom_radius = 0.3
+	trunk.height = 3.0
+	trunk.radial_segments = 5
+	trunk.rings = 1
+	trunk.material = _tree_mat
+	var branch := CylinderMesh.new()
+	branch.top_radius = 0.03
+	branch.bottom_radius = 0.1
+	branch.height = 1.4
+	branch.radial_segments = 4
+	branch.rings = 1
+	branch.material = _tree_mat
+	for part in 2:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = trunk if part == 0 else branch
+		mm.instance_count = trees.size()
+		for i in trees.size():
+			var t: Transform3D = trees[i]
+			if part == 0:
+				mm.set_instance_transform(i, t.translated_local(Vector3(0, 1.5, 0)))
+			else:
+				var bt := t.translated_local(Vector3(0.3, 2.0, 0)).rotated_local(Vector3(0, 0, 1), -0.9)
+				mm.set_instance_transform(i, bt)
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mmi)
+
+
+func _tree_collision(p: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.position = p
+	var shape := CollisionShape3D.new()
+	var cs := CylinderShape3D.new()
+	cs.radius = 0.35
+	cs.height = 2.0
+	shape.shape = cs
+	shape.position.y = 1.0
+	body.add_child(shape)
+	add_child(body)
 
 
 func _make_rock(pos: Vector3, r: float) -> void:
@@ -191,40 +262,6 @@ func _make_rock(pos: Vector3, r: float) -> void:
 	cyl.radius = r * 0.9
 	cyl.height = 2.0
 	shape.shape = cyl
-	shape.position.y = 1.0
-	body.add_child(shape)
-	add_child(body)
-
-
-func _make_tree(pos: Vector3, h: float) -> void:
-	var body := StaticBody3D.new()
-	body.position = pos
-	var mesh := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.08
-	cyl.bottom_radius = 0.3
-	cyl.height = h
-	cyl.radial_segments = 6
-	mesh.mesh = cyl
-	mesh.material_override = _tree_mat
-	mesh.position.y = h / 2.0
-	body.add_child(mesh)
-	var branch := MeshInstance3D.new()
-	var bm := CylinderMesh.new()
-	bm.top_radius = 0.03
-	bm.bottom_radius = 0.1
-	bm.height = h * 0.4
-	bm.radial_segments = 5
-	branch.mesh = bm
-	branch.material_override = _tree_mat
-	branch.position = Vector3(0.25, h * 0.65, 0)
-	branch.rotation.z = -0.9
-	body.add_child(branch)
-	var shape := CollisionShape3D.new()
-	var cs := CylinderShape3D.new()
-	cs.radius = 0.35
-	cs.height = 2.0
-	shape.shape = cs
 	shape.position.y = 1.0
 	body.add_child(shape)
 	add_child(body)

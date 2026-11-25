@@ -13,6 +13,8 @@ func _build() -> void:
 	max_hp = Config.hp_lighteater
 	speed = Config.lighteater_speed
 	hit_radius = 0.5
+	gate_dps = Config.gate_dps_lighteater
+	_gate_slot = randf_range(-1.7, 1.7)
 	xp = Config.xp_lighteater
 	_t = randf() * 10.0
 	var body := SphereMesh.new()

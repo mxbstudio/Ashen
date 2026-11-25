@@ -5,6 +5,9 @@ extends Control
 
 @export var player: Node3D
 @export var fortress: Node3D
+@export var siege: Node
+
+var _bell_flash := 0.0
 
 const BAR_W := 230.0
 const BAR_H := 26.0
@@ -29,6 +32,11 @@ func _ready() -> void:
 
 
 ## Wird aufgerufen, sobald ein Skill ausgelöst wird (Feld war voll).
+## Die Glocke läutet: kurzer heller Blitz über den ganzen Bildschirm.
+func bell() -> void:
+	_bell_flash = 1.0
+
+
 ## Kurze Meldung in der Bildschirmmitte (z. B. "Abgeladen: +5 Holz").
 func toast(text: String) -> void:
 	_toasts.append([text, 2.5])
@@ -43,6 +51,7 @@ func _on_skill_fired(id: String, slot: int) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_bell_flash = maxf(_bell_flash - delta * 1.5, 0.0)
 	for k in _slot_flash.keys():
 		_slot_flash[k] -= delta
 		if _slot_flash[k] <= 0.0:
@@ -89,6 +98,8 @@ func _draw() -> void:
 		draw_string(font, Vector2(x, y + 22), "Vorrat: %d Skill(s)" % player.skill_bar.stash.size(),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.85, 0.5, 0.9))
 	_draw_fortress(font)
+	_draw_siege(font)
+	_draw_boss(font)
 	_draw_toasts(font)
 	_draw_skill_bar(font, player.skill_bar)
 	_draw_hurt(player.hurt_flash)
@@ -242,3 +253,41 @@ func _draw_toasts(font: Font) -> void:
 		draw_rect(Rect2(px - 14, y - 30, ts.x + 28, 42), Color(0, 0, 0, 0.55 * a))
 		draw_string(font, Vector2(px, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(1, 0.9, 0.7, a))
 		y += 50.0
+
+
+## Während der Belagerung: Torleben und verbleibende Angreifer (oben Mitte).
+func _draw_siege(font: Font) -> void:
+	if _bell_flash > 0.0:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.85, 0.6, 0.35 * _bell_flash))
+	if siege == null or not siege.active:
+		return
+	var gate: Node3D = siege.gate
+	var w := 360.0
+	var x := (size.x - w) / 2.0
+	var y := 300.0
+	var title := "LETZTE BELAGERUNG" if siege.is_final else "BELAGERUNG"
+	var ts := font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 28)
+	draw_string(font, Vector2((size.x - ts.x) / 2.0, y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 28,
+			Color(1, 0.35, 0.25).lerp(Color(1, 0.8, 0.5), 0.5 + 0.5 * sin(_t * 5.0)))
+	_draw_bar_at(font, x, y + 10, w, "Tor  %d / %d" % [ceili(gate.hp), int(Config.gate_health)],
+			gate.hp / Config.gate_health, Color(0.75, 0.5, 0.3))
+	draw_string(font, Vector2(x, y + 82), "Angreifer: %d" % siege.attackers_left(),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1, 1, 1, 0.8))
+
+
+## Lebensbalken des Bosses, sobald er kämpft.
+func _draw_boss(font: Font) -> void:
+	var boss := get_tree().get_first_node_in_group("boss")
+	if boss == null or not boss.is_engaged():
+		return
+	var w := size.x - 80.0
+	_draw_bar_at(font, 40.0, 280.0, w, "Der verwandelte Hauptmann",
+			boss.hp / boss.max_hp, Color(0.7, 0.15, 0.2))
+
+
+func _draw_bar_at(font: Font, x: float, y: float, w: float, label: String, frac: float, col: Color) -> void:
+	draw_string(font, Vector2(x, y + 20), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1, 1, 1, 0.85))
+	var by := y + 28.0
+	draw_rect(Rect2(x, by, w, 22), Color(0, 0, 0, 0.65))
+	draw_rect(Rect2(x + 2, by + 2, (w - 4) * clampf(frac, 0.0, 1.0), 18), col)
+	draw_rect(Rect2(x, by, w, 22), Color(1, 1, 1, 0.35), false, 2.0)

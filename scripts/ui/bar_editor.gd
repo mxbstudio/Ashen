@@ -41,7 +41,8 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	var at_fire: bool = player.is_alive() and Lights.refill_source_at(player.global_position) != null
+	var src := Lights.refill_source_at(player.global_position)
+	var at_fire: bool = player.is_alive() and src != null and not src.is_in_group("beacon")
 	_open_button.visible = at_fire and not visible and not get_tree().paused
 	var vp := get_viewport_rect().size
 	_open_button.position = Vector2((vp.x - _open_button.size.x) / 2.0, vp.y - 560.0)

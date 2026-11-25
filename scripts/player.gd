@@ -32,6 +32,7 @@ var _full_warned := false
 
 
 func _ready() -> void:
+	add_to_group("player")
 	health = Config.player_max_health
 	potions = Config.potions_start
 	collision_layer = 2            # Ebene 2: Hüter (Gegner laufen nicht gegen ihn)

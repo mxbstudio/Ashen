@@ -62,5 +62,7 @@ func _find_spawn_point() -> Vector3:
 			continue
 		if Lights.fixed_source_at(p, 3.0) != null:
 			continue
+		if p.distance_to(Vector3(0, 0, -80)) < 14.0:
+			continue   # nicht in der Boss-Arena
 		return p
 	return Vector3.INF

@@ -16,6 +16,8 @@ func _build() -> void:
 	max_hp = Config.hp_crawler
 	speed = Config.crawler_speed
 	hit_radius = 0.4
+	gate_dps = Config.gate_dps_crawler
+	_gate_slot = randf_range(-1.7, 1.7)
 	xp = Config.xp_crawler
 	_angle = randf() * TAU
 	_orbit_dir = 1.0 if randf() < 0.5 else -1.0

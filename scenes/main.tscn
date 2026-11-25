@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -15,6 +15,9 @@
 [ext_resource type="Script" path="res://scripts/ui/bar_editor.gd" id="13"]
 [ext_resource type="Script" path="res://scripts/ui/levelup_panel.gd" id="14"]
 [ext_resource type="Script" path="res://scripts/ui/game_over.gd" id="15"]
+[ext_resource type="Script" path="res://scripts/beacon.gd" id="16"]
+[ext_resource type="Script" path="res://scripts/siege.gd" id="17"]
+[ext_resource type="Script" path="res://scripts/ui/travel_button.gd" id="18"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -38,6 +41,10 @@ light_energy = 0.15
 script = ExtResource("2")
 
 [node name="Fire" parent="." instance=ExtResource("3")]
+
+[node name="Beacon" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50)
+script = ExtResource("16")
 
 [node name="Fortress" type="Node3D" parent="."]
 script = ExtResource("4")
@@ -75,13 +82,21 @@ respawn_point = NodePath("../Fire")
 script = ExtResource("8")
 player = NodePath("../Player")
 
+[node name="Siege" type="Node" parent="." node_paths=PackedStringArray("fortress", "fire", "gate", "spawner", "player")]
+script = ExtResource("17")
+fortress = NodePath("../Fortress")
+fire = NodePath("../Fire")
+gate = NodePath("../Fortress/Gate")
+spawner = NodePath("../Enemies")
+player = NodePath("../Player")
+
 [node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("target")]
 script = ExtResource("9")
 target = NodePath("../Player")
 
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="HUD" type="Control" parent="UI" node_paths=PackedStringArray("player", "fortress")]
+[node name="HUD" type="Control" parent="UI" node_paths=PackedStringArray("player", "fortress", "siege")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -90,6 +105,7 @@ mouse_filter = 2
 script = ExtResource("10")
 player = NodePath("../../Player")
 fortress = NodePath("../../Fortress")
+siege = NodePath("../../Siege")
 
 [node name="TouchControls" type="Control" parent="UI"]
 layout_mode = 3
@@ -103,6 +119,11 @@ script = ExtResource("11")
 script = ExtResource("12")
 player = NodePath("../../Player")
 fortress = NodePath("../../Fortress")
+
+[node name="TravelButton" type="Button" parent="UI" node_paths=PackedStringArray("player", "beacon")]
+script = ExtResource("18")
+player = NodePath("../../Player")
+beacon = NodePath("../../Beacon")
 
 [node name="BarEditor" type="Control" parent="UI" node_paths=PackedStringArray("player", "touch_controls")]
 layout_mode = 3

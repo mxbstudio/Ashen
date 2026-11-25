@@ -16,8 +16,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | 3 | Skill-Leiste mit Sichelhieb und Bogenschuss | fertig, am Handy getestet |
 | 4 | Gegner, Schaden, Tod, Wiedererscheinen | fertig, am Handy getestet |
 | 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | fertig, am Handy getestet |
-| 6 | Festung, Ressourcen, Gebäude, Bewohner | fertig – wartet auf Handy-Test |
-| 7 | Belagerung, Leuchtfeuer, Boss, Sieg/Niederlage | offen |
+| 6 | Festung, Ressourcen, Gebäude, Bewohner | fertig, am Handy getestet |
+| 7 | Belagerung, Leuchtfeuer, Boss, Sieg/Niederlage | fertig – wartet auf Handy-Test |
 | 8 | HUD fertig, Werte einstellen | offen |
 
 ## Etappe 0 – fertig
@@ -112,8 +112,21 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Extra-Felder | bei Stufe 4 und 7 | bei Stufe 6 und 11 | kamen zu schnell |
 | Opferlicht-Kosten | 15 s Laterne | 4 s Laterne | zog viel zu viel Licht |
 
+## Etappe 7 – fertig
+- **Belagerung** alle 8 min: 30 s vorher flackert das Feuer unruhig („Das Feuer flackert unruhig …“, kein Countdown). Dann läutet die Glocke (heller Blitz), Angreifer erscheinen in Gruppen vor dem Tor (12, jede weitere +4) und schlagen aufs Tor (Anzeige „BELAGERUNG“ mit Torleben und Angreifern). Normale Gegner erscheinen währenddessen nicht.
+- Belagerer greifen nur das Tor an – den Hüter nur, wenn er näher als 3 m steht.
+- **Verteidigung**: Bewohner schießen von der Mauer (je mehr Bewohner, desto öfter), Wachturm schießt mit.
+- **Tor fällt** → ein Bewohner stirbt, Angreifer ziehen ab, Tor wird repariert.
+- **Leuchtfeuer** in der Mitte des Gebiets: 1,5 s daneben stehen → entzündet. Eigener Lichtkreis (7 m), füllt die Laterne auf, Kriecher meiden es. **Schnellreise**: Knopf am Leuchtfeuer („zum Tor“) und innen am Tor („zum Leuchtfeuer“).
+- **Boss** „Der verwandelte Hauptmann“ (800 Leben) in der Arena hinten (Steinkreis): greift ab 15 m an. Nahkampfschlag (20, 0,8 s Vorwarnung) und alle 6 s Flächenangriff auf die Position des Hüters (30 Schaden, 3,5 m, 1,4 s roter Kreis). Entfernt man sich > 30 m oder stirbt, kehrt er zurück und heilt. Boss-Lebensbalken oben.
+- **Sieg**: Boss besiegt → letzte Belagerung (22 Angreifer) kommt nach ~35 s. Hält das Tor → „Das Feuer brennt weiter – Sieg!“. Fällt es, gibt es nach 60 s einen neuen Anlauf.
+- **Niederlage**: Feuer erlischt (wie bisher).
+- **Wald**: dichter Wald aus toten Bäumen (alle Stämme in einem Rutsch gezeichnet für gute Leistung), freier, leicht geschlängelter Weg vom Tor über das Leuchtfeuer zur Boss-Arena; Lichtung vor dem Tor für Belagerungen.
+- Tod verschiebt auch die nächste Belagerung um 60 s nach vorn.
+- „Leiste umbauen“ nur am Feuer, nicht am Leuchtfeuer.
+
 ## Ideen für später (v0.2) – von Max beim Testen
-- **Wald** außerhalb der Festung statt vereinzelter Bäume (evtl. schon in Etappe 7, wenn die FPS es zulassen).
+- ~~**Wald** außerhalb der Festung~~ → in Etappe 7 umgesetzt.
 - **Sicht nur, was der Hüter wirklich sieht** (Gegner hinter Bäumen/Mauern unsichtbar). Schießen nur mit freier Sicht gibt es schon.
 - **Gebiete erhellen statt selbst sammeln**: Draußen Gebiete hell machen (z. B. per Leuchtfeuer), dann Bewohner als Holzfäller und Jäger/Sammler dorthin schicken.
 - **Gebäude-Upgrades.**
