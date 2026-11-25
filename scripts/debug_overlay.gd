@@ -1,7 +1,7 @@
 ## Debug-Anzeige (läuft immer, als "Autoload").
 ## - oben links: Build-Version, FPS und frei setzbare Werte (DebugOverlay.watch("Name", wert))
 ## - darunter: die letzten Fehlermeldungen in Rot
-## - "Bitte Handy drehen", wenn das Handy hochkant gehalten wird
+## - "Bitte Handy drehen", wenn das Handy quer gehalten wird (nur auf Touch-Geräten)
 ## Antippen der Info-Zeile blendet die Details ein/aus.
 extends CanvasLayer
 
@@ -72,7 +72,7 @@ func _build_ui() -> void:
 	_rotate.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_rotate.mouse_filter = Control.MOUSE_FILTER_STOP
 	var lbl := Label.new()
-	lbl.text = "Bitte Handy drehen\n(Querformat)"
+	lbl.text = "Bitte Handy drehen\n(Hochformat)"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -101,7 +101,7 @@ func _process(_delta: float) -> void:
 		_add_error_line(e)
 
 	var size := get_viewport().get_visible_rect().size
-	_rotate.visible = size.y > size.x
+	_rotate.visible = size.x > size.y and DisplayServer.is_touchscreen_available()
 
 	var txt := "Aschen %s · %d FPS" % [_build, Engine.get_frames_per_second()]
 	if _error_count > 0:

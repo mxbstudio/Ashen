@@ -48,11 +48,13 @@ var hp_lost := 80.0
 var hp_boss := 800.0
 
 # --- Kamera ----------------------------------------------------------------
-var camera_size := 18.0            # wie viele Meter senkrecht ins Bild passen
-var camera_follow := 8.0           # wie schnell die Kamera folgt
+var camera_width := 14.0           # wie viele Meter waagerecht ins Bild passen (Hochformat)
+var camera_follow := 0.0           # 0 = Kamera klebt direkt am Hüter; >0 = weiches Folgen
 
 # --- Touch-Steuerung -------------------------------------------------------
-var joystick_radius := 110.0       # Pixel (bezogen auf 1280×720)
+var joystick_radius := 110.0       # Pixel (bezogen auf 720×1280)
+var joystick_deadzone := 0.15      # so weit muss man schieben, bevor es losgeht
+var joystick_analog := false       # false = sofort volle Geschwindigkeit
 var button_radius := 80.0
 
 
@@ -72,7 +74,7 @@ func _setup_input() -> void:
 
 func _bind(action: String, keys: Array) -> void:
 	if not InputMap.has_action(action):
-		InputMap.add_action(action, 0.2)
+		InputMap.add_action(action, 0.05)
 	for k in keys:
 		var ev := InputEventKey.new()
 		ev.physical_keycode = k

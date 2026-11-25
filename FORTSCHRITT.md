@@ -28,11 +28,17 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 ## Etappe 1 – fertig
 - Isometrische Kamera (orthografisch, 45° gedreht), folgt dem Hüter sanft.
 - Hüter läuft (6 m/s) und dasht (kurzer Sprint in Blickrichtung, 0,6 s Abklingzeit).
-- Touch: Joystick erscheint, wo der linke Daumen aufsetzt; Knöpfe „Dash“ und „Trank“ rechts unten.
+- **Hochformat** (auf Wunsch von Max, statt Querformat). Hinweis „Bitte Handy drehen“ erscheint jetzt, wenn das Handy quer gehalten wird.
+- Touch: Joystick erscheint, wo der Daumen in der unteren Bildschirmhälfte aufsetzt; Knöpfe „Dash“ und „Trank“ rechts unten.
+- Direkte Steuerung: sofort volle Geschwindigkeit, Kamera klebt am Hüter, Figur dreht sich sofort.
 - Tastatur: WASD/Pfeile, Leertaste = Dash, Q = Trank (Trank hat noch keine Wirkung).
 - Testgelände 60 × 60 m mit Felsen, toten Bäumen und unsichtbarem Rand.
 - Alle Spielwerte stehen zentral in `scripts/config.gd`.
-- Neue Werte (nicht im Prompt vorgegeben, frei gewählt): Laufgeschwindigkeit 6 m/s, Dash 20 m/s für 0,18 s, Dash-Abklingzeit 0,6 s, Kameraausschnitt 18 m.
+- Neue Werte (nicht im Prompt vorgegeben, frei gewählt): Laufgeschwindigkeit 6 m/s, Dash 20 m/s für 0,18 s, Dash-Abklingzeit 0,6 s, Kameraausschnitt 14 m in der Breite.
 
 ## Geänderte Werte
-(noch keine – Startwerte laut Prompt)
+| Wert | vorher | jetzt | Grund |
+|---|---|---|---|
+| Bildschirm | Querformat | Hochformat | Wunsch Max |
+| Joystick | analog (halb geschoben = halb so schnell) | sofort volle Geschwindigkeit (`joystick_analog = false`) | fühlte sich weich/langsam an |
+| Kamera-Folgen | weich (8) | direkt (0) | fühlte sich weich an |

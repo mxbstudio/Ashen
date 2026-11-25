@@ -14,7 +14,7 @@ var camera: Camera3D
 func _ready() -> void:
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = Config.camera_size
+	_update_size()
 	camera.near = 1.0
 	camera.far = 100.0
 	camera.rotation_degrees = Vector3(PITCH_DEG, YAW_DEG, 0)
@@ -27,9 +27,23 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_update_size()
 	if target:
-		var w := 1.0 - exp(-Config.camera_follow * delta)
-		global_position = global_position.lerp(target.global_position, w)
+		if Config.camera_follow <= 0.0:
+			global_position = target.global_position
+		else:
+			var w := 1.0 - exp(-Config.camera_follow * delta)
+			global_position = global_position.lerp(target.global_position, w)
+
+
+## Hochformat: feste Breite in Metern. Querformat (z. B. PC): gleiche Zahl als Höhe.
+func _update_size() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	if vp.y >= vp.x:
+		camera.keep_aspect = Camera3D.KEEP_WIDTH
+	else:
+		camera.keep_aspect = Camera3D.KEEP_HEIGHT
+	camera.size = Config.camera_width
 
 
 ## Wandelt eine Bildschirm-Richtung (x rechts, y unten) in eine Bodenrichtung um.

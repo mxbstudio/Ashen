@@ -20,7 +20,7 @@ func _physics_process(delta: float) -> void:
 	var move := Vector3.ZERO
 	if input.length() > 0.05 and camera_rig:
 		move = camera_rig.screen_to_ground(input)
-		if move.length() > 1.0:
+		if move.length() > 1.0 or not Config.joystick_analog:
 			move = move.normalized()
 		facing = move.normalized()
 
@@ -38,7 +38,7 @@ func _physics_process(delta: float) -> void:
 
 	# Figur in Blickrichtung drehen
 	var target_angle := atan2(facing.x, facing.z)
-	model.rotation.y = lerp_angle(model.rotation.y, target_angle, 1.0 - exp(-15.0 * delta))
+	model.rotation.y = lerp_angle(model.rotation.y, target_angle, 1.0 - exp(-40.0 * delta))
 	# kleiner Effekt: beim Dash flacher/länger
 	var s := 1.0 if _dash_time <= 0.0 else 0.8
 	model.scale = model.scale.lerp(Vector3(1, s, 1), 0.4)

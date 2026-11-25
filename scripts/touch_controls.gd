@@ -1,5 +1,5 @@
 ## Touch-Steuerung fürs Handy:
-## - linke Bildschirmhälfte: Joystick erscheint dort, wo der Daumen aufsetzt
+## - untere Bildschirmhälfte: Joystick erscheint dort, wo der Daumen aufsetzt
 ## - rechts unten: großer Dash-Knopf, darüber der Trank-Knopf
 ## Die Eingaben werden als ganz normale "Aktionen" weitergegeben (wie Tasten),
 ## deshalb funktionieren Touch und Tastatur gleich.
@@ -27,7 +27,7 @@ func button_center(action: String) -> Vector2:
 		"dash":
 			return Vector2(s.x - r - 40, s.y - r - 40)
 		"potion":
-			return Vector2(s.x - r * 0.7 - 40, s.y - r * 2.0 - 40 - r * 0.7 - 30)
+			return Vector2(s.x - r - 40 - r * 2.0, s.y - r * 0.7 - 30)
 	return Vector2.ZERO
 
 
@@ -54,7 +54,7 @@ func _on_touch_down(index: int, pos: Vector2) -> void:
 			get_viewport().set_input_as_handled()
 			queue_redraw()
 			return
-	if pos.x < size.x * 0.5 and _joy_index == -1:
+	if pos.y > size.y * 0.45 and _joy_index == -1:
 		_joy_index = index
 		_joy_center = pos
 		_joy_vec = Vector2.ZERO
@@ -91,8 +91,10 @@ func _update_joystick(pos: Vector2) -> void:
 
 func _apply_joystick() -> void:
 	var v := _joy_vec
-	if v.length() < 0.15:   # kleine tote Zone
+	if v.length() < Config.joystick_deadzone:
 		v = Vector2.ZERO
+	elif not Config.joystick_analog:
+		v = v.normalized()   # sofort volle Kraft
 	_set_axis("move_right", maxf(v.x, 0.0))
 	_set_axis("move_left", maxf(-v.x, 0.0))
 	_set_axis("move_down", maxf(v.y, 0.0))
