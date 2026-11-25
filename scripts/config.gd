@@ -56,6 +56,13 @@ var sickle_angle := 150.0          # Grad Öffnungswinkel
 var bow_damage := 9.0
 var bow_range := 14.0              # m
 var arrow_speed := 24.0            # m/s
+var ember_damage := 6.0            # Glutwurf: Aufprall
+var ember_burn_dps := 4.0          # Glutwurf: Brandschaden pro Sekunde
+var ember_burn_time := 3.0         # s
+var ember_speed := 16.0            # m/s
+var bell_damage := 10.0            # Glockenschlag
+var bell_radius := 4.5             # m rund um den Hüter
+var bell_knockback := 14.0         # Stärke des Zurückstoßens
 var echo_cast_multiplier := 1.6    # Echo: Angriff dauert so viel länger
 var mend_heal := 8.0               # Labung: Heilung pro Treffer
 var sacrifice_multiplier := 2.5    # Opferlicht: Schaden ×2,5
@@ -89,6 +96,11 @@ var spawn_min_distance := 14.0     # m – erscheinen nie näher am Hüter
 var xp_crawler := 1
 var xp_lighteater := 2
 var xp_lost := 5
+
+# --- Stufenaufstieg --------------------------------------------------------
+var xp_first_level := 8            # EP für Stufe 2
+var xp_level_step := 6             # jede weitere Stufe braucht so viel mehr
+var max_skill_copies := 2          # wie oft man denselben Skill besitzen darf
 
 # --- Kamera ----------------------------------------------------------------
 var camera_width := 14.0           # wie viele Meter waagerecht ins Bild passen (Hochformat)

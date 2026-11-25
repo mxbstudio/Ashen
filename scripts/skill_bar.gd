@@ -16,6 +16,7 @@ var index := 0                     # aktueller Slot
 var progress := 0.0                # Sekunden, die der aktuelle Cast schon läuft
 var pending_mods: Array[String] = []   # vorgemerkte Modifikatoren
 var running := false
+var stash: Array[String] = []          # Vorrat: besessene Skills, die nicht in der Leiste sind
 
 @onready var player: Node3D = get_parent()
 
@@ -70,3 +71,54 @@ func _execute(id: String) -> void:
 		player.combat.perform(id, pending_mods.duplicate())
 		pending_mods.clear()
 	skill_fired.emit(id, index)
+
+
+# --- Besitz & Umbau --------------------------------------------------------
+
+## Wie oft besitzt der Hüter diesen Skill (Leiste + Vorrat)?
+func owned_count(id: String) -> int:
+	return slots.count(id) + stash.count(id)
+
+
+## Neuen Skill bekommen: in ein freies Feld, sonst in den Vorrat.
+## Gibt true zurück, wenn er direkt in der Leiste gelandet ist.
+func add_skill(id: String) -> bool:
+	var empty := slots.find("")
+	if empty != -1:
+		slots[empty] = id
+		_reset_cycle()
+		return true
+	stash.append(id)
+	return false
+
+
+## Feld mit einem Skill aus dem Vorrat belegen (der alte wandert in den Vorrat).
+func put_from_stash(slot: int, stash_index: int) -> void:
+	var incoming := stash[stash_index]
+	stash.remove_at(stash_index)
+	if slots[slot] != "":
+		stash.append(slots[slot])
+	slots[slot] = incoming
+	_reset_cycle()
+
+
+## Feld leeren (Skill wandert in den Vorrat).
+func clear_slot(slot: int) -> void:
+	if slots[slot] != "":
+		stash.append(slots[slot])
+		slots[slot] = ""
+	_reset_cycle()
+
+
+func swap_slots(a: int, b: int) -> void:
+	var t := slots[a]
+	slots[a] = slots[b]
+	slots[b] = t
+	_reset_cycle()
+
+
+## Nach einem Umbau beginnt die Leiste wieder links, ohne Vormerkungen.
+func _reset_cycle() -> void:
+	index = 0
+	progress = 0.0
+	pending_mods.clear()

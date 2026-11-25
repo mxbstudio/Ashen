@@ -56,6 +56,17 @@ func _draw() -> void:
 	y += 62.0
 	draw_string(font, Vector2(x, y + 22), "Tränke: %d / %d" % [player.potions, Config.potions_start],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.6, 1.0, 0.6, 0.9))
+	y += 34.0
+	draw_string(font, Vector2(x, y + 22), "Stufe %d" % player.level,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.85, 0.8, 1.0, 0.9))
+	var xr := Rect2(x + 90, y + 8, BAR_W - 90, 14)
+	draw_rect(xr, Color(0, 0, 0, 0.6))
+	draw_rect(Rect2(xr.position, Vector2(xr.size.x * float(player.xp) / player.xp_for_next_level(), xr.size.y)),
+			Color(0.65, 0.6, 1.0))
+	if not player.skill_bar.stash.is_empty():
+		y += 34.0
+		draw_string(font, Vector2(x, y + 22), "Vorrat: %d Skill(s)" % player.skill_bar.stash.size(),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.85, 0.5, 0.9))
 	_draw_skill_bar(font, player.skill_bar)
 	_draw_hurt(player.hurt_flash)
 	if not player.is_alive():

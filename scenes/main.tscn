@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/test_terrain.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2"]
@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" path="res://scenes/fire.tscn" id="6"]
 [ext_resource type="Script" path="res://scripts/hud.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/enemy_spawner.gd" id="8"]
+[ext_resource type="Script" path="res://scripts/ui/levelup_panel.gd" id="9"]
+[ext_resource type="Script" path="res://scripts/ui/bar_editor.gd" id="10"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -65,3 +67,21 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4")
+
+[node name="BarEditor" type="Control" parent="UI" node_paths=PackedStringArray("player", "touch_controls")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("10")
+player = NodePath("../../Player")
+touch_controls = NodePath("../TouchControls")
+
+[node name="LevelUp" type="Control" parent="UI" node_paths=PackedStringArray("player", "touch_controls")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("9")
+player = NodePath("../../Player")
+touch_controls = NodePath("../TouchControls")

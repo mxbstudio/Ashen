@@ -24,6 +24,9 @@ var _mats: Array[StandardMaterial3D] = []
 var _base_colors: Array[Color] = []
 var _eye_mats: Array[StandardMaterial3D] = []
 var _hp_bar: Node3D
+var _burn_time := 0.0
+var _burn_dps := 0.0
+var _burn_tick := 0.0
 
 
 func _ready() -> void:
@@ -75,6 +78,12 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 		_die()
 
 
+## In Brand setzen (Glutwurf): Schaden über Zeit.
+func ignite(dps: float, duration: float) -> void:
+	_burn_dps = maxf(_burn_dps, dps)
+	_burn_time = maxf(_burn_time, duration)
+
+
 func knockback(impulse: Vector3) -> void:
 	_knock += impulse
 
@@ -120,6 +129,14 @@ func _physics_process(delta: float) -> void:
 		if _dying <= 0.0:
 			queue_free()
 		return
+	if _burn_time > 0.0:
+		_burn_time -= delta
+		_burn_tick += delta
+		if _burn_tick >= 0.5:
+			_burn_tick = 0.0
+			take_damage(_burn_dps * 0.5)
+			if not is_alive():
+				return
 	var desired := _think(delta)
 	velocity = desired + _knock
 	_knock = _knock.move_toward(Vector3.ZERO, 25.0 * delta)
@@ -135,8 +152,14 @@ func _update_visuals(delta: float) -> void:
 	if _flash > 0.0:
 		_flash -= delta
 	var white := _flash > 0.0
+	var burn := _burn_time > 0.0
 	for i in _mats.size():
-		_mats[i].albedo_color = Color.WHITE if white else _base_colors[i]
+		if white:
+			_mats[i].albedo_color = Color.WHITE
+		elif burn:
+			_mats[i].albedo_color = _base_colors[i].lerp(Color(1, 0.4, 0.05), 0.5 + 0.2 * sin(_burn_time * 20.0))
+		else:
+			_mats[i].albedo_color = _base_colors[i]
 	# Augen: im Dunkeln grell rot (= stärker), im Licht matter
 	var dark := in_darkness()
 	for m in _eye_mats:

@@ -4,6 +4,7 @@ extends Node
 
 const ArrowScript := preload("res://scripts/arrow.gd")
 const SlashScript := preload("res://scripts/slash_effect.gd")
+const WaveScript := preload("res://scripts/bell_wave.gd")
 
 @onready var player: Node3D = get_parent()
 
@@ -39,28 +40,33 @@ func perform(id: String, mods: Array) -> void:
 	for i in mods.count("sacrifice"):
 		dmg_mult *= Config.sacrifice_multiplier
 		player.lantern.drain(Config.sacrifice_lantern_cost)
-	var heal := Config.mend_heal * mods.count("mend")
 	for r in repeats:
 		if r > 0:
 			await get_tree().create_timer(0.18).timeout
-		if not is_instance_valid(player):
+		if not is_instance_valid(player) or not player.is_alive():
 			return
+		# Labung: der erste Treffer dieses Angriffs heilt (einmal pro Wiederholung)
+		var heal := {"amount": Config.mend_heal * mods.count("mend")}
 		match id:
 			"sickle": _sickle(dmg_mult, heal)
 			"bow": _bow(dmg_mult, heal)
-			_: DebugOverlay.note("%s kommt in Etappe 5" % SkillData.DEFS[id]["name"])
+			"ember": _ember(dmg_mult, heal)
+			"bell": _bell(dmg_mult, heal)
 
 
-## Treffer austeilen (+ ggf. Heilung durch Labung).
-func hit(target: Node3D, amount: float, heal: float) -> void:
+## Treffer austeilen. heal ist ein gemeinsamer "Heil-Gutschein" (Labung):
+## der erste Treffer löst ihn ein, danach ist er leer.
+func hit(target: Node3D, amount: float, heal: Dictionary) -> void:
 	if not is_instance_valid(target) or not target.is_alive():
 		return
 	target.take_damage(amount, player)
-	if heal > 0.0 and player.has_method("heal"):
-		player.heal(heal)
+	if heal.get("amount", 0.0) > 0.0:
+		player.heal(heal["amount"])
+		player.show_heal(heal["amount"])
+		heal["amount"] = 0.0
 
 
-func _sickle(mult: float, heal: float) -> void:
+func _sickle(mult: float, heal: Dictionary) -> void:
 	# Ohne Bewegung dreht sich der Hüter zum nächsten Gegner
 	player.face_nearest_enemy()
 	var fwd: Vector3 = player.facing
@@ -81,7 +87,16 @@ func _sickle(mult: float, heal: float) -> void:
 	fx.rotation.y = atan2(fwd.x, fwd.z)
 
 
-func _bow(mult: float, heal: float) -> void:
+func _bow(mult: float, heal: Dictionary) -> void:
+	_shoot(Config.bow_damage * mult, heal, false)
+
+
+func _ember(mult: float, heal: Dictionary) -> void:
+	_shoot(Config.ember_damage * mult, heal, true)
+
+
+## Geschoss auf den nächsten Gegner (Pfeil oder Glut).
+func _shoot(damage: float, heal: Dictionary, burning: bool) -> void:
 	var target := nearest_enemy(Config.bow_range)
 	if target == null:
 		return
@@ -89,7 +104,25 @@ func _bow(mult: float, heal: float) -> void:
 	arrow.set_script(ArrowScript)
 	player.get_parent().add_child(arrow)
 	arrow.global_position = player.global_position + Vector3(0, 1.1, 0)
-	arrow.launch(target, Config.bow_damage * mult, heal, self)
+	arrow.launch(target, damage, heal, self, burning)
+
+
+## Glockenschlag: Schockwelle rundum, stößt Gegner zurück.
+func _bell(mult: float, heal: Dictionary) -> void:
+	for e in enemies():
+		var to: Vector3 = e.global_position - player.global_position
+		to.y = 0
+		if to.length() > Config.bell_radius + e.hit_radius:
+			continue
+		hit(e, Config.bell_damage * mult, heal)
+		var dir := to.normalized() if to.length() > 0.1 else Vector3(1, 0, 0)
+		var falloff := 1.0 - clampf(to.length() / (Config.bell_radius + 1.0), 0.0, 0.7)
+		e.knockback(dir * Config.bell_knockback * falloff)
+	var fx := MeshInstance3D.new()
+	fx.set_script(WaveScript)
+	player.get_parent().add_child(fx)
+	fx.global_position = player.global_position + Vector3(0, 0.1, 0)
+	fx.setup(Config.bell_radius, mult > 1.0)
 
 
 func _flat_dist(a: Vector3, b: Vector3) -> float:

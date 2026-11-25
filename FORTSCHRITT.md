@@ -14,8 +14,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | 1 | Kamera, Hüter bewegen und dashen, Testgelände | fertig, am Handy getestet (70–120 FPS) |
 | 2 | Licht: Laterne, Feuer, Auffüllen | fertig, am Handy getestet (60–120 FPS) |
 | 3 | Skill-Leiste mit Sichelhieb und Bogenschuss | fertig, am Handy getestet |
-| 4 | Gegner, Schaden, Tod, Wiedererscheinen | fertig – wartet auf Handy-Test |
-| 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | offen |
+| 4 | Gegner, Schaden, Tod, Wiedererscheinen | fertig, am Handy getestet |
+| 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | fertig – wartet auf Handy-Test |
 | 6 | Festung, Ressourcen, Gebäude, Bewohner | offen |
 | 7 | Belagerung, Leuchtfeuer, Boss, Sieg/Niederlage | offen |
 | 8 | HUD fertig, Werte einstellen | offen |
@@ -69,6 +69,18 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - HUD: Leben, Laterne, Tränke oben rechts; roter Bildschirmrand bei Treffern; Lebensbalken über verletzten Gegnern.
 - Übungspuppen abgeschaltet.
 - Neue Werte (frei gewählt): siehe Abschnitt „Gegner“ in `scripts/config.gd`.
+
+## Etappe 5 – fertig
+- **Glutwurf** (Angriff, 0,5 s): brennende Kugel auf den nächsten Gegner, 6 Schaden + 4 Schaden/s für 3 s (Gegner glühen orange).
+- **Glockenschlag** (Angriff, 1,6 s): Schockwelle 4,5 m rundum, 10 Schaden, stößt Gegner weg.
+- **Labung** (Modifikator): der erste Treffer des nächsten Angriffs heilt 8 Leben (bei Echo: pro Wiederholung einmal).
+- **Echo** (Modifikator): nächster Angriff zweimal, Cast ×1,6.
+- **Opferlicht** (Modifikator): nächster Angriff ×2,5 Schaden, kostet 15 s Laternenlicht.
+- Modifikatoren stapeln sich; ein Modifikator im letzten Feld wirkt auf den ersten Angriff der nächsten Runde.
+- **Stufenaufstieg**: Stufe 2 bei 8 EP, jede weitere +6 EP mehr. Spiel pausiert, 1 aus 3 Karten. Jeden Skill höchstens 2×. Sind kaum noch Skills übrig, gibt es Boni (+15 Leben, +20 s Laterne, +1 Trank).
+- Neuer Skill landet im ersten freien Feld, sonst im **Vorrat**.
+- **Leiste umbauen** am Feuer (Knopf über der Leiste): Feld antippen → anderes Feld (tauschen) oder Vorrat-Skill (einsetzen) oder „Feld leeren“. Nach dem Umbau beginnt die Leiste wieder links.
+- HUD: Stufe mit EP-Balken, Hinweis auf Skills im Vorrat.
 
 ## Geänderte Werte
 | Wert | vorher | jetzt | Grund |

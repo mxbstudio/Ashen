@@ -4,6 +4,7 @@ extends CharacterBody3D
 signal dashed
 signal died
 signal respawned
+signal leveled_up(level: int)
 
 @export var camera_rig: Node3D
 @export var respawn_point: Node3D      # das Feuer – hier erscheint er nach dem Tod
@@ -21,6 +22,7 @@ var _dash_dir := Vector3.ZERO
 var health := 0.0
 var potions := 0
 var xp := 0
+var level := 1
 var hurt_flash := 0.0              # für die rote Anzeige am Bildschirmrand
 var dead_timer := 0.0              # > 0 solange er tot ist
 var protect_timer := 0.0           # > 0: unverwundbar (nach dem Wiedererscheinen)
@@ -61,6 +63,19 @@ func heal(amount: float) -> void:
 
 func gain_xp(amount: int) -> void:
 	xp += amount
+	while xp >= xp_for_next_level():
+		xp -= xp_for_next_level()
+		level += 1
+		leveled_up.emit(level)
+
+
+## EP, die für die nächste Stufe nötig sind.
+func xp_for_next_level() -> int:
+	return Config.xp_first_level + Config.xp_level_step * (level - 1)
+
+
+func show_heal(amount: float) -> void:
+	_spawn_number(amount, Color(0.4, 1, 0.5), "+")
 
 
 func drink_potion() -> void:
@@ -149,7 +164,7 @@ func _physics_process(delta: float) -> void:
 	model.scale = model.scale.lerp(Vector3(1, s, 1), 0.4)
 
 	DebugOverlay.watch("Pos", "%.1f / %.1f" % [global_position.x, global_position.z])
-	DebugOverlay.watch("EP", xp)
+	DebugOverlay.watch("Stufe", "%d (EP %d/%d)" % [level, xp, xp_for_next_level()])
 
 
 func try_dash() -> void:

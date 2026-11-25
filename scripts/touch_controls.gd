@@ -45,7 +45,28 @@ func _input(event: InputEvent) -> void:
 		_update_joystick(event.position)
 
 
+## Alle gedrückten Eingaben loslassen (z. B. bevor ein Menü das Spiel pausiert).
+func reset() -> void:
+	for a in ["dash", "potion", "move_left", "move_right", "move_up", "move_down"]:
+		Input.action_release(a)
+	_joy_index = -1
+	_joy_vec = Vector2.ZERO
+	_button_touch.clear()
+	_pressed = {"dash": false, "potion": false}
+	queue_redraw()
+
+
+## Liegt die Stelle auf einem Knopf der Oberfläche (Gruppe "touch_blockers")?
+func _blocked(pos: Vector2) -> bool:
+	for c in get_tree().get_nodes_in_group("touch_blockers"):
+		if c.is_visible_in_tree() and c.get_global_rect().has_point(pos):
+			return true
+	return false
+
+
 func _on_touch_down(index: int, pos: Vector2) -> void:
+	if _blocked(pos):
+		return
 	for action in ["dash", "potion"]:
 		if pos.distance_to(button_center(action)) <= button_radius(action) * 1.2:
 			_button_touch[index] = action
