@@ -22,6 +22,8 @@ static func button(text: String, col: Color, font_size := 28, min_size := Vector
 	b.add_theme_stylebox_override("hover", box(Color(col, 0.45), Color(col, 1.0)))
 	b.add_theme_stylebox_override("pressed", box(Color(col, 0.7), Color.WHITE, 3))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("disabled", box(Color(0.25, 0.25, 0.25, 0.35), Color(0.5, 0.5, 0.5, 0.4)))
+	b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.25))
 	b.add_theme_color_override("font_color", Color(1, 1, 1, 0.95))
 	b.add_theme_color_override("font_pressed_color", Color.WHITE)
 	b.add_theme_color_override("font_hover_color", Color.WHITE)

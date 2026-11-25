@@ -82,8 +82,9 @@ func _rebuild() -> void:
 	_box.add_child(UiStyle.label("Bewohner einteilen", 40, Color(0.7, 1, 0.8)))
 	_box.add_child(UiStyle.label("Bewohner: %d · draußen eingeteilt: %d · in der Festung: %d" % [total, outside, total - outside],
 			24, Color(1, 0.9, 0.7)))
-	_box.add_child(UiStyle.label("Arbeiten nur in hellen Zonen. Draußen im Dunkeln greifen Kriecher sie an. "
-			+ "Bei Belagerung kommen alle heim. Die übrigen Bewohner besetzen die Gebäude.", 20, Color(1, 1, 1, 0.6)))
+	_box.add_child(UiStyle.label("Einteilen geht in jeder Zone – arbeiten können sie aber nur, solange die Zone hell ist "
+			+ "(Fackel brennt bzw. Leuchtfeuer entzündet). Sonst warten sie am Feuer. Draußen im Dunkeln greifen "
+			+ "Kriecher sie an. Bei Belagerung kommen alle heim. Die übrigen Bewohner besetzen die Gebäude.", 20, Color(1, 1, 1, 0.6)))
 	var tree := get_tree()
 	for z in ZoneDefs.ZONES:
 		var lit := Zones.is_lit(tree, z["id"])
@@ -102,7 +103,7 @@ func _row(zone_id: String, kind: String, title: String, lit: bool) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	var n: int = fortress.zone_jobs.get("%s:%s" % [zone_id, kind], 0)
-	var name := UiStyle.label("   " + title, 24)
+	var name := UiStyle.label("   " + title + ("\n   (wartet am Feuer)" if n > 0 and not lit else ""), 24)
 	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name)
@@ -114,7 +115,7 @@ func _row(zone_id: String, kind: String, title: String, lit: bool) -> Control:
 	val.custom_minimum_size = Vector2(70, 0)
 	row.add_child(val)
 	var plus := UiStyle.button("+", Color(0.5, 0.9, 0.5), 34, Vector2(80, 70))
-	plus.disabled = not lit or fortress.zone_workers_total() >= fortress.residents.size()
+	plus.disabled = fortress.zone_workers_total() >= fortress.residents.size()
 	plus.pressed.connect(_change.bind(zone_id, kind, 1))
 	row.add_child(plus)
 	return row
@@ -130,7 +131,7 @@ func _building_text() -> String:
 	var parts := []
 	for b in fortress.buildings:
 		if b.built and b.needs_worker():
-			parts.append("%s: %s" % [b.display_name(), "besetzt" if b.worker else "LEER"])
+			parts.append("%s: %d/%d" % [b.display_name(), b.workers.size(), b.capacity()])
 	if parts.is_empty():
 		return "Gebäude: noch keine mit Arbeitsplatz gebaut."
 	return "Gebäude – " + ", ".join(parts)

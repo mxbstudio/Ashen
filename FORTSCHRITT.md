@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 in Arbeit – Etappe 1 getestet (passt), Etappe 2 (Bewohner hinschicken) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 in Arbeit – Etappe 2 repariert, Etappe 3 (Gebäude-Upgrades) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -162,7 +162,7 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 |---|---|---|---|
 | 1 | Gebiete erhellen: Zonen, Fackelpfähle, Brennstoff, Lichtfresser löschen | mittel | fertig, am Handy getestet (Build #17) |
 | 2 | Bewohner als Holzfäller / Sammler in helle Zonen schicken | groß | zum Testen |
-| 3 | Gebäude-Upgrades (2–3 Stufen) | mittel | offen |
+| 3 | Gebäude-Upgrades (3 Stufen) | mittel | zum Testen |
 | 4 | Begehbarer Wachturm | mittel | offen |
 | 5 | Speicherstand im Browser | mittel | offen |
 | 6 | Werte einstellen mit Max | klein | offen |
@@ -207,3 +207,19 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 - HUD: „Bewohner: 5 (2 draußen)“.
 - Werte-Menü: Bewohner-Leben, Einheiten pro Gang, Sekunden pro Einheit, Arbeiter-Tempo, Trage des Hüters.
 - Neue Werte (frei gewählt): siehe Abschnitt „Bewohner draußen“ in `scripts/config.gd`.
+
+### Nach Max' Test von Etappe 2
+- **Einteilen ging nicht**: Am Anfang ist keine Zone hell, deshalb waren alle „+“ gesperrt – und gesperrte Knöpfe sahen
+  kaum anders aus. Jetzt kann man **jederzeit in jede Zone** einteilen; ist sie dunkel, warten die Bewohner am Feuer
+  („wartet am Feuer“) und gehen los, sobald sie hell ist. Gesperrte Knöpfe sind jetzt deutlich grau.
+
+## Etappe 3 – Gebäude-Upgrades
+- Jedes Gebäude hat **3 Stufen**. Stufe 2 kostet 10 Holz, Stufe 3 16 Holz (das letzte Holz bleibt fürs Feuer).
+- **Verbessern**: vor das Gebäude stellen (Seite zum Feuer) → Knopf „… verbessern → Stufe 2 (10 Holz)“ mit Vorschau.
+  Nach dem Tippen verschwindet der Knopf, bis man einmal weggeht (gegen Doppeltippen).
+- Vorratslager: +30 / +60 / +90 Lagerplatz.
+- Trümmerhof und Pilzkeller: 1 / 2 / 3 Arbeitsplätze, jeder Bewohner produziert für sich.
+- Wachturm: je Stufe +50 % Schaden, +3 m Reichweite, Schussabstand ×0,8 (Stufe 3: 12 Schaden, 20 m, alle ~1 s).
+- Pro Stufe ein Fähnchen auf dem Dach; Schild zeigt „(St. 2)“ und „2/3 Bewohner“.
+- Bewohner-Verteilung: Pilzkeller, Trümmerhof, Wachturm; wer schon in einem Gebäude arbeitet, bleibt dort.
+- Werte-Menü: Kosten Stufe 2 und Stufe 3.

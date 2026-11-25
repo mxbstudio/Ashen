@@ -40,18 +40,19 @@ func _ready() -> void:
 
 
 func wood_cap() -> int:
-	return Config.wood_cap + (Config.storehouse_bonus if _has("storehouse") else 0)
+	return Config.wood_cap + Config.storehouse_bonus * _level_of("storehouse")
 
 
 func food_cap() -> int:
-	return Config.food_cap + (Config.storehouse_bonus if _has("storehouse") else 0)
+	return Config.food_cap + Config.storehouse_bonus * _level_of("storehouse")
 
 
-func _has(kind: String) -> bool:
+## Stufe des (ersten) Gebäudes dieser Art (0 = nicht gebaut).
+func _level_of(kind: String) -> int:
 	for b in buildings:
-		if b.kind == kind and b.built:
-			return true
-	return false
+		if b.kind == kind:
+			return b.level
+	return 0
 
 
 func is_fire_burning() -> bool:
@@ -170,17 +171,23 @@ func deposit(carry: Dictionary) -> Dictionary:
 	return gave
 
 
+## Bauen oder verbessern möglich? Das letzte Holz bleibt immer fürs Feuer.
 func can_build(b: Node3D) -> bool:
-	return not b.built and wood >= b.cost() + 1   # das letzte Holz bleibt fürs Feuer
+	return b.can_improve() and wood >= b.next_cost() + 1
 
 
+## Bauen bzw. eine Stufe verbessern.
 func build(b: Node3D) -> void:
 	if not can_build(b):
 		return
-	wood -= b.cost()
-	b.build()
+	var c: int = b.next_cost()
+	wood -= c
+	b.improve()
 	_assign_jobs()
-	message.emit("%s gebaut (−%d Holz)" % [b.display_name(), b.cost()])
+	if b.level == 1:
+		message.emit("%s gebaut (−%d Holz)" % [b.display_name(), c])
+	else:
+		message.emit("%s auf Stufe %d (−%d Holz)" % [b.display_name(), b.level, c])
 
 
 ## Bewohner verteilen: zuerst die Zonen-Arbeit (wer schon die richtige hat, behält sie),
@@ -211,22 +218,27 @@ func _assign_jobs() -> void:
 	for r in residents:
 		if not r.has_zone_job():
 			home.append(r)
+	# Reihenfolge: Pilzkeller, Trümmerhof, Wachturm. Wer schon im Gebäude arbeitet, bleibt;
+	# freie Plätze bekommen zuerst Bewohner ohne Arbeit, dann irgendein noch nicht verteilter.
 	var taken := {}
 	for kind in ["mushroom", "scrapyard", "tower"]:
 		for b in buildings:
-			if b.kind == kind and b.built and b.needs_worker():
-				# wer schon hier arbeitet, bleibt – sonst zuerst einer ohne Arbeit, dann irgendeiner
-				var w: Node3D = b.worker if home.has(b.worker) and not taken.has(b.worker) else null
-				for pass_ in 2:
-					for r in home:
-						if w == null and not taken.has(r) and (pass_ == 1 or r.job == null):
-							w = r
-				if w:
+			if b.kind != kind:
+				continue
+			var list: Array[Node3D] = []
+			for w in b.workers:
+				if home.has(w) and not taken.has(w) and list.size() < b.capacity():
+					list.append(w)
 					taken[w] = true
-				b.set_worker(w)
+			for pass_ in 2:
+				for r in home:
+					if list.size() < b.capacity() and not taken.has(r) and (pass_ == 1 or r.job == null):
+						list.append(r)
+						taken[r] = true
+			b.set_workers(list)
 	for r in residents:
 		var j: Node3D = null
 		for b in buildings:
-			if b.worker == r:
+			if b.workers.has(r):
 				j = b
 		r.assign(j)

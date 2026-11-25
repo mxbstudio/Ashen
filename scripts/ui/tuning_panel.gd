@@ -24,6 +24,8 @@ const ENTRIES := [
 	["Arbeiter: Sekunden pro Einheit", "worker_gather_seconds", 1, 15, 0.5, ""],
 	["Arbeiter: Tempo m/s", "worker_speed", 1, 6, 0.2, ""],
 	["Hüter: Trage", "carry_capacity", 0, 30, 1, ""],
+	["Gebäude Stufe 2: Holz", "upgrade_cost_2", 2, 40, 1, ""],
+	["Gebäude Stufe 3: Holz", "upgrade_cost_3", 2, 60, 1, ""],
 	["Max. Gegner gleichzeitig", "max_enemies", 4, 30, 2, "Leistung!"],
 	["Nachschub alle … s", "spawn_interval", 1.0, 10.0, 0.5, ""],
 	["Kriecher-Schaden", "crawler_damage", 1, 20, 1, "neue Gegner"],

@@ -47,6 +47,13 @@ var tower_range := 14.0            # m – Wachturm schießt auf Gegner in diese
 var tower_damage := 6.0
 var tower_interval := 1.5          # s zwischen zwei Schüssen
 
+# Gebäude-Stufen (v0.2): Stufe 2 und 3 kosten so viel Holz
+var upgrade_cost_2 := 10
+var upgrade_cost_3 := 16
+var tower_damage_per_level := 0.5  # Wachturm: +50 % Schaden je Stufe
+var tower_range_per_level := 3.0   # m mehr Reichweite je Stufe
+var tower_interval_per_level := 0.8 # Schussabstand × 0,8 je Stufe (schneller)
+
 # --- Sammeln ----------------------------------------------------------------
 var gather_seconds := 1.2          # s pro Einheit, solange man neben der Fundstelle steht (v0.1: 0,6)
 var gather_range := 2.0            # m
