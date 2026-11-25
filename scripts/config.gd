@@ -44,6 +44,21 @@ var cast_ember := 0.5
 var cast_bell := 1.6
 var cast_modifier := 0.2
 
+# --- Skills (Wirkung) -----------------------------------------------------
+var combat_range := 14.0           # m – nur wenn ein Gegner so nah ist, läuft die Leiste
+var sickle_damage := 12.0
+var sickle_range := 2.8            # m Reichweite des Bogens vor dem Hüter
+var sickle_angle := 150.0          # Grad Öffnungswinkel
+var bow_damage := 9.0
+var bow_range := 14.0              # m
+var arrow_speed := 24.0            # m/s
+var echo_cast_multiplier := 1.6    # Echo: Angriff dauert so viel länger
+var mend_heal := 8.0               # Labung: Heilung pro Treffer
+var sacrifice_multiplier := 2.5    # Opferlicht: Schaden ×2,5
+var sacrifice_lantern_cost := 15.0 # Opferlicht: kostet so viele Sekunden Laternenlicht
+var dummy_hp := 60.0               # Übungspuppen
+var dummy_respawn := 3.0           # s
+
 # --- Gegner-Leben ----------------------------------------------------------
 var hp_crawler := 10.0
 var hp_lighteater := 20.0

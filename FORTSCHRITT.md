@@ -12,8 +12,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 |---|---|---|
 | 0 | Repository, GitHub Action, GitHub Pages, Testszene | fertig, am Handy getestet (>60 FPS) |
 | 1 | Kamera, Hüter bewegen und dashen, Testgelände | fertig, am Handy getestet (70–120 FPS) |
-| 2 | Licht: Laterne, Feuer, Auffüllen | fertig – wartet auf Handy-Test |
-| 3 | Skill-Leiste mit Sichelhieb und Bogenschuss | offen |
+| 2 | Licht: Laterne, Feuer, Auffüllen | fertig, am Handy getestet (60–120 FPS) |
+| 3 | Skill-Leiste mit Sichelhieb und Bogenschuss | fertig – wartet auf Handy-Test |
 | 4 | Gegner, Schaden, Tod, Wiedererscheinen | offen |
 | 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | offen |
 | 6 | Festung, Ressourcen, Gebäude, Bewohner | offen |
@@ -44,6 +44,17 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - Debug-Anzeige: Fehler rot, Hinweise gelb.
 - Welt dunkler gemacht (Umgebungslicht, Mond), damit das Licht wirkt.
 - Neue Werte (frei gewählt): Auffüllen 3 s, Feuer-Lichtradius 10 m, Auffüll-Abstand 3,5 m.
+
+## Etappe 3 – fertig
+- Skill-Leiste mit 3 Slots, läuft automatisch links → rechts im Kreis. Keine Cooldowns, nur Cast-Zeiten.
+- Start: Sichelhieb (0,8 s, Bogen vor dem Hüter), Bogenschuss (0,6 s, Pfeil auf den nächsten Gegner), dritter Slot leer (wird übersprungen).
+- Die Leiste läuft nur, wenn ein Gegner in 14 m Nähe ist („Leiste ruht“ sonst).
+- Dash unterbricht den aktuellen Cast (Fortschritt geht verloren, der gleiche Skill beginnt neu).
+- Steht der Hüter still, dreht er sich automatisch zum nächsten Gegner.
+- Modifikator-Logik ist schon eingebaut (wird in Etappe 5 freigeschaltet).
+- HUD: Leiste über den Touch-Knöpfen, Marker wandert über das aktive Feld, Füllung zeigt den Cast-Fortschritt.
+- 4 Übungspuppen (60 Leben, stehen nach 3 s wieder auf) mit Schadenszahlen.
+- Neue Werte (frei gewählt): Sichelhieb 12 Schaden / 2,8 m / 150°, Bogenschuss 9 Schaden / 14 m, Kampfreichweite 14 m.
 
 ## Geänderte Werte
 | Wert | vorher | jetzt | Grund |

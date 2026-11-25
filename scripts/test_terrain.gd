@@ -2,6 +2,8 @@
 ## Alles aus einfachen Formen, im Code erzeugt.
 extends Node3D
 
+const DummyScript := preload("res://scripts/dummy.gd")
+
 const HALF_SIZE := 30.0   # Gelände ist 60 × 60 m
 
 var _rock_mat := StandardMaterial3D.new()
@@ -13,11 +15,17 @@ func _ready() -> void:
 	_tree_mat.albedo_color = Color(0.22, 0.17, 0.13)
 	_make_ground()
 	_make_border()
+	# Übungspuppen (zum Testen der Skill-Leiste)
+	for p in [Vector3(7, 0, -3), Vector3(9, 0, 1), Vector3(-8, 0, 6), Vector3(-2, 0, -12)]:
+		var d := StaticBody3D.new()
+		d.set_script(DummyScript)
+		d.position = p
+		add_child(d)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7   # fester Startwert -> Gelände sieht immer gleich aus
 	for i in 25:
 		var p := Vector3(rng.randf_range(-27, 27), 0, rng.randf_range(-27, 27))
-		if p.length() < 5.0:
+		if p.length() < 5.0 or _near_dummy(p):
 			continue   # Startplatz frei lassen
 		if i % 2 == 0:
 			_make_rock(p, rng.randf_range(0.6, 1.6))
@@ -120,3 +128,10 @@ func _make_tree(pos: Vector3, h: float) -> void:
 	shape.position.y = 1.0
 	body.add_child(shape)
 	add_child(body)
+
+
+func _near_dummy(p: Vector3) -> bool:
+	for c in get_children():
+		if c.is_in_group("enemies") and c.position.distance_to(p) < 3.0:
+			return true
+	return false

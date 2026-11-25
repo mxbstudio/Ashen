@@ -1,4 +1,4 @@
-## Der Hüter: läuft und dasht. (Kampf, Licht usw. kommen in späteren Etappen.)
+## Der Hüter: läuft, dasht, trägt die Laterne und kämpft über die Skill-Leiste.
 extends CharacterBody3D
 
 signal dashed
@@ -7,6 +7,8 @@ signal dashed
 
 @onready var model: Node3D = $Model
 @onready var lantern: Node3D = $Model/Lantern
+@onready var combat: Node = $Combat
+@onready var skill_bar: Node = $SkillBar
 
 var facing := Vector3(0, 0, 1)     # Blickrichtung auf dem Boden
 var _dash_time := 0.0
@@ -24,6 +26,8 @@ func _physics_process(delta: float) -> void:
 		if move.length() > 1.0 or not Config.joystick_analog:
 			move = move.normalized()
 		facing = move.normalized()
+	elif _dash_time <= 0.0:
+		face_nearest_enemy()   # steht er still, schaut er zum nächsten Gegner
 
 	if Input.is_action_just_pressed("dash"):
 		try_dash()
@@ -52,6 +56,17 @@ func try_dash() -> void:
 	if _dash_cd > 0.0 or _dash_time > 0.0:
 		return
 	_dash_dir = facing
+	skill_bar.interrupt()   # Dash unterbricht den aktuellen Cast
 	_dash_time = Config.dash_duration
 	_dash_cd = Config.dash_cooldown
 	dashed.emit()
+
+
+## Dreht den Hüter zum nächsten Gegner, falls einer in Kampfreichweite ist.
+func face_nearest_enemy() -> void:
+	var e: Node3D = combat.nearest_enemy(Config.combat_range)
+	if e:
+		var to := e.global_position - global_position
+		to.y = 0
+		if to.length() > 0.1:
+			facing = to.normalized()
