@@ -16,7 +16,7 @@ func _ready() -> void:
 	_spawn_boss()
 	# kurzer Ziel-Hinweis beim Start
 	get_tree().call_group("hud", "toast", "Halte das Feuer am Brennen.", 6.0)
-	get_tree().call_group("hud", "toast", "Errichte draußen Fackeln – Licht hält Kriecher fern.", 6.0)
+	get_tree().call_group("hud", "toast", "Erhelle Zonen draußen, schicke Bewohner hin.", 6.0)
 	get_tree().call_group("hud", "toast", "Besiege den Hauptmann im Norden.", 6.0)
 
 

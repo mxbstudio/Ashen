@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -20,6 +20,7 @@
 [ext_resource type="Script" path="res://scripts/ui/travel_button.gd" id="18"]
 [ext_resource type="Script" path="res://scripts/ui/tuning_panel.gd" id="19"]
 [ext_resource type="Script" path="res://scripts/ui/torch_button.gd" id="20"]
+[ext_resource type="Script" path="res://scripts/ui/worker_panel.gd" id="21"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -139,6 +140,16 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("13")
 player = NodePath("../../Player")
+touch_controls = NodePath("../TouchControls")
+
+[node name="Workers" type="Control" parent="UI" node_paths=PackedStringArray("player", "fortress", "touch_controls")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("21")
+player = NodePath("../../Player")
+fortress = NodePath("../../Fortress")
 touch_controls = NodePath("../TouchControls")
 
 [node name="LevelUp" type="Control" parent="UI" node_paths=PackedStringArray("player", "touch_controls")]

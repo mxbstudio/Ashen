@@ -34,6 +34,7 @@ var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	add_to_group("siege")
 	_rng.randomize()
 	time_to_bell = Config.siege_interval
 	gate.broken.connect(_on_gate_broken)
@@ -72,6 +73,8 @@ func advance(dt: float) -> void:
 	if omen and not _omen_announced:
 		_omen_announced = true
 		get_tree().call_group("hud", "toast", "Das Feuer flackert unruhig …")
+		if fortress.zone_workers_total() > 0:
+			get_tree().call_group("hud", "toast", "Die Bewohner draußen kehren heim.")
 		Sfx.play("omen", 0.0, 0.0)
 	if time_to_bell <= 0.0:
 		_start()

@@ -11,7 +11,7 @@ var dash_duration := 0.18          # s
 var dash_cooldown := 0.6           # s bis zum nächsten Dash
 var potions_start := 3
 var potion_heal := 40.0
-var carry_capacity := 15           # Trage: Einheiten
+var carry_capacity := 6            # Trage: Einheiten (v0.1: 15 – sammeln sollen jetzt die Bewohner)
 var death_time_loss := 60.0        # s, die beim Tod vergehen
 var respawn_delay := 2.5           # s Todesbildschirm, bevor er am Feuer erscheint
 var respawn_protection := 3.0      # s unverwundbar nach dem Wiedererscheinen
@@ -48,7 +48,7 @@ var tower_damage := 6.0
 var tower_interval := 1.5          # s zwischen zwei Schüssen
 
 # --- Sammeln ----------------------------------------------------------------
-var gather_seconds := 0.6          # s pro Einheit, solange man neben der Fundstelle steht
+var gather_seconds := 1.2          # s pro Einheit, solange man neben der Fundstelle steht (v0.1: 0,6)
 var gather_range := 2.0            # m
 var wood_per_node := 5
 var food_per_node := 3
@@ -84,6 +84,14 @@ var torch_light_radius := 8.0      # m – Lichtkreis der Zone, Kriecher meiden 
 var torch_drain_lighteater := 8.0  # s Fackel-Brenndauer, die ein Lichtfresser pro Sekunde frisst
 var torch_raid_interval := 45.0    # s – so oft schickt die Dunkelheit einen Lichtfresser zu einer Fackel
 var torch_use_range := 2.6         # m – so nah muss der Hüter ran zum Errichten/Nachlegen
+
+# --- Bewohner draußen (v0.2) ------------------------------------------------
+var resident_hp := 25.0            # Leben eines Bewohners (heilt am Feuer)
+var resident_heal_per_second := 3.0
+var worker_speed := 2.6            # m/s draußen (Holzfäller/Sammler)
+var worker_carry := 2              # so viel bringt ein Bewohner pro Gang mit
+var worker_gather_seconds := 4.0   # s pro Einheit an der Fundstelle
+var resident_hunt_range := 10.0    # m – so nah müssen Gegner sein, um einen Bewohner draußen anzugreifen
 
 # --- Boss -------------------------------------------------------------------
 var boss_speed := 1.6

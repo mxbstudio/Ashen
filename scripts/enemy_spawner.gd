@@ -65,6 +65,8 @@ func _find_spawn_point() -> Vector3:
 			continue   # nicht direkt vor dem Tor
 		if p.distance_to(player.global_position) < Config.spawn_min_distance:
 			continue
+		if _near_resident(p):
+			continue
 		if Lights.fixed_source_at(p, 3.0) != null:
 			continue
 		if p.distance_to(Vector3(0, 0, -80)) < 14.0:
@@ -104,3 +106,12 @@ func _raid_step(delta: float) -> void:
 		add_child(e)
 		e.global_position = p
 		return
+
+
+
+## Steht ein Bewohner draußen in der Nähe? (Dort sollen keine Gegner aus dem Nichts erscheinen.)
+func _near_resident(p: Vector3) -> bool:
+	for r in get_tree().get_nodes_in_group("residents"):
+		if r.is_exposed() and p.distance_to(r.global_position) < 12.0:
+			return true
+	return false

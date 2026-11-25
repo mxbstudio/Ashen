@@ -22,6 +22,15 @@ var siege_gate: Node3D = null
 var gate_dps := 1.0
 var _gate_slot := 0.0              # wo am Tor (seitlich) er angreift
 
+# Bewohner draußen jagen (v0.2): Kriecher und Verlorene greifen Bewohner vor der Mauer an
+var hunts_residents := false
+var hunt_damage := 0.0
+var hunt_interval := 1.5           # s zwischen zwei Schlägen gegen einen Bewohner
+var hunt_avoids_light := false     # Kriecher: Bewohner im Licht einer Fackel/des Feuers sind sicher
+var _prey: Node3D = null
+var _prey_check := 0.0
+var _hunt_cd := 0.0
+
 var _knock := Vector3.ZERO
 var _flash := 0.0
 var _dying := -1.0
@@ -146,6 +155,8 @@ func _physics_process(delta: float) -> void:
 	var desired: Vector3
 	if _in_siege_mode():
 		desired = _siege_think(delta)
+	elif _update_prey(delta):
+		desired = _hunt_think(delta)
 	else:
 		desired = _think(delta)
 	velocity = desired + _knock
@@ -243,4 +254,44 @@ func _siege_think(delta: float) -> Vector3:
 		Sfx.play("gate", -8.0)
 	# kleines Wackeln beim Schlagen
 	model.rotation.x = sin(Time.get_ticks_msec() / 90.0) * 0.15
+	return Vector3.ZERO
+
+
+
+# --- Bewohner jagen ------------------------------------------------------------
+
+## Sucht (ein paar Mal pro Sekunde) einen Bewohner draußen, der näher ist als der Hüter.
+func _update_prey(delta: float) -> bool:
+	if not hunts_residents:
+		return false
+	_hunt_cd -= delta
+	_prey_check -= delta
+	if _prey_check <= 0.0:
+		_prey_check = 0.3
+		_prey = null
+		var best_d := Config.resident_hunt_range
+		if player_available():
+			best_d = minf(best_d, flat_to_player().length())
+		for r in get_tree().get_nodes_in_group("residents"):
+			if not r.is_alive() or not r.is_exposed():
+				continue
+			if hunt_avoids_light and Lights.fixed_source_at(r.global_position) != null:
+				continue
+			var d := global_position.distance_to(r.global_position)
+			if d < best_d:
+				best_d = d
+				_prey = r
+	return _prey != null and is_instance_valid(_prey) and _prey.is_alive()
+
+
+## Zum Bewohner laufen und zuschlagen (im Dunkeln stärker, wie gegen den Hüter).
+func _hunt_think(_delta: float) -> Vector3:
+	var v := _prey.global_position - global_position
+	v.y = 0
+	if v.length() > 0.8 + hit_radius:
+		return v.normalized() * speed
+	if _hunt_cd <= 0.0:
+		_hunt_cd = hunt_interval
+		var amount := hunt_damage * (1.0 + Config.dark_damage_bonus if in_darkness() else 1.0)
+		_prey.take_damage(amount, self)
 	return Vector3.ZERO

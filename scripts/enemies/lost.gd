@@ -18,6 +18,9 @@ func _build() -> void:
 	gate_dps = Config.gate_dps_lost
 	_gate_slot = randf_range(-1.7, 1.7)
 	xp = Config.xp_lost
+	hunts_residents = true
+	hunt_damage = Config.lost_damage
+	hunt_interval = 2.5
 	var body := CapsuleMesh.new()
 	body.radius = 0.75
 	body.height = 2.6

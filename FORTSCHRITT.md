@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 in Arbeit – Etappe 1 (Gebiete erhellen) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 in Arbeit – Etappe 1 getestet (passt), Etappe 2 (Bewohner hinschicken) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -116,6 +116,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Belagerung Größe | 12 (+4), letzte 22 | 18 (+6), letzte 30 | zu leicht |
 | Torschaden pro Sekunde | Kriecher 0,8 / Lichtfresser 0,5 / Verlorener 2,5 | 1,6 / 1,0 / 5,0 | zu leicht |
 | Bewohner-Verteidigung | 3 Schaden, 2,5 s | 2 Schaden, 3,5 s | zu leicht |
+| Trage des Hüters | 15 | 6 | v0.2: Sammeln übernehmen die Bewohner |
+| Sammeln des Hüters | 0,6 s pro Einheit | 1,2 s | v0.2: Sammeln übernehmen die Bewohner |
 
 ## Etappe 7 – fertig
 - **Belagerung** alle 8 min: 30 s vorher flackert das Feuer unruhig („Das Feuer flackert unruhig …“, kein Countdown). Dann läutet die Glocke (heller Blitz), Angreifer erscheinen in Gruppen vor dem Tor (12, jede weitere +4) und schlagen aufs Tor (Anzeige „BELAGERUNG“ mit Torleben und Angreifern). Normale Gegner erscheinen währenddessen nicht.
@@ -158,8 +160,8 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 
 | Etappe | Inhalt | Aufwand | Status |
 |---|---|---|---|
-| 1 | Gebiete erhellen: Zonen, Fackelpfähle, Brennstoff, Lichtfresser löschen | mittel | zum Testen |
-| 2 | Bewohner als Holzfäller / Sammler in helle Zonen schicken | groß | offen |
+| 1 | Gebiete erhellen: Zonen, Fackelpfähle, Brennstoff, Lichtfresser löschen | mittel | fertig, am Handy getestet (Build #17) |
+| 2 | Bewohner als Holzfäller / Sammler in helle Zonen schicken | groß | zum Testen |
 | 3 | Gebäude-Upgrades (2–3 Stufen) | mittel | offen |
 | 4 | Begehbarer Wachturm | mittel | offen |
 | 5 | Speicherstand im Browser | mittel | offen |
@@ -185,3 +187,23 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 - Werte-Menü: Fackel-Kosten, Sekunden pro Holz, Lichtradius, Raubzug-Abstand.
 - Neue Werte (frei gewählt): siehe Abschnitt „Zonen & Fackelpfähle“ in `scripts/config.gd`.
 - Das eigene Sammeln des Hüters bleibt in Etappe 1 noch wie bisher (wird in Etappe 2 ersetzt).
+
+## Etappe 2 – Bewohner hinschicken
+- **Knopf „Bewohner einteilen“** am Feuer (über „Leiste umbauen“). Menü pausiert das Spiel.
+  Pro Zone: Holzfäller (wenn es dort Holz gibt) und Sammler (wenn es dort Nahrung gibt) mit − / +.
+  „+“ geht nur bei heller Zone und solange noch Bewohner übrig sind.
+- **Ablauf**: Bewohner läuft durchs Tor zur Zone, sucht die nächste volle Fundstelle seiner Art, sammelt
+  2 Einheiten (4 s pro Einheit), bringt sie zum Feuer („+2 Holz“ über dem Kopf), kurze Pause, wieder los.
+  Trägt er etwas, sieht man ein Bündel auf dem Rücken.
+- **Nur in hellen Zonen**: Erlischt die Fackel, kommen die Arbeiter heim und warten am Feuer. Brennt sie wieder,
+  gehen sie von selbst los. Bei Belagerung (schon beim Vorzeichen) kommen alle heim.
+- **Gefahr draußen**: Bewohner haben 25 Leben. Kriecher greifen Bewohner draußen im Dunkeln an (im Licht einer Fackel
+  sind sie vor Kriechern sicher), Verlorene überall. Getroffen → Lebensbalken, Flucht in die Festung, am Feuer
+  heilen sie (3/s) und gehen erst ab 60 % Leben wieder raus. Stirbt einer, fällt sein Arbeitsplatz weg.
+  Gegner erscheinen nicht direkt neben Bewohnern.
+- **Gebäude** bekommen die Bewohner, die nicht draußen eingeteilt sind (Pilzkeller, Trümmerhof, Wachturm).
+  Wer schon in einem Gebäude arbeitet, bleibt dort, solange es geht.
+- **Hüter sammelt weniger**: Trage 6 statt 15, 1,2 s statt 0,6 s pro Einheit.
+- HUD: „Bewohner: 5 (2 draußen)“.
+- Werte-Menü: Bewohner-Leben, Einheiten pro Gang, Sekunden pro Einheit, Arbeiter-Tempo, Trage des Hüters.
+- Neue Werte (frei gewählt): siehe Abschnitt „Bewohner draußen“ in `scripts/config.gd`.

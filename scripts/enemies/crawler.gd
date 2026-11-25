@@ -19,6 +19,10 @@ func _build() -> void:
 	gate_dps = Config.gate_dps_crawler
 	_gate_slot = randf_range(-1.7, 1.7)
 	xp = Config.xp_crawler
+	hunts_residents = true
+	hunt_damage = Config.crawler_damage
+	hunt_avoids_light = true
+	hunt_interval = 2.0
 	_angle = randf() * TAU
 	_orbit_dir = 1.0 if randf() < 0.5 else -1.0
 	_attack_cd = randf_range(Config.crawler_attack_pause.x, Config.crawler_attack_pause.y)

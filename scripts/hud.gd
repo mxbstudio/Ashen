@@ -245,7 +245,9 @@ func _draw_fortress(font: Font) -> void:
 	var food_col := Color(0.6, 1, 0.85) if not low_food else Color(1, 0.25, 0.15).lerp(Color(0.6, 1, 0.85), blink)
 	draw_string(font, Vector2(x, y + 60), "Nahrung: %d / %d" % [int(fortress.food), fortress.food_cap()],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, food_col)
-	draw_string(font, Vector2(x, y + 96), "Bewohner: %d" % fortress.residents.size(),
+	var outside: int = fortress.residents_outside()
+	draw_string(font, Vector2(x, y + 96), "Bewohner: %d%s" % [fortress.residents.size(),
+			"  (%d draußen)" % outside if outside > 0 else ""],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.9, 0.85, 0.8))
 	# Fackeln draußen: wie viele brennen? Rot blinkend, wenn eine angegriffen wird.
 	var burning := 0
