@@ -16,7 +16,7 @@ func _ready() -> void:
 	_make_ground()
 	_make_border()
 	# Übungspuppen (zum Testen der Skill-Leiste)
-	for p in [Vector3(7, 0, -3), Vector3(9, 0, 1), Vector3(-8, 0, 6), Vector3(-2, 0, -12)]:
+	for p in []:   # Übungspuppen abgeschaltet seit Etappe 4 (echte Gegner)
 		var d := StaticBody3D.new()
 		d.set_script(DummyScript)
 		d.position = p

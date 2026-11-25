@@ -5,9 +5,9 @@ extends Node3D
 
 
 func _ready() -> void:
-	player.dashed.connect(func(): DebugOverlay.watch("Letzter Dash", "%.1fs" % (Time.get_ticks_msec() / 1000.0)))
+	player.died.connect(_on_player_died)
 
 
-func _process(_delta: float) -> void:
-	if Input.is_action_just_pressed("potion"):
-		DebugOverlay.note("Trank gedrückt (Funktion kommt in Etappe 4)")
+func _on_player_died() -> void:
+	# Die Zeitstrafe wirkt ab Etappe 6 auf die Festung (Holz/Nahrung).
+	DebugOverlay.note("Hüter gefallen – %d s vergehen" % int(Config.death_time_loss))

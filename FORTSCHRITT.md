@@ -13,8 +13,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | 0 | Repository, GitHub Action, GitHub Pages, Testszene | fertig, am Handy getestet (>60 FPS) |
 | 1 | Kamera, Hüter bewegen und dashen, Testgelände | fertig, am Handy getestet (70–120 FPS) |
 | 2 | Licht: Laterne, Feuer, Auffüllen | fertig, am Handy getestet (60–120 FPS) |
-| 3 | Skill-Leiste mit Sichelhieb und Bogenschuss | fertig – wartet auf Handy-Test |
-| 4 | Gegner, Schaden, Tod, Wiedererscheinen | offen |
+| 3 | Skill-Leiste mit Sichelhieb und Bogenschuss | fertig, am Handy getestet |
+| 4 | Gegner, Schaden, Tod, Wiedererscheinen | fertig – wartet auf Handy-Test |
 | 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | offen |
 | 6 | Festung, Ressourcen, Gebäude, Bewohner | offen |
 | 7 | Belagerung, Leuchtfeuer, Boss, Sieg/Niederlage | offen |
@@ -56,6 +56,19 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - Rückmeldung beim Auslösen (nach Max' Test: unklar, wann ein Skill auslöst): Ablauf ist *erst ausholen (Feld füllt sich), dann auslösen*. Beim Auslösen blitzt das Feld auf, der Skillname steigt auf, und ein Ring am Boden um den Hüter füllt sich während des Ausholens und platzt beim Auslösen auf. Sichelhieb-Bogen länger sichtbar (0,28 s).
 - 4 Übungspuppen (60 Leben, stehen nach 3 s wieder auf) mit Schadenszahlen.
 - Neue Werte (frei gewählt): Sichelhieb 12 Schaden / 2,8 m / 150°, Bogenschuss 9 Schaden / 14 m, Kampfreichweite 14 m.
+
+## Etappe 4 – fertig
+- **Kriecher** (10 Leben, 5 Schaden, schnell, im Rudel von 3–4): lauern knapp außerhalb des Laternenlichts, kreisen, springen dann hinein, beißen und ziehen sich zurück. Ins Feuerlicht trauen sie sich nicht – am Feuer greifen sie nicht an.
+- **Lichtfresser** (20 Leben): fliegen auf die Laterne zu und saugen daran (6 s Laternenlicht pro Sekunde), sichtbar als heller Faden. Verletzen den Hüter nicht.
+- **Verlorener** (80 Leben, 18 Schaden, langsam, groß): ignoriert das Licht, holt 0,9 s lang aus (roter Kreis am Boden), dann Schlag – wegdashen!
+- **Dunkelheit**: Steht ein Gegner außerhalb jedes Lichtkreises (auch außerhalb der Laterne), macht er +50 % Schaden. Erkennbar an grell roten Augen. Wird die Laterne klein, stehen angreifende Gegner eher im Dunkeln.
+- Bis zu 16 Gegner gleichzeitig; neue erscheinen alle 3 s im Dunkeln, mindestens 14 m vom Hüter entfernt.
+- **Hüter**: 100 Leben, 3 Tränke (+40). Während des Dashs unverwundbar. Am Feuer: heilt 10/s, Tränke werden aufgefüllt.
+- **Tod**: Todesbildschirm 2,5 s, dann erscheint er am Feuer (volles Leben, volle Laterne, 3 s Schutz, blinkt). Die 60 s Zeitverlust wirken ab Etappe 6 auf die Festung.
+- Erfahrungspunkte (EP) werden schon gezählt (Kriecher 1, Lichtfresser 2, Verlorener 5) – für die Level-ups in Etappe 5.
+- HUD: Leben, Laterne, Tränke oben rechts; roter Bildschirmrand bei Treffern; Lebensbalken über verletzten Gegnern.
+- Übungspuppen abgeschaltet.
+- Neue Werte (frei gewählt): siehe Abschnitt „Gegner“ in `scripts/config.gd`.
 
 ## Geänderte Werte
 | Wert | vorher | jetzt | Grund |

@@ -47,7 +47,7 @@ func interrupt() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	running = has_attack() and player.combat.enemy_near()
+	running = has_attack() and player.is_alive() and player.combat.enemy_near()
 	if not running:
 		progress = 0.0
 		return

@@ -38,3 +38,15 @@ func refill_source_at(pos: Vector3) -> Node3D:
 		if s.has_method("can_refill_at") and s.can_refill_at(pos):
 			return s
 	return null
+
+
+## Feste Lichtquelle (Feuer, Leuchtfeuer), in deren Kreis die Stelle liegt – sonst null.
+## margin vergrößert den Kreis (z. B. damit Kriecher Abstand halten).
+func fixed_source_at(pos: Vector3, margin := 0.0) -> Node3D:
+	for s in _sources:
+		if not s.has_method("can_refill_at"):
+			continue   # die Laterne zählt nicht als feste Lichtquelle
+		var d := Vector2(pos.x - s.global_position.x, pos.z - s.global_position.z).length()
+		if d < s.get_light_radius() + margin:
+			return s
+	return null

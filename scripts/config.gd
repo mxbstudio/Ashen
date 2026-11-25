@@ -13,6 +13,10 @@ var potions_start := 3
 var potion_heal := 40.0
 var carry_capacity := 15           # Trage: Einheiten
 var death_time_loss := 60.0        # s, die beim Tod vergehen
+var respawn_delay := 2.5           # s Todesbildschirm, bevor er am Feuer erscheint
+var respawn_protection := 3.0      # s unverwundbar nach dem Wiedererscheinen
+var fire_heal_per_second := 10.0   # am Feuer heilt der Hüter langsam
+var potions_refill_at_fire := true # am Feuer werden die Tränke wieder aufgefüllt
 
 # --- Laterne ---------------------------------------------------------------
 var lantern_burn_time := 180.0     # s volle Brenndauer
@@ -59,11 +63,32 @@ var sacrifice_lantern_cost := 15.0 # Opferlicht: kostet so viele Sekunden Latern
 var dummy_hp := 60.0               # Übungspuppen
 var dummy_respawn := 3.0           # s
 
-# --- Gegner-Leben ----------------------------------------------------------
+# --- Gegner ----------------------------------------------------------------
 var hp_crawler := 10.0
 var hp_lighteater := 20.0
 var hp_lost := 80.0
 var hp_boss := 800.0
+
+# Kriecher: schnell, schwach, Schwarm; lauern am Rand des Lichts und springen hinein
+var crawler_speed := 5.0
+var crawler_damage := 5.0
+var crawler_attack_pause := Vector2(1.5, 3.5)   # s zwischen zwei Angriffen (zufällig)
+# Lichtfresser: saugen an der Laterne statt den Hüter zu verletzen
+var lighteater_speed := 3.2
+var lighteater_drain := 6.0        # s Laternenlicht pro Sekunde, solange er saugt
+# Verlorener: langsam, groß, ignoriert das Licht, holt sichtbar aus
+var lost_speed := 1.8
+var lost_damage := 18.0
+var lost_windup := 0.9             # s Vorwarnung vor dem Schlag
+var lost_reach := 2.4              # m
+
+# Gegner im Gelände
+var max_enemies := 16              # mehr gleichzeitig nicht (Leistung im Browser)
+var spawn_interval := 3.0          # s zwischen zwei Nachschüben
+var spawn_min_distance := 14.0     # m – erscheinen nie näher am Hüter
+var xp_crawler := 1
+var xp_lighteater := 2
+var xp_lost := 5
 
 # --- Kamera ----------------------------------------------------------------
 var camera_width := 14.0           # wie viele Meter waagerecht ins Bild passen (Hochformat)

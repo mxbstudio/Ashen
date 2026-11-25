@@ -1,5 +1,6 @@
 ## HUD (Anzeige am Bildschirm). Wächst mit jeder Etappe.
-## Aktuell: Laternen-Balken oben rechts, Skill-Leiste unten (über den Touch-Knöpfen).
+## Oben rechts: Leben, Laterne, Tränke. Unten: Skill-Leiste (über den Touch-Knöpfen).
+## Roter Bildschirmrand bei Treffern, Todesbildschirm.
 extends Control
 
 @export var player: Node3D
@@ -47,9 +48,42 @@ func _draw() -> void:
 	var x := size.x - BAR_W - MARGIN
 	var y := MARGIN + 6.0
 	var lantern = player.lantern
+	_draw_bar(font, x, y, "Leben  %d" % ceili(player.health),
+			player.health / Config.player_max_health, Color(0.85, 0.2, 0.18))
+	y += 62.0
 	_draw_bar(font, x, y, "Laterne", lantern.fraction(), Color(1.0, 0.7, 0.3),
 			lantern.refilling)
+	y += 62.0
+	draw_string(font, Vector2(x, y + 22), "Tränke: %d / %d" % [player.potions, Config.potions_start],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.6, 1.0, 0.6, 0.9))
 	_draw_skill_bar(font, player.skill_bar)
+	_draw_hurt(player.hurt_flash)
+	if not player.is_alive():
+		_draw_death(font)
+
+
+## Roter Rand, wenn der Hüter getroffen wird.
+func _draw_hurt(v: float) -> void:
+	if v <= 0.0:
+		return
+	var a := clampf(v / 0.35, 0.0, 1.0) * 0.45
+	var t := 40.0
+	var c := Color(0.8, 0.05, 0.02, a)
+	draw_rect(Rect2(0, 0, size.x, t), c)
+	draw_rect(Rect2(0, size.y - t, size.x, t), c)
+	draw_rect(Rect2(0, 0, t, size.y), c)
+	draw_rect(Rect2(size.x - t, 0, t, size.y), c)
+
+
+func _draw_death(font: Font) -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.7))
+	var lines := ["Das Licht verlässt dich …", "%d Sekunden vergehen." % int(Config.death_time_loss),
+			"Du erwachst am Feuer."]
+	for i in lines.size():
+		var fs := 40 if i == 0 else 28
+		var ts := font.get_string_size(lines[i], HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
+		draw_string(font, Vector2((size.x - ts.x) / 2.0, size.y * 0.42 + i * 56), lines[i],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 0.7, 0.4, 0.95))
 
 
 ## Skill-Leiste: 3 Felder nebeneinander; ein Marker wandert während des Casts
