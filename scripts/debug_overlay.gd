@@ -33,7 +33,7 @@ func watch(key: String, value) -> void:
 
 ## Eigene Meldung in die Fehlerliste schreiben (z. B. für Hinweise beim Testen).
 func note(text: String) -> void:
-	_add_error_line(text)
+	_add_error_line("Info: " + text, false)
 
 
 func _read_build_info() -> String:
@@ -88,8 +88,9 @@ func _on_info_input(event: InputEvent) -> void:
 		_details = not _details
 
 
-func _add_error_line(text: String) -> void:
-	_error_count += 1
+func _add_error_line(text: String, is_error := true) -> void:
+	if is_error:
+		_error_count += 1
 	_error_lines.append(text)
 	while _error_lines.size() > MAX_ERRORS:
 		_error_lines.pop_front()
