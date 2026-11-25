@@ -4,6 +4,7 @@
 extends Control
 
 @export var player: Node3D
+@export var fortress: Node3D
 
 const BAR_W := 230.0
 const BAR_H := 26.0
@@ -12,6 +13,7 @@ const MARGIN := 16.0
 var _t := 0.0
 var _slot_flash := {}      # Feld-Nummer -> Restzeit des Aufblitzens
 var _popups: Array = []    # [text, farbe, restzeit] – Skillname, der beim Auslösen aufsteigt
+var _toasts: Array = []    # [text, restzeit] – kurze Meldungen in der Bildschirmmitte
 const FLASH_TIME := 0.3
 const POPUP_TIME := 0.7
 
@@ -19,11 +21,21 @@ const POPUP_TIME := 0.7
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_to_group("hud")
+	if fortress:
+		fortress.message.connect(toast)
 	if player:
 		player.skill_bar.skill_fired.connect(_on_skill_fired)
 
 
 ## Wird aufgerufen, sobald ein Skill ausgelöst wird (Feld war voll).
+## Kurze Meldung in der Bildschirmmitte (z. B. "Abgeladen: +5 Holz").
+func toast(text: String) -> void:
+	_toasts.append([text, 2.5])
+	if _toasts.size() > 4:
+		_toasts.pop_front()
+
+
 func _on_skill_fired(id: String, slot: int) -> void:
 	_slot_flash[slot] = FLASH_TIME
 	_popups.append([SkillData.DEFS[id]["name"] + "!", SkillData.color(id), POPUP_TIME])
@@ -38,6 +50,9 @@ func _process(delta: float) -> void:
 	for p in _popups:
 		p[2] -= delta
 	_popups = _popups.filter(func(p): return p[2] > 0.0)
+	for t in _toasts:
+		t[1] -= delta
+	_toasts = _toasts.filter(func(t): return t[1] > 0.0)
 	queue_redraw()
 
 
@@ -63,10 +78,18 @@ func _draw() -> void:
 	draw_rect(xr, Color(0, 0, 0, 0.6))
 	draw_rect(Rect2(xr.position, Vector2(xr.size.x * float(player.xp) / player.xp_for_next_level(), xr.size.y)),
 			Color(0.65, 0.6, 1.0))
+	y += 34.0
+	var load_txt := "Trage %d/%d" % [player.carry_total(), Config.carry_capacity]
+	if player.carry_total() > 0:
+		load_txt += ": %d Holz, %d Nahr." % [player.carry["wood"], player.carry["food"]]
+	draw_string(font, Vector2(x - 40, y + 22), load_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20,
+			Color(1, 0.85, 0.6, 0.9) if player.carry_total() < Config.carry_capacity else Color(1, 0.5, 0.3))
 	if not player.skill_bar.stash.is_empty():
 		y += 34.0
 		draw_string(font, Vector2(x, y + 22), "Vorrat: %d Skill(s)" % player.skill_bar.stash.size(),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.85, 0.5, 0.9))
+	_draw_fortress(font)
+	_draw_toasts(font)
 	_draw_skill_bar(font, player.skill_bar)
 	_draw_hurt(player.hurt_flash)
 	if not player.is_alive():
@@ -186,3 +209,36 @@ func _draw_bar(font: Font, x: float, y: float, label: String, frac: float, col: 
 		c = c.lightened(0.25 + 0.2 * sin(_t * 10.0))
 	draw_rect(Rect2(x + 2, by + 2, (BAR_W - 4) * frac, BAR_H - 4), c)
 	draw_rect(Rect2(x, by, BAR_W, BAR_H), Color(1, 1, 1, 0.35), false, 2.0)
+
+
+## Festung oben links: Holz im Feuer (mit Restzeit), Nahrung, Bewohner.
+func _draw_fortress(font: Font) -> void:
+	if fortress == null:
+		return
+	var x := MARGIN
+	var y := 40.0
+	draw_rect(Rect2(x - 6, y - 4, 300, 118), Color(0, 0, 0, 0.4))
+	var secs := int(fortress.wood_seconds_left())
+	var low_wood: bool = fortress.wood < 5
+	var blink := 0.5 + 0.5 * sin(_t * 8.0)
+	var wood_col := Color(1, 0.7, 0.35) if not low_wood else Color(1, 0.25, 0.15).lerp(Color(1, 0.7, 0.35), blink)
+	draw_string(font, Vector2(x, y + 24), "Feuer: %d Holz  (%d:%02d)" % [int(fortress.wood), secs / 60, secs % 60],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, wood_col)
+	var low_food: bool = fortress.food < 3
+	var food_col := Color(0.6, 1, 0.85) if not low_food else Color(1, 0.25, 0.15).lerp(Color(0.6, 1, 0.85), blink)
+	draw_string(font, Vector2(x, y + 60), "Nahrung: %d / %d" % [int(fortress.food), fortress.food_cap()],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, food_col)
+	draw_string(font, Vector2(x, y + 96), "Bewohner: %d" % fortress.residents.size(),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.9, 0.85, 0.8))
+
+
+func _draw_toasts(font: Font) -> void:
+	var y := size.y * 0.3
+	for t in _toasts:
+		var a := clampf(t[1], 0.0, 1.0)
+		var txt: String = t[0]
+		var ts := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 28)
+		var px := (size.x - ts.x) / 2.0
+		draw_rect(Rect2(px - 14, y - 30, ts.x + 28, 42), Color(0, 0, 0, 0.55 * a))
+		draw_string(font, Vector2(px, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(1, 0.9, 0.7, a))
+		y += 50.0

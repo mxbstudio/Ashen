@@ -32,7 +32,7 @@ var _burn_tick := 0.0
 func _ready() -> void:
 	add_to_group("enemies")
 	collision_layer = 4            # Ebene 3: Gegner
-	collision_mask = 1 | 4         # stoßen an Welt und aneinander, nicht am Hüter
+	collision_mask = 1 | 4 | 16    # stoßen an Welt, aneinander und ans Tor, nicht am Hüter
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
 	model = Node3D.new()
 	add_child(model)

@@ -15,8 +15,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | 2 | Licht: Laterne, Feuer, Auffüllen | fertig, am Handy getestet (60–120 FPS) |
 | 3 | Skill-Leiste mit Sichelhieb und Bogenschuss | fertig, am Handy getestet |
 | 4 | Gegner, Schaden, Tod, Wiedererscheinen | fertig, am Handy getestet |
-| 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | fertig – wartet auf Handy-Test |
-| 6 | Festung, Ressourcen, Gebäude, Bewohner | offen |
+| 5 | Modifikatoren, weitere Skills, Level-up, Leiste umbauen | fertig, am Handy getestet |
+| 6 | Festung, Ressourcen, Gebäude, Bewohner | fertig – wartet auf Handy-Test |
 | 7 | Belagerung, Leuchtfeuer, Boss, Sieg/Niederlage | offen |
 | 8 | HUD fertig, Werte einstellen | offen |
 
@@ -81,6 +81,19 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - Neuer Skill landet im ersten freien Feld, sonst im **Vorrat**.
 - **Leiste umbauen** am Feuer (Knopf über der Leiste): Feld antippen → anderes Feld (tauschen) oder Vorrat-Skill (einsetzen) oder „Feld leeren“. Nach dem Umbau beginnt die Leiste wieder links.
 - HUD: Stufe mit EP-Balken, Hinweis auf Skills im Vorrat.
+
+## Etappe 6 – fertig
+- **Karte**: Festung 24 × 24 m (Feuer in der Mitte, Tor in der Nordmauer), davor das dunkle Gebiet (60 × 80 m). Hintere Mauern hoch, vordere niedrig (Kamerasicht). Testgelände entfernt.
+- **Tor**: lässt nur den Hüter durch; Gegner kommen nicht in die Festung. Hat 200 Leben (für Etappe 7).
+- **Feuer**: verbrennt 1 Holz / 20 s (Start 20). Unter 5 Holz wird der Lichtkreis kleiner. Bei 0 Holz: **Niederlage** („Das Feuer ist erloschen“, Knopf „Neu starten“ setzt alles zurück).
+- **Holz** ist ein gemeinsamer Vorrat: Feuer und Gebäude zehren davon. Lagergrenze 30 Holz / 25 Nahrung.
+- **Fundstellen** draußen: 10 Holzhaufen (je 5), 6 leuchtende Pilzstellen (je 3 Nahrung). Daneben stehen = automatisch sammeln (0,6 s pro Einheit). Leer → wachsen nach 150 s nach.
+- **Trage**: 15 Einheiten. Im Feuerring wird automatisch abgeladen.
+- **Gebäude** (Bauplatz betreten → Knopf „… bauen“): Vorratslager 5 Holz (+30 Lagerplatz), Trümmerhof 8 Holz (+1 Holz/45 s), Pilzkeller 8 Holz (+1 Nahrung/40 s), Wachturm 10 Holz (schießt auf Gegner vor dem Tor, 6 Schaden alle 1,5 s). Das letzte Holz bleibt immer fürs Feuer.
+- **Bewohner** (5): arbeiten in Pilzkeller, Trümmerhof, Wachturm (in dieser Reihenfolge), die übrigen stehen am Feuer. Jeder isst 1 Nahrung / 60 s. Ohne Nahrung stirbt alle 30 s einer.
+- **Tod des Hüters**: 60 s Festungszeit vergehen sofort (Holz brennt, Bewohner essen, Gebäude produzieren).
+- HUD: Festung oben links (Holz mit Restzeit, Nahrung, Bewohner – blinkt rot, wenn knapp), Trage oben rechts, kurze Meldungen in der Mitte. Debug-Zeile ist jetzt eingeklappt (antippen zum Aufklappen).
+- Neue Werte (frei gewählt): siehe Abschnitte „Feuer & Festung“ und „Sammeln“ in `scripts/config.gd`.
 
 ## Geänderte Werte
 | Wert | vorher | jetzt | Grund |

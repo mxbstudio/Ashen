@@ -2,7 +2,7 @@
 ## - oben links: Build-Version, FPS und frei setzbare Werte (DebugOverlay.watch("Name", wert))
 ## - darunter: die letzten Fehlermeldungen in Rot
 ## - "Bitte Handy drehen", wenn das Handy quer gehalten wird (nur auf Touch-Geräten)
-## Antippen der Info-Zeile blendet die Details ein/aus.
+## Antippen der Info-Zeile blendet die Details ein/aus (standardmäßig eingeklappt).
 extends CanvasLayer
 
 const MAX_ERRORS := 6
@@ -14,7 +14,7 @@ var _rotate: ColorRect
 var _watched := {}
 var _error_lines: Array[String] = []
 var _error_count := 0
-var _details := true
+var _details := false
 var _build := "lokal"
 
 
@@ -44,9 +44,10 @@ func _read_build_info() -> String:
 
 
 func _build_ui() -> void:
-	var font_size := 22
+	var font_size := 18
 
 	_info = Label.new()
+	_info.add_to_group("touch_blockers")
 	_info.position = Vector2(8, 4)
 	_info.add_theme_font_size_override("font_size", font_size)
 	_info.add_theme_color_override("font_color", Color(0.9, 0.9, 0.8, 0.85))
@@ -113,7 +114,7 @@ func _process(_delta: float) -> void:
 			txt += "\n%s: %s" % [k, str(_watched[k])]
 	_info.text = txt
 
-	_errors.visible = _details and not _error_lines.is_empty()
+	_errors.visible = not _error_lines.is_empty()
 	_errors.position.y = _info.position.y + _info.size.y + 4
 	_errors.size.x = size.x * 0.6
 	_errors.text = "\n".join(_error_lines)

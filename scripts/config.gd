@@ -35,6 +35,24 @@ var food_seconds_per_person := 60.0
 var residents_start := 5
 var scrapyard_seconds_per_wood := 45.0   # Trümmerhof
 var mushroom_seconds_per_food := 40.0    # Pilzkeller
+var starve_seconds := 30.0         # ohne Nahrung stirbt alle 30 s ein Bewohner
+var wood_cap := 30                 # so viel Holz passt ohne Vorratslager ins Lager
+var food_cap := 25
+var storehouse_bonus := 30         # Vorratslager: +30 auf beide Grenzen
+var cost_storehouse := 5           # Baukosten in Holz
+var cost_scrapyard := 8
+var cost_mushroom := 8
+var cost_tower := 10
+var tower_range := 14.0            # m – Wachturm schießt auf Gegner in dieser Nähe
+var tower_damage := 6.0
+var tower_interval := 1.5          # s zwischen zwei Schüssen
+
+# --- Sammeln ----------------------------------------------------------------
+var gather_seconds := 0.6          # s pro Einheit, solange man neben der Fundstelle steht
+var gather_range := 2.0            # m
+var wood_per_node := 5
+var food_per_node := 3
+var resource_regrow := 150.0       # s, bis eine leere Fundstelle nachwächst
 
 # --- Belagerung ------------------------------------------------------------
 var siege_interval := 480.0        # s (8 min)
@@ -113,8 +131,21 @@ var joystick_analog := false       # false = sofort volle Geschwindigkeit
 var button_radius := 80.0
 
 
+var _defaults := {}
+
+
 func _ready() -> void:
+	# Startwerte merken, damit ein Neustart alles zurücksetzen kann
+	for prop in get_property_list():
+		if prop["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE and not prop["name"].begins_with("_"):
+			_defaults[prop["name"]] = get(prop["name"])
 	_setup_input()
+
+
+## Alle Werte auf die Startwerte zurücksetzen (z. B. nach Niederlage/Neustart).
+func reset() -> void:
+	for k in _defaults:
+		set(k, _defaults[k])
 
 
 ## Tastenbelegung: WASD/Pfeile bewegen, Leertaste Dash, Q Trank.

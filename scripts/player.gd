@@ -26,6 +26,9 @@ var level := 1
 var hurt_flash := 0.0              # für die rote Anzeige am Bildschirmrand
 var dead_timer := 0.0              # > 0 solange er tot ist
 var protect_timer := 0.0           # > 0: unverwundbar (nach dem Wiedererscheinen)
+var carry := {"wood": 0, "food": 0}   # Inhalt der Trage
+var _gather_t := 0.0
+var _full_warned := false
 
 
 func _ready() -> void:
@@ -126,11 +129,13 @@ func _physics_process(delta: float) -> void:
 			_respawn()
 		return
 
-	# Am Feuer: langsam heilen, Tränke auffüllen
+	# Am Feuer: langsam heilen, Tränke auffüllen, Trage abladen
 	if Lights.refill_source_at(global_position) != null:
 		heal(Config.fire_heal_per_second * delta)
 		if Config.potions_refill_at_fire:
 			potions = Config.potions_start
+		_unload()
+	_gather(delta)
 	if Input.is_action_just_pressed("potion"):
 		drink_potion()
 
@@ -185,3 +190,61 @@ func face_nearest_enemy() -> void:
 		to.y = 0
 		if to.length() > 0.1:
 			facing = to.normalized()
+
+
+func carry_total() -> int:
+	return carry["wood"] + carry["food"]
+
+
+## Steht der Hüter neben einer Fundstelle, sammelt er automatisch.
+func _gather(delta: float) -> void:
+	var node: Node3D = null
+	for r in get_tree().get_nodes_in_group("resources"):
+		if r.is_available() and _flat(r.global_position).distance_to(_flat(global_position)) < Config.gather_range:
+			node = r
+			break
+	if node == null:
+		_gather_t = 0.0
+		_full_warned = false
+		return
+	if carry_total() >= Config.carry_capacity:
+		if not _full_warned:
+			_full_warned = true
+			get_tree().call_group("hud", "toast", "Trage voll (%d)" % Config.carry_capacity)
+		return
+	_gather_t += delta
+	if _gather_t >= Config.gather_seconds:
+		_gather_t = 0.0
+		if node.take_one():
+			carry[node.kind] += 1
+			var col := Color(1, 0.75, 0.45) if node.kind == "wood" else Color(0.5, 1, 0.85)
+			var num := Label3D.new()
+			num.set_script(preload("res://scripts/damage_number.gd"))
+			num.setup(1, col)
+			num.text = "+1 " + ("Holz" if node.kind == "wood" else "Nahrung")
+			get_parent().add_child(num)
+			num.global_position = global_position + Vector3(0, 2.4, 0)
+
+
+## Am Feuer: Trage in die Festung abladen.
+func _unload() -> void:
+	if carry_total() == 0:
+		return
+	var fort := get_tree().get_first_node_in_group("fortress")
+	if fort == null:
+		return
+	var gave: Dictionary = fort.deposit(carry)
+	var parts := []
+	if gave["wood"] > 0:
+		parts.append("+%d Holz" % gave["wood"])
+	if gave["food"] > 0:
+		parts.append("+%d Nahrung" % gave["food"])
+	if not parts.is_empty():
+		get_tree().call_group("hud", "toast", "Abgeladen: " + ", ".join(parts))
+	elif carry_total() > 0 and not _full_warned:
+		_full_warned = true
+		get_tree().call_group("hud", "toast", "Lager voll – Vorratslager bauen!")
+
+
+func _flat(v: Vector3) -> Vector2:
+	return Vector2(v.x, v.z)

@@ -7,7 +7,6 @@ const LightEater := preload("res://scripts/enemies/lighteater.gd")
 const Lost := preload("res://scripts/enemies/lost.gd")
 
 @export var player: Node3D
-@export var area_half_size := 28.0     # Gelände-Größe (Quadrat um den Mittelpunkt)
 @export var enabled := true
 
 var _timer := 1.0
@@ -56,8 +55,9 @@ func _spawn_group(script: Script, count: int) -> void:
 ## Sucht eine dunkle Stelle mit genug Abstand zum Hüter und zum Feuer.
 func _find_spawn_point() -> Vector3:
 	for attempt in 20:
-		var p := Vector3(_rng.randf_range(-area_half_size, area_half_size), 0,
-				_rng.randf_range(-area_half_size, area_half_size))
+		var p := Vector3(_rng.randf_range(-27, 27), 0, _rng.randf_range(-89, -20))
+		if absf(p.x) < 8.0 and p.z > -24.0:
+			continue   # nicht direkt vor dem Tor
 		if p.distance_to(player.global_position) < Config.spawn_min_distance:
 			continue
 		if Lights.fixed_source_at(p, 3.0) != null:

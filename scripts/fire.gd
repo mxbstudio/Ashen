@@ -1,5 +1,6 @@
 ## Das Feuer: großes warmes Licht. In seiner Nähe füllt sich die Laterne auf.
-## (Holzverbrauch kommt in Etappe 6.)
+## Brennt nur, solange die Festung Holz hat. Wenig Holz -> kleinerer Lichtkreis.
+## omen = true lässt es unruhig flackern (Vorzeichen einer Belagerung, Etappe 7).
 extends Node3D
 
 @export var light_radius := 10.0      # so weit reicht der Lichtkreis
@@ -9,6 +10,8 @@ var _light: OmniLight3D
 var _flames: Array[MeshInstance3D] = []
 var _ring: MeshInstance3D
 var _t := 0.0
+var omen := false
+var _fort: Node
 
 
 func _ready() -> void:
@@ -23,10 +26,17 @@ func _exit_tree() -> void:
 
 
 func get_light_radius() -> float:
-	return light_radius
+	if _fort == null:
+		return light_radius
+	if not _fort.is_fire_burning():
+		return 0.0
+	# unter 5 Holz schrumpft der Lichtkreis
+	return light_radius * lerpf(0.55, 1.0, clampf(_fort.wood / 5.0, 0.0, 1.0))
 
 
 func can_refill_at(pos: Vector3) -> bool:
+	if _fort and not _fort.is_fire_burning():
+		return false
 	return Vector2(pos.x - global_position.x, pos.z - global_position.z).length() <= refill_range
 
 
@@ -120,11 +130,24 @@ func _build() -> void:
 
 
 func _process(delta: float) -> void:
+	if _fort == null:
+		_fort = get_tree().get_first_node_in_group("fortress")
 	_t += delta
+	var r := get_light_radius()
+	if r <= 0.0:
+		_light.visible = false
+		for f in _flames:
+			f.visible = false
+		_ring.visible = false
+		return
 	var flicker := sin(_t * 8.0) * 0.08 + sin(_t * 19.0) * 0.05 + sin(_t * 31.0) * 0.03
-	_light.light_energy = 2.2 * (1.0 + flicker)
-	_light.omni_range = light_radius * 1.2 * (1.0 + flicker * 0.3)
+	if omen:
+		# unruhiges Flackern: Vorzeichen der Belagerung
+		flicker += (sin(_t * 5.3) * sin(_t * 13.1)) * 0.45
+	var size_k := r / light_radius
+	_light.light_energy = 2.2 * (1.0 + flicker) * lerpf(0.6, 1.0, size_k)
+	_light.omni_range = r * 1.2 * (1.0 + flicker * 0.3)
 	for i in _flames.size():
 		var f := _flames[i]
-		f.scale = Vector3(1.0, 1.0 + sin(_t * (9.0 + i * 3.0) + i) * 0.18, 1.0)
+		f.scale = Vector3(size_k, size_k * (1.0 + sin(_t * (9.0 + i * 3.0) + i) * 0.18 + flicker), size_k)
 		f.rotation.y += delta * (1.5 + i)
