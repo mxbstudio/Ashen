@@ -5,6 +5,7 @@ var _target: Node3D
 var _damage := 0.0
 var _heal := {}
 var _burning := false
+var burn_dps := 0.0
 var _combat: Node
 var _dir := Vector3.FORWARD
 var _travelled := 0.0
@@ -44,7 +45,7 @@ func _physics_process(delta: float) -> void:
 		if global_position.distance_to(aim) < 0.6:
 			_combat.hit(_target, _damage, _heal)
 			if _burning and is_instance_valid(_target) and _target.is_alive():
-				_target.ignite(Config.ember_burn_dps, Config.ember_burn_time)
+				_target.ignite(burn_dps, Config.ember_burn_time)
 			queue_free()
 			return
 	var step := (Config.ember_speed if _burning else Config.arrow_speed) * delta

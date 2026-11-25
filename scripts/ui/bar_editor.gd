@@ -72,8 +72,9 @@ func _rebuild() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	for i in bar.slots.size():
 		var id: String = bar.slots[i]
-		var text := SkillData.short_name(id) if id != "" else "leer"
-		var b := UiStyle.button("%d\n%s" % [i + 1, text], SkillData.color(id), 28, Vector2(200, 130))
+		var text := SkillData.short_with_level(id, bar.level_of(id)) if id != "" else "leer"
+		var b := UiStyle.button("%d\n%s" % [i + 1, text], SkillData.color(id), 24, Vector2(0, 130))
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if i == _selected:
 			b.add_theme_stylebox_override("normal", UiStyle.box(Color(1, 0.8, 0.4, 0.5), Color.WHITE, 5))
 		b.pressed.connect(_on_slot.bind(i))
@@ -93,7 +94,7 @@ func _rebuild() -> void:
 		_box.add_child(UiStyle.label("(leer – neue Skills gibt es beim Stufenaufstieg)", 22, Color(1, 1, 1, 0.4)))
 	for j in bar.stash.size():
 		var sid: String = bar.stash[j]
-		var sb := UiStyle.button(SkillData.short_name(sid), SkillData.color(sid), 26, Vector2(200, 90))
+		var sb := UiStyle.button(SkillData.short_with_level(sid, bar.level_of(sid)), SkillData.color(sid), 26, Vector2(200, 90))
 		sb.pressed.connect(_on_stash.bind(j))
 		grid.add_child(sb)
 	_box.add_child(grid)
@@ -121,7 +122,7 @@ func _info_text() -> String:
 	var id: String = player.skill_bar.slots[_selected]
 	var head := "Feld %d gewählt.\n" % (_selected + 1)
 	if id != "":
-		head += UiStyle.skill_text(id).replace("\n", " · ") + "\n"
+		head += "Stufe %d · " % player.skill_bar.level_of(id) + UiStyle.skill_text(id).replace("\n", " · ") + "\n"
 	return head + "Jetzt: anderes Feld (tauschen) oder Skill aus dem Vorrat antippen."
 
 

@@ -12,7 +12,7 @@ var _info: Label
 var _errors: RichTextLabel
 var _rotate: ColorRect
 var _watched := {}
-var _error_lines: Array[String] = []
+var _error_lines: Array = []       # [text, restzeit, verschwindet?]
 var _error_count := 0
 var _details := false
 var _build := "lokal"
@@ -34,6 +34,8 @@ func watch(key: String, value) -> void:
 ## Eigene Meldung in die Fehlerliste schreiben (z. B. für Hinweise beim Testen).
 func note(text: String) -> void:
 	_add_error_line("[color=#ffd75a]Info: %s[/color]" % text, false)
+	_error_lines[-1][1] = 6.0   # Hinweise verschwinden nach 6 s
+	_error_lines[-1][2] = true
 
 
 func _read_build_info() -> String:
@@ -94,7 +96,7 @@ func _add_error_line(text: String, is_error := true) -> void:
 	if is_error:
 		_error_count += 1
 		text = "[color=#ff5a4d]%s[/color]" % text.replace("[", "(")
-	_error_lines.append(text)
+	_error_lines.append([text, 0.0, false])
 	while _error_lines.size() > MAX_ERRORS:
 		_error_lines.pop_front()
 
@@ -114,7 +116,14 @@ func _process(_delta: float) -> void:
 			txt += "\n%s: %s" % [k, str(_watched[k])]
 	_info.text = txt
 
+	for e in _error_lines:
+		e[1] -= _delta
+	_error_lines = _error_lines.filter(func(e): return not e[2] or e[1] > 0.0)
 	_errors.visible = not _error_lines.is_empty()
-	_errors.position.y = _info.position.y + _info.size.y + 4
+	# unterhalb der Festungsanzeige, damit nichts verdeckt wird
+	_errors.position.y = maxf(_info.position.y + _info.size.y + 4, 175.0)
 	_errors.size.x = size.x * 0.6
-	_errors.text = "\n".join(_error_lines)
+	var lines := []
+	for e in _error_lines:
+		lines.append(e[0])
+	_errors.text = "\n".join(lines)

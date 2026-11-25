@@ -118,7 +118,17 @@ var xp_lost := 5
 # --- Stufenaufstieg --------------------------------------------------------
 var xp_first_level := 8            # EP für Stufe 2
 var xp_level_step := 6             # jede weitere Stufe braucht so viel mehr
-var max_skill_copies := 2          # wie oft man denselben Skill besitzen darf
+var max_skill_level := 5           # Skills können bis Stufe 5 verbessert werden
+var extra_slot_levels := [4, 7]    # bei diesen Hüter-Stufen kommt ein weiteres Feld dazu
+
+# Verbesserung pro Skill-Stufe (ab Stufe 2)
+var skill_damage_per_level := 0.3  # Angriffe: +30 % Schaden je Stufe
+var sickle_range_per_level := 0.3  # m
+var bell_radius_per_level := 0.5   # m
+var ember_burn_per_level := 1.5    # Brandschaden/s
+var mend_heal_per_level := 4.0     # Labung
+var echo_cast_per_level := 0.15    # Echo: Cast-Verlängerung sinkt je Stufe
+var sacrifice_per_level := 0.5     # Opferlicht: +0,5 Multiplikator je Stufe
 
 # --- Kamera ----------------------------------------------------------------
 var camera_width := 14.0           # wie viele Meter waagerecht ins Bild passen (Hochformat)

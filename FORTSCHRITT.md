@@ -95,9 +95,17 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - HUD: Festung oben links (Holz mit Restzeit, Nahrung, Bewohner – blinkt rot, wenn knapp), Trage oben rechts, kurze Meldungen in der Mitte. Debug-Zeile ist jetzt eingeklappt (antippen zum Aufklappen).
 - Neue Werte (frei gewählt): siehe Abschnitte „Feuer & Festung“ und „Sammeln“ in `scripts/config.gd`.
 
+## Nach Max' Test von Etappe 6
+- Gelbe Hinweise verdecken die Festungsanzeige nicht mehr (stehen darunter) und verschwinden nach 6 s.
+- **Freie Sicht nötig**: Angriffe treffen nur Gegner, zu denen nichts im Weg ist (Mauern, Tor, Gebäude, Felsen, Bäume). Aus der Festung heraus kann man nicht mehr schießen. Idee für später: begehbarer Wachturm (erhöht schießen).
+- **Jeder Skill nur einmal.** Beim Stufenaufstieg gibt es neue Skills („NEU“) oder eine Stufe mehr für einen vorhandenen Skill (bis Stufe 5): Angriffe +30 % Schaden je Stufe (Sichel +0,3 m Reichweite, Glut +1,5 Brand/s, Glocke +0,5 m Radius), Labung +4 Heilung, Echo −0,15 Cast-Verlängerung, Opferlicht +0,5× Schaden. Stufe steht im Feld (z. B. „Sichel III“).
+- **Mehr Felder**: bei Hüter-Stufe 4 und 7 je ein weiteres Feld (max. 5). Liegt ein Skill im Vorrat, rückt er direkt ins neue Feld.
+
 ## Geänderte Werte
 | Wert | vorher | jetzt | Grund |
 |---|---|---|---|
 | Bildschirm | Querformat | Hochformat | Wunsch Max |
 | Joystick | analog (halb geschoben = halb so schnell) | sofort volle Geschwindigkeit (`joystick_analog = false`) | fühlte sich weich/langsam an |
 | Kamera-Folgen | weich (8) | direkt (0) | fühlte sich weich an |
+| Skills besitzen | bis zu 2× derselbe Skill | jeder Skill 1×, dafür Skill-Stufen 1–5 | Wunsch Max |
+| Skill-Felder | immer 3 | 3, +1 bei Stufe 4 und 7 | Wunsch Max |

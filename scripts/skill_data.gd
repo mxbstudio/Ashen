@@ -53,3 +53,27 @@ static func color(id: String) -> Color:
 	if is_modifier(id):
 		return Color(0.55, 0.6, 1.0)
 	return Color(0.4, 0.4, 0.4)
+
+
+const ROMAN := ["", "I", "II", "III", "IV", "V", "VI"]
+
+
+## Kurzname mit Stufe, z. B. "Sichel II".
+static func short_with_level(id: String, level: int) -> String:
+	if id == "":
+		return ""
+	return short_name(id) + (" " + ROMAN[level] if level > 1 else "")
+
+
+## Was bringt die nächste Stufe? (Text für die Level-up-Karte)
+static func upgrade_text(id: String) -> String:
+	var dmg := "+%d %% Schaden" % int(Config.skill_damage_per_level * 100)
+	match id:
+		"sickle": return "%s, +%.1f m Reichweite" % [dmg, Config.sickle_range_per_level]
+		"bow": return dmg
+		"ember": return "%s, +%.1f Brand/s" % [dmg, Config.ember_burn_per_level]
+		"bell": return "%s, +%.1f m Radius" % [dmg, Config.bell_radius_per_level]
+		"mend": return "+%d Heilung" % int(Config.mend_heal_per_level)
+		"echo": return "Angriff dauert weniger lang"
+		"sacrifice": return "+%.1f× Schaden" % Config.sacrifice_per_level
+	return ""

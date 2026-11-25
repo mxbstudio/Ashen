@@ -124,9 +124,9 @@ func _draw_death(font: Font) -> void:
 ## von links nach rechts über das aktuelle Feld.
 func _draw_skill_bar(font: Font, bar: Node) -> void:
 	var n: int = bar.slots.size()
-	var slot_w := 130.0
+	var gap := 12.0
+	var slot_w := minf(130.0, (size.x - 40.0 - gap * (n - 1)) / n)
 	var slot_h := 100.0
-	var gap := 14.0
 	var total := n * slot_w + (n - 1) * gap
 	var x0 := (size.x - total) / 2.0
 	var y0 := size.y - 360.0
@@ -152,8 +152,8 @@ func _draw_skill_bar(font: Font, bar: Node) -> void:
 			draw_rect(r, Color(1, 1, 1, 0.75 * flash))
 		var border := Color(1, 0.85, 0.5, 0.9) if is_current and running else Color(1, 1, 1, 0.25)
 		draw_rect(r, border, false, 3.0 if is_current and running else 2.0)
-		var label := SkillData.short_name(id) if id != "" else "leer"
-		var fs := 26
+		var label := SkillData.short_with_level(id, bar.level_of(id)) if id != "" else "leer"
+		var fs := 26 if slot_w >= 125.0 else 22
 		var ts := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
 		draw_string(font, r.position + Vector2((slot_w - ts.x) / 2.0, slot_h / 2.0 + 4),
 				label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,

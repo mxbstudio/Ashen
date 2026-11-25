@@ -17,6 +17,7 @@ var progress := 0.0                # Sekunden, die der aktuelle Cast schon läuf
 var pending_mods: Array[String] = []   # vorgemerkte Modifikatoren
 var running := false
 var stash: Array[String] = []          # Vorrat: besessene Skills, die nicht in der Leiste sind
+var levels := {"sickle": 1, "bow": 1}  # jeder Skill nur einmal – dafür mit Stufe
 
 @onready var player: Node3D = get_parent()
 
@@ -33,7 +34,7 @@ func current_cast_time() -> float:
 	var id := slots[index]
 	var t := SkillData.cast_time(id)
 	if SkillData.is_attack(id) and pending_mods.has("echo"):
-		t *= Config.echo_cast_multiplier
+		t *= echo_multiplier()
 	return t
 
 
@@ -73,16 +74,37 @@ func _execute(id: String) -> void:
 	skill_fired.emit(id, index)
 
 
-# --- Besitz & Umbau --------------------------------------------------------
+# --- Besitz, Stufen & Umbau -----------------------------------------------
 
-## Wie oft besitzt der Hüter diesen Skill (Leiste + Vorrat)?
-func owned_count(id: String) -> int:
-	return slots.count(id) + stash.count(id)
+func owns(id: String) -> bool:
+	return levels.has(id)
+
+
+func level_of(id: String) -> int:
+	return levels.get(id, 1)
+
+
+## Echo: Cast-Verlängerung (sinkt mit der Echo-Stufe).
+func echo_multiplier() -> float:
+	return maxf(1.05, Config.echo_cast_multiplier - Config.echo_cast_per_level * (level_of("echo") - 1))
+
+
+func upgrade(id: String) -> void:
+	levels[id] = mini(level_of(id) + 1, Config.max_skill_level)
+
+
+## Ein weiteres Feld rechts anhängen; ein Skill aus dem Vorrat rückt direkt nach.
+func add_slot() -> void:
+	slots.append("")
+	if not stash.is_empty():
+		slots[slots.size() - 1] = stash.pop_front()
+	_reset_cycle()
 
 
 ## Neuen Skill bekommen: in ein freies Feld, sonst in den Vorrat.
 ## Gibt true zurück, wenn er direkt in der Leiste gelandet ist.
 func add_skill(id: String) -> bool:
+	levels[id] = 1
 	var empty := slots.find("")
 	if empty != -1:
 		slots[empty] = id

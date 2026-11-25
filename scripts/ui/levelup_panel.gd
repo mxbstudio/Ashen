@@ -1,5 +1,6 @@
 ## Stufenaufstieg: Spiel pausiert, 3 Karten zur Auswahl, eine antippen.
-## Neue Skills landen in einem freien Feld der Leiste, sonst im Vorrat (am Feuer einsetzen).
+## Angebote: neue Skills (jeden Skill gibt es nur einmal) oder eine Stufe mehr für einen
+## Skill, den man schon hat. Neue Skills landen in einem freien Feld, sonst im Vorrat.
 extends Control
 
 @export var player: Node3D
@@ -49,6 +50,9 @@ func _open_next() -> void:
 		get_tree().paused = false
 		return
 	var level: int = _queue.pop_front()
+	if level in Config.extra_slot_levels:
+		player.skill_bar.add_slot()
+		get_tree().call_group("hud", "toast", "Neues Feld in der Skill-Leiste!")
 	touch_controls.reset()
 	get_tree().paused = true
 	visible = true
@@ -60,12 +64,15 @@ func _open_next() -> void:
 		_box.add_child(_card(id))
 
 
-## 3 verschiedene Angebote: Skills, die man noch nicht zu oft hat; sonst Boni.
+## 3 verschiedene Angebote: "new:<id>" (neuer Skill) oder "up:<id>" (Verbesserung); sonst Boni.
 func _pick_options() -> Array[String]:
 	var pool: Array[String] = []
+	var bar: Node = player.skill_bar
 	for id in SkillData.DEFS:
-		if player.skill_bar.owned_count(id) < Config.max_skill_copies:
-			pool.append(id)
+		if not bar.owns(id):
+			pool.append("new:" + id)
+		elif bar.level_of(id) < Config.max_skill_level:
+			pool.append("up:" + id)
 	pool.shuffle()
 	var out: Array[String] = []
 	for id in pool:
@@ -85,12 +92,15 @@ func _card(id: String) -> Button:
 	if BONI.has(id):
 		text = "%s\nBonus\n%s" % [BONI[id]["name"], BONI[id]["desc"]]
 		col = Color(0.6, 0.9, 0.6)
+	elif id.begins_with("new:"):
+		var sid := id.substr(4)
+		text = "NEU: " + UiStyle.skill_text(sid)
+		col = SkillData.color(sid)
 	else:
-		text = UiStyle.skill_text(id)
-		var owned: int = player.skill_bar.owned_count(id)
-		if owned > 0:
-			text += "\n(besitzt du schon %d×)" % owned
-		col = SkillData.color(id)
+		var sid := id.substr(3)
+		var next: int = player.skill_bar.level_of(sid) + 1
+		text = "%s – Stufe %d\n%s" % [SkillData.DEFS[sid]["name"], next, SkillData.upgrade_text(sid)]
+		col = SkillData.color(sid).lerp(Color(1, 1, 0.6), 0.3)
 	var b := UiStyle.button(text, col, 28, Vector2(0, 200))
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.pressed.connect(_choose.bind(id))
@@ -109,8 +119,12 @@ func _choose(id: String) -> void:
 			Config.potions_start += 1
 			player.potions += 1
 		_:
-			var in_bar: bool = player.skill_bar.add_skill(id)
-			if not in_bar:
-				DebugOverlay.note("%s liegt im Vorrat – am Feuer in die Leiste einsetzen"
-						% SkillData.DEFS[id]["name"])
+			if id.begins_with("up:"):
+				player.skill_bar.upgrade(id.substr(3))
+			else:
+				var sid := id.substr(4)
+				var in_bar: bool = player.skill_bar.add_skill(sid)
+				if not in_bar:
+					get_tree().call_group("hud", "toast", "%s liegt im Vorrat – am Feuer einsetzen"
+							% SkillData.DEFS[sid]["name"])
 	_open_next()
