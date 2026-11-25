@@ -14,11 +14,7 @@ const BEACON_POS := Vector3(0, 0, -50)
 const BOSS_POS := Vector3(0, 0, -80)
 
 const ResourceScript := preload("res://scripts/resource_node.gd")
-const WOOD_SPOTS := [Vector3(-8, 0, -20), Vector3(9, 0, -24), Vector3(-18, 0, -30), Vector3(20, 0, -34),
-		Vector3(-5, 0, -38), Vector3(12, 0, -46), Vector3(-22, 0, -50), Vector3(4, 0, -58),
-		Vector3(-12, 0, -66), Vector3(18, 0, -70)]
-const FOOD_SPOTS := [Vector3(-14, 0, -22), Vector3(24, 0, -26), Vector3(22, 0, -44),
-		Vector3(-7, 0, -53), Vector3(14, 0, -62), Vector3(-24, 0, -72)]
+const TorchScript := preload("res://scripts/zones/torch_post.gd")
 
 var _rock_mat := StandardMaterial3D.new()
 var _tree_mat := StandardMaterial3D.new()
@@ -33,27 +29,51 @@ func _ready() -> void:
 	_make_bounds()
 	_make_fort_walls()
 	_make_resources()
+	_make_torches()
 	_make_obstacles()
 
 
+## Fundstellen: die meisten gehören zu einer Zone (siehe zones/zone_defs.gd).
 func _make_resources() -> void:
-	for p in WOOD_SPOTS:
-		_resource(p, "wood")
-	for p in FOOD_SPOTS:
-		_resource(p, "food")
+	for z in ZoneDefs.ZONES:
+		for p in z["wood"]:
+			_resource(p, "wood", z["id"])
+		for p in z["food"]:
+			_resource(p, "food", z["id"])
+	for p in ZoneDefs.LOOSE_WOOD:
+		_resource(p, "wood", "")
+	for p in ZoneDefs.LOOSE_FOOD:
+		_resource(p, "food", "")
 
 
-func _resource(p: Vector3, kind: String) -> void:
+func _resource(p: Vector3, kind: String, zone_id: String) -> void:
 	var n := Node3D.new()
 	n.set_script(ResourceScript)
 	n.kind = kind
+	n.zone_id = zone_id
 	n.position = p
 	add_child(n)
 
 
+## Ein Fackelpfahl-Platz pro Zone (außer der Leuchtfeuer-Zone).
+func _make_torches() -> void:
+	for z in ZoneDefs.ZONES:
+		if z["torch"] == null:
+			continue
+		var t := Node3D.new()
+		t.set_script(TorchScript)
+		t.zone_id = z["id"]
+		t.zone_name = z["name"]
+		t.position = z["torch"]
+		add_child(t)
+
+
 func _near_resource(p: Vector3) -> bool:
-	for s in WOOD_SPOTS + FOOD_SPOTS:
+	for s in ZoneDefs.all_spots():
 		if p.distance_to(s) < 3.5:
+			return true
+	for s in ZoneDefs.torch_spots():
+		if p.distance_to(s) < 3.0:
 			return true
 	return false
 

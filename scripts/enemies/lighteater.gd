@@ -1,6 +1,9 @@
 ## Lichtfresser: greift nicht den Hüter an, sondern saugt an der Laterne.
 ## Wird vom Licht angezogen. Während er saugt, sieht man einen hellen Faden zur Laterne.
+## Mit gesetztem torch_target fliegt er stattdessen zu einem Fackelpfahl und saugt ihn leer.
 extends EnemyBase
+
+var torch_target: Node3D = null    # Fackelpfahl, den er löschen will (vom Spawner gesetzt)
 
 var _sucking := false
 var _beam: MeshInstance3D
@@ -61,6 +64,9 @@ func _think(delta: float) -> Vector3:
 	for i in _wings.size():
 		_wings[i].rotation.z = sin(_t * 14.0) * 0.5 * (1 if i == 0 else -1)
 	model.position.y = sin(_t * 3.0) * 0.12
+	if torch_target and is_instance_valid(torch_target) and torch_target.is_burning():
+		return _think_torch(delta)
+	torch_target = null
 	if not player_available():
 		_set_sucking(false)
 		return Vector3.ZERO
@@ -73,8 +79,21 @@ func _think(delta: float) -> Vector3:
 	_set_sucking(player.lantern.fuel > 0.0)
 	if _sucking:
 		player.lantern.drain(Config.lighteater_drain * delta)
-		_update_beam()
+		_update_beam(player.lantern.global_position + Vector3(0.35, 1.0, 0.25).rotated(Vector3.UP, player.model.rotation.y))
 	return to_p.normalized().cross(Vector3.UP) * 0.8
+
+
+## Zur Fackel fliegen und daran saugen, bis sie erlischt.
+func _think_torch(delta: float) -> Vector3:
+	var to_t := torch_target.global_position - global_position
+	to_t.y = 0
+	if to_t.length() > 1.6:
+		_set_sucking(false)
+		return to_t.normalized() * speed
+	_set_sucking(true)
+	torch_target.drain(Config.torch_drain_lighteater * delta)
+	_update_beam(torch_target.global_position + Vector3(0, 2.8, 0))
+	return to_t.normalized().cross(Vector3.UP) * 0.6
 
 
 func _set_sucking(on: bool) -> void:
@@ -82,9 +101,9 @@ func _set_sucking(on: bool) -> void:
 	_beam.visible = on
 
 
-func _update_beam() -> void:
+## Faden von ihm zur Lichtquelle (b) ausrichten.
+func _update_beam(b: Vector3) -> void:
 	var a := global_position + Vector3(0, 1.3 + model.position.y, 0)
-	var b: Vector3 = player.lantern.global_position + Vector3(0.35, 1.0, 0.25).rotated(Vector3.UP, player.model.rotation.y)
 	var mid := (a + b) / 2.0
 	var len := a.distance_to(b)
 	# Zylinder zeigt entlang Y -> auf die Verbindungslinie ausrichten und strecken

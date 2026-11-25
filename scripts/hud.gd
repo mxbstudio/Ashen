@@ -229,7 +229,7 @@ func _draw_fortress(font: Font) -> void:
 		return
 	var x := MARGIN
 	var y := 40.0
-	draw_rect(Rect2(x - 6, y - 4, 300, 118), Color(0, 0, 0, 0.4))
+	draw_rect(Rect2(x - 6, y - 4, 300, 152), Color(0, 0, 0, 0.4))
 	var secs := int(fortress.wood_seconds_left())
 	var low_wood: bool = fortress.wood < 5
 	var blink := 0.5 + 0.5 * sin(_t * 8.0)
@@ -247,6 +247,18 @@ func _draw_fortress(font: Font) -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, food_col)
 	draw_string(font, Vector2(x, y + 96), "Bewohner: %d" % fortress.residents.size(),
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.9, 0.85, 0.8))
+	# Fackeln draußen: wie viele brennen? Rot blinkend, wenn eine angegriffen wird.
+	var burning := 0
+	var total := 0
+	var attacked := false
+	for t in get_tree().get_nodes_in_group("torches"):
+		total += 1
+		if t.is_burning():
+			burning += 1
+			attacked = attacked or t.under_attack()
+	var torch_col := Color(1, 0.8, 0.5) if not attacked else Color(1, 0.25, 0.15).lerp(Color(1, 0.8, 0.5), blink)
+	draw_string(font, Vector2(x, y + 132), "Fackeln: %d / %d brennen%s" % [burning, total, "  !" if attacked else ""],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, torch_col)
 
 
 func _draw_toasts(font: Font) -> void:
@@ -311,6 +323,9 @@ func _draw_pointers(font: Font) -> void:
 	var beacon := get_tree().get_first_node_in_group("beacon")
 	if beacon and beacon.lit:
 		_pointer(font, cam, beacon.global_position, "Leuchtfeuer", Color(0.6, 0.8, 1.0))
+	for t in get_tree().get_nodes_in_group("torches"):
+		if t.under_attack():
+			_pointer(font, cam, t.global_position, "Fackel!", Color(1, 0.35, 0.25))
 
 
 func _pointer(font: Font, cam: Camera3D, world: Vector3, label: String, col: Color) -> void:

@@ -1,6 +1,6 @@
-# Aschen – Fortschritt Prototyp v0.1
+# Aschen – Fortschritt
 
-**Stand: Prototyp v0.1 fertig (alle 8 Etappen, Build #14).**
+**Stand: v0.2 in Arbeit – Etappe 1 (Gebiete erhellen) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -149,3 +149,39 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - **Gebiete erhellen statt selbst sammeln**: Draußen Gebiete hell machen (z. B. per Leuchtfeuer), dann Bewohner als Holzfäller und Jäger/Sammler dorthin schicken.
 - **Gebäude-Upgrades.**
 - **Begehbarer Wachturm**: erhöht stehen und von dort schießen.
+
+---
+
+# Version v0.2 – Licht erobern statt selbst sammeln
+
+Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bewohner.
+
+| Etappe | Inhalt | Aufwand | Status |
+|---|---|---|---|
+| 1 | Gebiete erhellen: Zonen, Fackelpfähle, Brennstoff, Lichtfresser löschen | mittel | zum Testen |
+| 2 | Bewohner als Holzfäller / Sammler in helle Zonen schicken | groß | offen |
+| 3 | Gebäude-Upgrades (2–3 Stufen) | mittel | offen |
+| 4 | Begehbarer Wachturm | mittel | offen |
+| 5 | Speicherstand im Browser | mittel | offen |
+| 6 | Werte einstellen mit Max | klein | offen |
+
+## Etappe 1 – Gebiete erhellen
+- **5 Zonen** draußen (Daten in `scripts/zones/zone_defs.gd`): Westsenke, Osthain, Leuchtfeuer, Pilzmoor, Nordwald.
+  Jede Zone hat 3 Fundstellen. Eine einzelne Holzstelle vor dem Tor gehört zu keiner Zone.
+- **Fackelpfahl** (`scripts/zones/torch_post.gd`): In 4 Zonen gibt es einen Fackelplatz (heller Kreis am Boden mit Namen).
+  Daneben stehen → Knopf „Fackelpfahl errichten (4 Holz)“. Holz kommt zuerst aus der Trage, der Rest aus dem
+  Lager der Festung (das letzte Holz bleibt fürs Feuer).
+- **Brennstoff**: Eine Fackel fasst 4 Holz, jedes brennt 90 s (voll = 6 min). Knopf „Holz nachlegen (1 Holz)“.
+  Unter 30 s wird der Lichtkreis kleiner und es kommt eine Warnung. Erloschen → „Fackel entzünden (1 Holz)“,
+  der Pfahl bleibt stehen.
+- **Sicherer**: Kriecher meiden den Lichtkreis (8 m) wie beim Feuer, und dort erscheinen keine neuen Gegner.
+  Die Laterne füllt sich an Fackeln *nicht* auf (das können nur Feuer und Leuchtfeuer).
+- **Gelöscht werden**: Alle 45 s schickt die Dunkelheit einen Lichtfresser zu einer zufälligen brennenden Fackel.
+  Er frisst 8 s Brenndauer pro Sekunde (volle Fackel in ~45 s leer). Meldung „Ein Lichtfresser frisst an der Fackel …!“,
+  die Fackel zuckt, ihre Schrift wird rot und ein roter Wegweiser „Fackel!“ zeigt die Richtung.
+- Die Leuchtfeuer-Zone braucht keinen Fackelpfahl – das Leuchtfeuer macht sie hell (wie bisher, ohne Brennstoff).
+- Beim Tod des Hüters brennen auch die Fackeln 60 s weiter herunter.
+- HUD: neue Zeile „Fackeln: x / 4 brennen“ (blinkt rot bei Angriff). Gelbe Hinweise stehen jetzt etwas tiefer.
+- Werte-Menü: Fackel-Kosten, Sekunden pro Holz, Lichtradius, Raubzug-Abstand.
+- Neue Werte (frei gewählt): siehe Abschnitt „Zonen & Fackelpfähle“ in `scripts/config.gd`.
+- Das eigene Sammeln des Hüters bleibt in Etappe 1 noch wie bisher (wird in Etappe 2 ersetzt).

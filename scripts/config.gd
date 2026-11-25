@@ -76,6 +76,15 @@ var beacon_light_radius := 7.0
 var beacon_light_time := 1.5       # s daneben stehen zum Entzünden
 var beacon_refill_range := 3.0
 
+# --- Zonen & Fackelpfähle (v0.2) -------------------------------------------
+var torch_build_cost := 4          # Holz zum Errichten (brennt danach mit voller Ladung)
+var torch_max_wood := 4            # so viele Scheite passen hinein
+var torch_seconds_per_wood := 90.0 # s Brenndauer pro Holz (voll = 4 × 90 s = 6 min)
+var torch_light_radius := 8.0      # m – Lichtkreis der Zone, Kriecher meiden ihn
+var torch_drain_lighteater := 8.0  # s Fackel-Brenndauer, die ein Lichtfresser pro Sekunde frisst
+var torch_raid_interval := 45.0    # s – so oft schickt die Dunkelheit einen Lichtfresser zu einer Fackel
+var torch_use_range := 2.6         # m – so nah muss der Hüter ran zum Errichten/Nachlegen
+
 # --- Boss -------------------------------------------------------------------
 var boss_speed := 1.6
 var boss_aggro_range := 15.0       # m – ab dieser Nähe greift er an

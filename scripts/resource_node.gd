@@ -3,6 +3,7 @@
 extends Node3D
 
 @export var kind := "wood"         # "wood" oder "food"
+@export var zone_id := ""          # zu welcher Zone die Fundstelle gehört ("" = keine)
 
 var amount := 0
 var _regrow := 0.0

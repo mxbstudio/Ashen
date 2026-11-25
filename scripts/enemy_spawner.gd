@@ -1,20 +1,24 @@
 ## Lässt im Gelände immer wieder Gegner erscheinen – im Dunkeln, außer Sichtweite des Hüters.
 ## Höchstens Config.max_enemies gleichzeitig (Leistung im Handy-Browser).
+## Brennen draußen Fackeln, schickt die Dunkelheit ab und zu einen Lichtfresser los, der eine löschen will.
 extends Node3D
 
 const Crawler := preload("res://scripts/enemies/crawler.gd")
 const LightEater := preload("res://scripts/enemies/lighteater.gd")
 const Lost := preload("res://scripts/enemies/lost.gd")
+const WorldScript := preload("res://scripts/world.gd")
 
 @export var player: Node3D
 @export var enabled := true
 
 var _timer := 1.0
+var _raid_timer := 0.0
 var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	_rng.randomize()
+	_raid_timer = Config.torch_raid_interval
 
 
 func alive_count() -> int:
@@ -24,6 +28,7 @@ func alive_count() -> int:
 func _process(delta: float) -> void:
 	if not enabled or player == null:
 		return
+	_raid_step(delta)
 	_timer -= delta
 	if _timer > 0.0:
 		return
@@ -66,3 +71,36 @@ func _find_spawn_point() -> Vector3:
 			continue   # nicht in der Boss-Arena
 		return p
 	return Vector3.INF
+
+
+## Raubzug: ein Lichtfresser fliegt zu einer zufälligen brennenden Fackel.
+func _raid_step(delta: float) -> void:
+	_raid_timer -= delta
+	if _raid_timer > 0.0:
+		return
+	_raid_timer = Config.torch_raid_interval
+	if alive_count() >= Config.max_enemies:
+		return
+	var lit := []
+	for t in get_tree().get_nodes_in_group("torches"):
+		if t.is_burning():
+			lit.append(t)
+	if lit.is_empty():
+		return
+	var torch: Node3D = lit[_rng.randi() % lit.size()]
+	# Startpunkt: im Dunkeln, ein Stück von der Fackel entfernt, nicht direkt beim Hüter
+	for attempt in 20:
+		var a := _rng.randf() * TAU
+		var p := torch.global_position + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(16.0, 24.0)
+		if not WorldScript.is_outside(p, 2.0) or (absf(p.x) < 8.0 and p.z > -24.0):
+			continue
+		if p.distance_to(player.global_position) < Config.spawn_min_distance:
+			continue
+		if Lights.fixed_source_at(p, 2.0) != null:
+			continue
+		var e: EnemyBase = LightEater.new()
+		e.player = player
+		e.torch_target = torch
+		add_child(e)
+		e.global_position = p
+		return

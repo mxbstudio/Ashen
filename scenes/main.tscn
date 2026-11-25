@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -19,6 +19,7 @@
 [ext_resource type="Script" path="res://scripts/siege.gd" id="17"]
 [ext_resource type="Script" path="res://scripts/ui/travel_button.gd" id="18"]
 [ext_resource type="Script" path="res://scripts/ui/tuning_panel.gd" id="19"]
+[ext_resource type="Script" path="res://scripts/ui/torch_button.gd" id="20"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -118,6 +119,11 @@ script = ExtResource("11")
 
 [node name="BuildButton" type="Button" parent="UI" node_paths=PackedStringArray("player", "fortress")]
 script = ExtResource("12")
+player = NodePath("../../Player")
+fortress = NodePath("../../Fortress")
+
+[node name="TorchButton" type="Button" parent="UI" node_paths=PackedStringArray("player", "fortress")]
+script = ExtResource("20")
 player = NodePath("../../Player")
 fortress = NodePath("../../Fortress")
 

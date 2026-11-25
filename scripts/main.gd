@@ -16,7 +16,7 @@ func _ready() -> void:
 	_spawn_boss()
 	# kurzer Ziel-Hinweis beim Start
 	get_tree().call_group("hud", "toast", "Halte das Feuer am Brennen.", 6.0)
-	get_tree().call_group("hud", "toast", "Sammle draußen Holz und Nahrung.", 6.0)
+	get_tree().call_group("hud", "toast", "Errichte draußen Fackeln – Licht hält Kriecher fern.", 6.0)
 	get_tree().call_group("hud", "toast", "Besiege den Hauptmann im Norden.", 6.0)
 
 
@@ -52,6 +52,7 @@ func _on_player_died() -> void:
 	# und die nächste Belagerung rückt näher.
 	fortress.advance(Config.death_time_loss)
 	siege.advance(Config.death_time_loss)
+	get_tree().call_group("torches", "advance", Config.death_time_loss)
 	get_tree().call_group("hud", "toast", "%d Sekunden sind vergangen" % int(Config.death_time_loss))
 
 
