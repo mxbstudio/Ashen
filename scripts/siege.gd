@@ -43,10 +43,18 @@ func omen_active() -> bool:
 	return not active and time_to_bell <= Config.siege_warning
 
 
+var _rumble_t := 0.0
+
+
 func _process(delta: float) -> void:
 	if not fortress.is_fire_burning():
 		return
 	advance(delta)
+	if omen_active():
+		_rumble_t -= delta
+		if _rumble_t <= 0.0:
+			_rumble_t = 7.0
+			Sfx.play("omen", -2.0, 0.1)
 	if active:
 		_spawn_step(delta)
 		_defend(delta)
@@ -60,9 +68,11 @@ func advance(dt: float) -> void:
 	time_to_bell -= dt
 	var omen := omen_active()
 	fire.omen = omen
+	player.lantern.omen = omen
 	if omen and not _omen_announced:
 		_omen_announced = true
 		get_tree().call_group("hud", "toast", "Das Feuer flackert unruhig …")
+		Sfx.play("omen", 0.0, 0.0)
 	if time_to_bell <= 0.0:
 		_start()
 
@@ -85,6 +95,7 @@ func _start() -> void:
 	_enemies.clear()
 	spawner.enabled = false
 	get_tree().call_group("hud", "bell")
+	Sfx.play("bell", 2.0, 0.0)
 	get_tree().call_group("hud", "toast",
 			"Die Glocke läutet – letzte Belagerung!" if is_final else "Die Glocke läutet – Belagerung!")
 	siege_started.emit(is_final)

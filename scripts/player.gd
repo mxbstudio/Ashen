@@ -54,6 +54,7 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 		DebugOverlay.watch("Letzter Treffer", "%s (%d)" % [_from.get_script().resource_path.get_file().get_basename(), int(amount)])
 	health -= amount
 	hurt_flash = 0.35
+	Sfx.play("hurt")
 	_spawn_number(amount, Color(1, 0.3, 0.25))
 	if health <= 0.0:
 		_die()
@@ -70,6 +71,7 @@ func gain_xp(amount: int) -> void:
 	while xp >= xp_for_next_level():
 		xp -= xp_for_next_level()
 		level += 1
+		Sfx.play("levelup", 0.0, 0.0)
 		leveled_up.emit(level)
 
 
@@ -87,6 +89,7 @@ func drink_potion() -> void:
 		return
 	potions -= 1
 	heal(Config.potion_heal)
+	Sfx.play("pickup", 0.0, 0.0)
 	_spawn_number(Config.potion_heal, Color(0.4, 1, 0.5), "+")
 
 
@@ -102,6 +105,7 @@ func _spawn_number(amount: float, col: Color, prefix := "") -> void:
 func _die() -> void:
 	health = 0.0
 	dead_timer = Config.respawn_delay
+	Sfx.play("death", 0.0, 0.0)
 	model.visible = false
 	skill_bar.interrupt()
 	died.emit()
@@ -218,6 +222,7 @@ func _gather(delta: float) -> void:
 		_gather_t = 0.0
 		if node.take_one():
 			carry[node.kind] += 1
+			Sfx.play("pickup", -6.0)
 			var col := Color(1, 0.75, 0.45) if node.kind == "wood" else Color(0.5, 1, 0.85)
 			var num := Label3D.new()
 			num.set_script(preload("res://scripts/damage_number.gd"))

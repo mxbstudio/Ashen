@@ -73,6 +73,7 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 		return
 	hp -= amount
 	_flash = 0.1
+	Sfx.play("hit", -6.0)
 	var num := Label3D.new()
 	num.set_script(DamageNumber)
 	num.setup(amount, Color(1, 0.9, 0.6))
@@ -238,6 +239,8 @@ func _siege_think(delta: float) -> Vector3:
 	if v.length() > 0.5:
 		return v.normalized() * speed
 	siege_gate.take_damage(gate_dps * delta)
+	if randf() < delta * 1.5:
+		Sfx.play("gate", -8.0)
 	# kleines Wackeln beim Schlagen
 	model.rotation.x = sin(Time.get_ticks_msec() / 90.0) * 0.15
 	return Vector3.ZERO

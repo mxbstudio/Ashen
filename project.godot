@@ -17,6 +17,7 @@ boot_splash/show_image=false
 Config="*res://scripts/config.gd"
 Lights="*res://scripts/light_system.gd"
 DebugOverlay="*res://scripts/debug_overlay.gd"
+Sfx="*res://scripts/sfx.gd"
 
 [display]
 

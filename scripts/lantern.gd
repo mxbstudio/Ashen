@@ -7,6 +7,7 @@ signal refilling_changed(active: bool)
 
 var fuel := 0.0                    # Sekunden Brenndauer übrig
 var refilling := false
+var omen := false                  # Vorzeichen der Belagerung: Laterne zuckt mit
 var _light: OmniLight3D
 var _glow: MeshInstance3D
 var _t := 0.0
@@ -71,7 +72,7 @@ func _process(delta: float) -> void:
 
 	# Flackern: stärker, wenn wenig Brennstoff übrig ist
 	var f := fraction()
-	var flicker_amount := 0.04 + (0.25 if f < 0.2 else 0.0)
+	var flicker_amount := 0.04 + (0.25 if f < 0.2 else 0.0) + (0.3 * absf(sin(_t * 2.3)) if omen else 0.0)
 	var flicker := 1.0 + (sin(_t * 11.0) * 0.6 + sin(_t * 27.0) * 0.4) * flicker_amount
 	var r := get_light_radius()
 	_light.omni_range = r * 1.3 * flicker

@@ -79,6 +79,7 @@ func _update_label() -> void:
 ## Bauen (Kosten werden von der Festung abgezogen).
 func build() -> void:
 	built = true
+	Sfx.play("gate", 0.0, 0.0)
 	_plot.visible = false
 	_house = Node3D.new()
 	add_child(_house)

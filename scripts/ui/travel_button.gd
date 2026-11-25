@@ -23,20 +23,22 @@ func _ready() -> void:
 	visible = false
 
 
+## Wichtig: Sichtbarkeit nur EINMAL pro Bild setzen – sonst geht ein Fingertipp verloren.
 func _process(_delta: float) -> void:
-	visible = false
-	if not beacon.lit or not player.is_alive() or get_tree().paused:
-		return
-	var p := Vector2(player.global_position.x, player.global_position.z)
-	if p.distance_to(Vector2(beacon.global_position.x, beacon.global_position.z)) < 3.5:
-		text = "Schnellreise zum Tor"
-		_dest = GATE_SPOT + Vector3(0, 0, 1.0)
-		visible = true
-	elif p.distance_to(Vector2(GATE_SPOT.x, GATE_SPOT.z)) < 2.5:
-		text = "Schnellreise zum Leuchtfeuer"
-		_dest = beacon.global_position + Vector3(0, 0, 2.2)
-		visible = true
-	if visible:
+	var show := false
+	if beacon.lit and player.is_alive() and not get_tree().paused:
+		var p := Vector2(player.global_position.x, player.global_position.z)
+		if p.distance_to(Vector2(beacon.global_position.x, beacon.global_position.z)) < 3.5:
+			text = "Schnellreise zum Tor"
+			_dest = GATE_SPOT + Vector3(0, 0, 1.0)
+			show = true
+		elif p.distance_to(Vector2(GATE_SPOT.x, GATE_SPOT.z)) < 2.5:
+			text = "Schnellreise zum Leuchtfeuer"
+			_dest = beacon.global_position + Vector3(0, 0, 2.2)
+			show = true
+	if visible != show:
+		visible = show
+	if show:
 		var vp := get_viewport_rect().size
 		size = custom_minimum_size
 		position = Vector2((vp.x - size.x) / 2.0, vp.y - 680.0)

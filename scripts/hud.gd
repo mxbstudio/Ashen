@@ -233,8 +233,13 @@ func _draw_fortress(font: Font) -> void:
 	var low_wood: bool = fortress.wood < 5
 	var blink := 0.5 + 0.5 * sin(_t * 8.0)
 	var wood_col := Color(1, 0.7, 0.35) if not low_wood else Color(1, 0.25, 0.15).lerp(Color(1, 0.7, 0.35), blink)
-	draw_string(font, Vector2(x, y + 24), "Feuer: %d Holz  (%d:%02d)" % [int(fortress.wood), secs / 60, secs % 60],
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, wood_col)
+	var fire_txt := "Feuer: %d Holz  (%d:%02d)" % [int(fortress.wood), secs / 60, secs % 60]
+	if siege and siege.omen_active():
+		# Vorzeichen: Feuerzeile flackert unruhig (kein Countdown)
+		fire_txt = "Feuer flackert …  %d Holz" % int(fortress.wood)
+		var jitter := absf(sin(_t * 13.0) * sin(_t * 5.0))
+		wood_col = Color(1, 0.45, 0.15, 0.35 + 0.65 * jitter)
+	draw_string(font, Vector2(x, y + 24), fire_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, wood_col)
 	var low_food: bool = fortress.food < 3
 	var food_col := Color(0.6, 1, 0.85) if not low_food else Color(1, 0.25, 0.15).lerp(Color(0.6, 1, 0.85), blink)
 	draw_string(font, Vector2(x, y + 60), "Nahrung: %d / %d" % [int(fortress.food), fortress.food_cap()],

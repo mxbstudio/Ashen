@@ -58,17 +58,17 @@ var resource_regrow := 150.0       # s, bis eine leere Fundstelle nachwächst
 var siege_interval := 480.0        # s (8 min)
 var siege_warning := 30.0          # s Vorzeichen
 var gate_health := 200.0
-var siege_size := 12               # Gegner in der ersten Belagerung
-var siege_growth := 4              # jede weitere Belagerung: so viele mehr
-var final_siege_size := 22         # letzte Belagerung nach dem Boss
+var siege_size := 18               # Gegner in der ersten Belagerung
+var siege_growth := 6              # jede weitere Belagerung: so viele mehr
+var final_siege_size := 30         # letzte Belagerung nach dem Boss
 var siege_batch := 4               # so viele erscheinen auf einmal
 var siege_batch_interval := 3.0    # s zwischen zwei Gruppen
 var siege_retry_delay := 60.0      # s Pause, falls das Tor in der letzten Belagerung fällt
-var gate_dps_crawler := 0.8        # Schaden pro Sekunde am Tor
-var gate_dps_lighteater := 0.5
-var gate_dps_lost := 2.5
-var resident_defense_damage := 3.0 # Bewohner schießen von der Mauer (pro Pfeil)
-var resident_defense_interval := 2.5 # s pro Bewohner-Schuss (geteilt durch Anzahl Bewohner)
+var gate_dps_crawler := 1.6        # Schaden pro Sekunde am Tor
+var gate_dps_lighteater := 1.0
+var gate_dps_lost := 5.0
+var resident_defense_damage := 2.0 # Bewohner schießen von der Mauer (pro Pfeil)
+var resident_defense_interval := 3.5 # s pro Bewohner-Schuss (geteilt durch Anzahl Bewohner)
 var siege_player_engage := 3.0     # m – so nah muss der Hüter sein, damit Belagerer ihn angreifen
 
 # --- Leuchtfeuer ------------------------------------------------------------

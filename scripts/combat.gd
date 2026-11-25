@@ -66,6 +66,7 @@ func perform(id: String, mods: Array) -> void:
 		# Labung: der erste Treffer dieses Angriffs heilt (einmal pro Wiederholung)
 		var mend_amount := Config.mend_heal + Config.mend_heal_per_level * (_lvl("mend") - 1)
 		var heal := {"amount": mend_amount * mods.count("mend")}
+		Sfx.play("swing" if id in ["sickle", "bell"] else "shoot")
 		match id:
 			"sickle": _sickle(dmg_mult, heal)
 			"bow": _bow(dmg_mult, heal)
@@ -141,6 +142,7 @@ func _bell(mult: float, heal: Dictionary) -> void:
 		var dir := to.normalized() if to.length() > 0.1 else Vector3(1, 0, 0)
 		var falloff := 1.0 - clampf(to.length() / (radius + 1.0), 0.0, 0.7)
 		e.knockback(dir * Config.bell_knockback * falloff)
+	Sfx.play("slam", -4.0)
 	var fx := MeshInstance3D.new()
 	fx.set_script(WaveScript)
 	player.get_parent().add_child(fx)

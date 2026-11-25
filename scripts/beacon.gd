@@ -115,10 +115,12 @@ func _process(delta: float) -> void:
 
 func _light_up() -> void:
 	lit = true
+	Sfx.play("ignite", 0.0, 0.0)
 	_flame.visible = true
 	_light.visible = true
 	_label.text = "Leuchtfeuer"
 	get_tree().call_group("hud", "toast", "Leuchtfeuer entzündet – Schnellreise zum Tor möglich")
+	get_tree().call_group("hud", "toast", "Weiter im Norden wartet der Hauptmann …")
 	lit_up.emit()
 
 

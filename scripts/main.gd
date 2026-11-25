@@ -23,6 +23,24 @@ func _spawn_boss() -> void:
 	boss.global_position = Vector3(0, 0, -80)
 	boss.home = boss.global_position
 	boss.defeated.connect(_on_boss_defeated)
+	# Arena gut auffindbar machen: dunkelrotes Glühen und ein Schild am Eingang
+	var glow := OmniLight3D.new()
+	glow.light_color = Color(0.8, 0.1, 0.08)
+	glow.light_energy = 1.6
+	glow.omni_range = 13.0
+	glow.shadow_enabled = false
+	glow.position = Vector3(0, 4, -80)
+	add_child(glow)
+	var sign := Label3D.new()
+	sign.text = "Arena des Hauptmanns"
+	sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sign.fixed_size = true
+	sign.pixel_size = 0.001
+	sign.font_size = 36
+	sign.outline_size = 10
+	sign.modulate = Color(1, 0.45, 0.35, 0.9)
+	sign.position = Vector3(0, 3, -67)
+	add_child(sign)
 
 
 func _on_player_died() -> void:

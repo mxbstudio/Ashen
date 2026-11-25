@@ -111,6 +111,9 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Skill-Felder | immer 3 | 3, +1 bei Stufe 4 und 7 | Wunsch Max |
 | Extra-Felder | bei Stufe 4 und 7 | bei Stufe 6 und 11 | kamen zu schnell |
 | Opferlicht-Kosten | 15 s Laterne | 4 s Laterne | zog viel zu viel Licht |
+| Belagerung Größe | 12 (+4), letzte 22 | 18 (+6), letzte 30 | zu leicht |
+| Torschaden pro Sekunde | Kriecher 0,8 / Lichtfresser 0,5 / Verlorener 2,5 | 1,6 / 1,0 / 5,0 | zu leicht |
+| Bewohner-Verteidigung | 3 Schaden, 2,5 s | 2 Schaden, 3,5 s | zu leicht |
 
 ## Etappe 7 – fertig
 - **Belagerung** alle 8 min: 30 s vorher flackert das Feuer unruhig („Das Feuer flackert unruhig …“, kein Countdown). Dann läutet die Glocke (heller Blitz), Angreifer erscheinen in Gruppen vor dem Tor (12, jede weitere +4) und schlagen aufs Tor (Anzeige „BELAGERUNG“ mit Torleben und Angreifern). Normale Gegner erscheinen währenddessen nicht.
@@ -124,6 +127,13 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - **Wald**: dichter Wald aus toten Bäumen (alle Stämme in einem Rutsch gezeichnet für gute Leistung), freier, leicht geschlängelter Weg vom Tor über das Leuchtfeuer zur Boss-Arena; Lichtung vor dem Tor für Belagerungen.
 - Tod verschiebt auch die nächste Belagerung um 60 s nach vorn.
 - „Leiste umbauen“ nur am Feuer, nicht am Leuchtfeuer.
+
+## Nach Max' Test von Etappe 7
+- **Schnellreise-Knopf repariert**: Er schaltete sich jedes Bild kurz unsichtbar → Fingertipp ging verloren (am PC fiel das nicht auf).
+- **Belagerung härter**: 18 Angreifer (+6 je weitere), letzte 30; Torschaden verdoppelt; Bewohner schießen schwächer (2 Schaden, alle 3,5 s geteilt durch Anzahl).
+- **Vorzeichen deutlicher** (war draußen nicht zu bemerken): Feuer-Zeile im HUD flackert („Feuer flackert …“), Laterne zuckt mit, alle 7 s ein dumpfes Grollen.
+- **Platzhalter-Sound** (im Code erzeugt, kein FMOD, keine Dateien): Glocke, Grollen, Treffer, Schwung, Schuss, Schlag, Verletzung, Tod, Aufsammeln, Level-up, Entzünden. Lautstärke: `volume_db` in `scripts/sfx.gd`.
+- **Boss leichter zu finden**: rotes Glühen über der Arena, Schild „Arena des Hauptmanns“, Hinweis nach dem Entzünden des Leuchtfeuers.
 
 ## Ideen für später (v0.2) – von Max beim Testen
 - ~~**Wald** außerhalb der Festung~~ → in Etappe 7 umgesetzt.
