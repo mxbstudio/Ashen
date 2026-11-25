@@ -99,7 +99,7 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - Gelbe Hinweise verdecken die Festungsanzeige nicht mehr (stehen darunter) und verschwinden nach 6 s.
 - **Freie Sicht nötig**: Angriffe treffen nur Gegner, zu denen nichts im Weg ist (Mauern, Tor, Gebäude, Felsen, Bäume). Aus der Festung heraus kann man nicht mehr schießen. Idee für später: begehbarer Wachturm (erhöht schießen).
 - **Jeder Skill nur einmal.** Beim Stufenaufstieg gibt es neue Skills („NEU“) oder eine Stufe mehr für einen vorhandenen Skill (bis Stufe 5): Angriffe +30 % Schaden je Stufe (Sichel +0,3 m Reichweite, Glut +1,5 Brand/s, Glocke +0,5 m Radius), Labung +4 Heilung, Echo −0,15 Cast-Verlängerung, Opferlicht +0,5× Schaden. Stufe steht im Feld (z. B. „Sichel III“).
-- **Mehr Felder**: bei Hüter-Stufe 4 und 7 je ein weiteres Feld (max. 5). Liegt ein Skill im Vorrat, rückt er direkt ins neue Feld.
+- **Mehr Felder**: bei Hüter-Stufe 6 und 11 (zuerst 4 und 7) je ein weiteres Feld (max. 5). Liegt ein Skill im Vorrat, rückt er direkt ins neue Feld.
 
 ## Geänderte Werte
 | Wert | vorher | jetzt | Grund |
@@ -109,3 +109,12 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Kamera-Folgen | weich (8) | direkt (0) | fühlte sich weich an |
 | Skills besitzen | bis zu 2× derselbe Skill | jeder Skill 1×, dafür Skill-Stufen 1–5 | Wunsch Max |
 | Skill-Felder | immer 3 | 3, +1 bei Stufe 4 und 7 | Wunsch Max |
+| Extra-Felder | bei Stufe 4 und 7 | bei Stufe 6 und 11 | kamen zu schnell |
+| Opferlicht-Kosten | 15 s Laterne | 4 s Laterne | zog viel zu viel Licht |
+
+## Ideen für später (v0.2) – von Max beim Testen
+- **Wald** außerhalb der Festung statt vereinzelter Bäume (evtl. schon in Etappe 7, wenn die FPS es zulassen).
+- **Sicht nur, was der Hüter wirklich sieht** (Gegner hinter Bäumen/Mauern unsichtbar). Schießen nur mit freier Sicht gibt es schon.
+- **Gebiete erhellen statt selbst sammeln**: Draußen Gebiete hell machen (z. B. per Leuchtfeuer), dann Bewohner als Holzfäller und Jäger/Sammler dorthin schicken.
+- **Gebäude-Upgrades.**
+- **Begehbarer Wachturm**: erhöht stehen und von dort schießen.

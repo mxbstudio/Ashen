@@ -84,7 +84,7 @@ var bell_knockback := 14.0         # Stärke des Zurückstoßens
 var echo_cast_multiplier := 1.6    # Echo: Angriff dauert so viel länger
 var mend_heal := 8.0               # Labung: Heilung pro Treffer
 var sacrifice_multiplier := 2.5    # Opferlicht: Schaden ×2,5
-var sacrifice_lantern_cost := 15.0 # Opferlicht: kostet so viele Sekunden Laternenlicht
+var sacrifice_lantern_cost := 4.0  # Opferlicht: kostet so viele Sekunden Laternenlicht
 var dummy_hp := 60.0               # Übungspuppen
 var dummy_respawn := 3.0           # s
 
@@ -119,7 +119,7 @@ var xp_lost := 5
 var xp_first_level := 8            # EP für Stufe 2
 var xp_level_step := 6             # jede weitere Stufe braucht so viel mehr
 var max_skill_level := 5           # Skills können bis Stufe 5 verbessert werden
-var extra_slot_levels := [4, 7]    # bei diesen Hüter-Stufen kommt ein weiteres Feld dazu
+var extra_slot_levels := [6, 11]    # bei diesen Hüter-Stufen kommt ein weiteres Feld dazu
 
 # Verbesserung pro Skill-Stufe (ab Stufe 2)
 var skill_damage_per_level := 0.3  # Angriffe: +30 % Schaden je Stufe
