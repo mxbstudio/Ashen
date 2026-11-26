@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3]
+[gd_scene load_steps=33 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -26,6 +26,9 @@
 [ext_resource type="Script" path="res://scripts/ui/continue_panel.gd" id="24"]
 [ext_resource type="Script" path="res://scripts/fortress/gate_lamp.gd" id="25"]
 [ext_resource type="Script" path="res://scripts/ui/place_buttons.gd" id="26"]
+[ext_resource type="Script" path="res://scripts/shader_warmup.gd" id="27"]
+[ext_resource type="Script" path="res://scripts/ui/forge_panel.gd" id="28"]
+[ext_resource type="Script" path="res://scripts/madness.gd" id="29"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -114,6 +117,14 @@ fortress = NodePath("../Fortress")
 siege = NodePath("../Siege")
 beacon = NodePath("../Beacon")
 
+[node name="Madness" type="Node" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("29")
+player = NodePath("../Player")
+
+[node name="ShaderWarmup" type="Node3D" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("27")
+player = NodePath("../Player")
+
 [node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("target")]
 script = ExtResource("9")
 target = NodePath("../Player")
@@ -183,6 +194,16 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("21")
+player = NodePath("../../Player")
+fortress = NodePath("../../Fortress")
+touch_controls = NodePath("../TouchControls")
+
+[node name="Forge" type="Control" parent="UI" node_paths=PackedStringArray("player", "fortress", "touch_controls")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("28")
 player = NodePath("../../Player")
 fortress = NodePath("../../Fortress")
 touch_controls = NodePath("../TouchControls")

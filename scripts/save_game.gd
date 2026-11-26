@@ -89,7 +89,9 @@ func _collect() -> Dictionary:
 		"player": {
 			"pos": [p.x, p.z], "health": player.health, "potions": player.potions,
 			"xp": player.xp, "level": player.level, "carry": player.carry,
-			"fuel": player.lantern.fuel,
+			"fuel": player.lantern.fuel, "equip": player.equip,
+			"madness": get_tree().get_first_node_in_group("madness").value,
+			"scar": get_tree().get_first_node_in_group("madness").scar,
 			"slots": Array(bar.slots), "stash": Array(bar.stash), "levels": bar.levels,
 		},
 		"fort": {
@@ -240,7 +242,13 @@ func _apply_fortress(f: Dictionary) -> void:
 func _apply_player(p: Dictionary) -> void:
 	var pos: Array = p.get("pos", [0.0, 2.5])
 	player.global_position = Vector3(float(pos[0]), 0, float(pos[1]))
+	var eq: Dictionary = p.get("equip", {})
+	for slot in ["weapon", "armor", "lantern"]:
+		player.set_equip(slot, int(eq.get(slot, 0)))
 	player.health = float(p.get("health", player.health))
+	var mad := get_tree().get_first_node_in_group("madness")
+	mad.scar = float(p.get("scar", 0.0))
+	mad.value = float(p.get("madness", 0.0))
 	player.potions = int(p.get("potions", player.potions))
 	player.xp = int(p.get("xp", 0))
 	player.level = int(p.get("level", 1))

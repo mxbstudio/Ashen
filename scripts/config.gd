@@ -219,6 +219,26 @@ var mend_heal_per_level := 4.0     # Labung
 var echo_cast_per_level := 0.15    # Echo: Cast-Verlängerung sinkt je Stufe
 var sacrifice_per_level := 0.5     # Opferlicht: +0,5 Multiplikator je Stufe
 
+# --- Ausrüstung (v0.3) – geschmiedet in der Werkstatt ----------------------------
+var weapon_damage_per_level := 0.2   # Klinge: +20 % Schaden je Stufe
+var armor_health_per_level := 20.0   # Rüstung: +20 Leben je Stufe
+var armor_reduction_per_level := 0.1 # Rüstung: −10 % Schaden je Stufe
+var lantern_time_per_level := 45.0   # Laterne: +45 s Brenndauer je Stufe
+var lantern_radius_per_level := 1.0  # Laterne: +1 m Lichtkreis je Stufe
+var equip_wood := [10, 16, 24]       # Holz für Stufe 1 / 2 / 3
+var equip_stone := [4, 10, 18]       # Stein für Stufe 1 / 2 / 3
+
+# --- Wahnsinn (v0.3) ---------------------------------------------------------
+var madness_enabled := true
+var madness_rise := 0.35           # pro Sekunde draußen im Dunkeln bei voller Laterne (schwache Laterne: bis ×3)
+var madness_rise_no_lantern := 3.0 # pro Sekunde, wenn die Laterne aus ist
+var madness_heal_light := 0.5      # sinkt pro Sekunde im Licht einer Fackel, auf dem Turm, in der Festung (zuerst 3)
+var madness_heal_fire := 1.5       # sinkt pro Sekunde am Feuer, Leuchtfeuer, an einer Feuerstelle (zuerst 8)
+var madness_scar := 10.0           # Narbe: so viel bleibt dauerhaft, wenn der Wahnsinn über 75 steigt
+var madness_scar_at := 75.0        # ab diesem Wert gibt es eine Narbe
+var madness_scar_max := 50.0       # höchstens so viel Narbe (bis zum Tod)
+var madness_damage := 3.0          # Schaden pro Sekunde bei 100 Wahnsinn
+
 # --- Sicht (v0.3) -----------------------------------------------------------
 var sight_enabled := true          # false = alle Gegner immer sichtbar (wie v0.2)
 var sight_near := 3.5              # m – so nah sieht man einen Gegner auch im Dunkeln ganz

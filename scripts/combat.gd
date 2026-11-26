@@ -55,6 +55,7 @@ func perform(id: String, mods: Array) -> void:
 	var repeats := 1 + mods.count("echo")
 	# Schaden wächst mit der Stufe des Angriffs
 	var dmg_mult := 1.0 + Config.skill_damage_per_level * (_lvl(id) - 1)
+	dmg_mult *= 1.0 + Config.weapon_damage_per_level * player.equip["weapon"]   # Klinge (Ausrüstung)
 	for i in mods.count("sacrifice"):
 		dmg_mult *= Config.sacrifice_multiplier + Config.sacrifice_per_level * (_lvl("sacrifice") - 1)
 		player.lantern.drain(Config.sacrifice_lantern_cost)
