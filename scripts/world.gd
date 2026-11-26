@@ -17,6 +17,7 @@ const ResourceScript := preload("res://scripts/resource_node.gd")
 const TorchScript := preload("res://scripts/zones/torch_post.gd")
 const ForestScript := preload("res://scripts/forest.gd")
 const RockScript := preload("res://scripts/rock_node.gd")
+const ShrineScript := preload("res://scripts/shrine.gd")
 
 var _rock_mat := StandardMaterial3D.new()
 var _wall_mat := StandardMaterial3D.new()
@@ -31,7 +32,17 @@ func _ready() -> void:
 	_make_fort_walls()
 	_make_resources()
 	_make_torches()
+	_make_shrines()
 	_make_obstacles()
+
+
+## Schreine mit Talismanen im Dunkeln (v0.3).
+func _make_shrines() -> void:
+	for p in ShrineScript.SPOTS:
+		var sh := Node3D.new()
+		sh.set_script(ShrineScript)
+		sh.position = p
+		add_child(sh)
 
 
 ## Pilzstellen: die meisten gehören zu einer Zone (siehe zones/zone_defs.gd).
@@ -84,6 +95,9 @@ func _near_resource(p: Vector3) -> bool:
 				return true
 	for s in ZoneDefs.torch_spots():
 		if p.distance_to(s) < 3.0:
+			return true
+	for s in ShrineScript.SPOTS:
+		if p.distance_to(s) < 2.5:
 			return true
 	return false
 

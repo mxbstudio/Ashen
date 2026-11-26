@@ -14,6 +14,11 @@ signal leveled_up(level: int)
 @onready var combat: Node = $Combat
 @onready var skill_bar: Node = $SkillBar
 
+const MadnessScript := preload("res://scripts/madness.gd")
+var madness: Node                  # Wahnsinn (v0.3), siehe madness.gd
+var talismans: Array[String] = []  # gefundene Talismane
+var equipped: Array[String] = []   # angelegte Talismane (höchstens Config.talisman_slots)
+
 var facing := Vector3(0, 0, 1)     # Blickrichtung auf dem Boden
 var _dash_time := 0.0
 var _dash_cd := 0.0
@@ -38,6 +43,9 @@ func _ready() -> void:
 	potions = Config.potions_start
 	collision_layer = 2            # Ebene 2: Hüter (Gegner laufen nicht gegen ihn)
 	collision_mask = 1             # stößt nur an die Welt
+	madness = MadnessScript.new()
+	madness.name = "Madness"
+	add_child(madness)
 
 
 func is_alive() -> bool:
@@ -48,9 +56,19 @@ func is_dashing() -> bool:
 	return _dash_time > 0.0
 
 
-func take_damage(amount: float, _from: Node3D = null) -> void:
-	if not is_alive() or is_dashing() or protect_timer > 0.0:
+## self_inflicted: Blutopfer/Blutschwur/Wahn – wirkt auch im Dash, tötet aber nicht.
+func take_damage(amount: float, _from: Node3D = null, self_inflicted := false) -> void:
+	if not is_alive():
+		return
+	if self_inflicted:
+		health = maxf(health - amount, 1.0)
+		hurt_flash = maxf(hurt_flash, 0.15)
+		_spawn_number(amount, Color(0.8, 0.3, 0.9))
+		return
+	if is_dashing() or protect_timer > 0.0:
 		return   # während des Dashs und kurz nach dem Wiedererscheinen unverwundbar
+	if has_talisman("haste"):
+		amount *= 1.2
 	if _from:
 		DebugOverlay.watch("Letzter Treffer", "%s (%d)" % [_from.get_script().resource_path.get_file().get_basename(), int(amount)])
 	health -= amount
@@ -103,6 +121,54 @@ func _spawn_number(amount: float, col: Color, prefix := "") -> void:
 	num.global_position = global_position + Vector3(0, 2.4, 0)
 
 
+# --- Talismane (v0.3) ------------------------------------------------------------
+
+func has_talisman(id: String) -> bool:
+	return equipped.has(id)
+
+
+## Einen zufälligen, noch nicht gefundenen Talisman finden. source: wer ihn gebracht hat (für die Meldung).
+## Gibt die id zurück ("" = alle schon gefunden -> stattdessen EP).
+func find_talisman(source: String) -> String:
+	var pool := []
+	for id in TalismanData.DEFS:
+		if not talismans.has(id):
+			pool.append(id)
+	if pool.is_empty():
+		gain_xp(8)
+		get_tree().call_group("hud", "toast", "Nichts Neues – aber Erfahrung (+8 EP)")
+		return ""
+	var id: String = pool[randi() % pool.size()]
+	gain_talisman(id)
+	get_tree().call_group("hud", "toast", "Talisman: %s (von %s)" % [TalismanData.name_of(id), source], 4.0)
+	return id
+
+
+func gain_talisman(id: String) -> void:
+	if talismans.has(id):
+		return
+	talismans.append(id)
+	Sfx.play("levelup", -4.0, 0.0)
+	if equipped.size() < Config.talisman_slots:
+		equipped.append(id)
+		skill_bar.reset_cycle()
+		get_tree().call_group("hud", "toast", "Angelegt: " + TalismanData.name_of(id), 4.0)
+	else:
+		get_tree().call_group("hud", "toast", "Am Feuer unter „Leiste umbauen“ anlegen", 4.0)
+
+
+## Talisman an- oder ablegen (nur am Feuer). Gibt false zurück, wenn kein Platz frei ist.
+func toggle_talisman(id: String) -> bool:
+	if equipped.has(id):
+		equipped.erase(id)
+	elif equipped.size() < Config.talisman_slots:
+		equipped.append(id)
+	else:
+		return false
+	skill_bar.reset_cycle()
+	return true
+
+
 ## Turm besteigen: oben stehen, nicht laufen, mit mehr Reichweite schießen.
 func climb(tower: Node3D) -> void:
 	on_tower = tower
@@ -140,6 +206,7 @@ func _die() -> void:
 
 func _respawn() -> void:
 	on_tower = null
+	madness.add(-Config.madness_death_relief)   # der Tod klärt den Geist etwas
 	health = Config.player_max_health
 	potions = Config.potions_start
 	lantern.fuel = Config.lantern_burn_time

@@ -2,6 +2,8 @@
 ## Holt sichtbar aus (roter Kreis am Boden) und schlägt dann hart zu – rechtzeitig wegdashen!
 extends EnemyBase
 
+var is_lost := true                 # kann einen Talisman fallen lassen (combat.gd)
+
 enum State { WALK, WINDUP, RECOVER }
 
 var _state := State.WALK

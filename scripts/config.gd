@@ -219,6 +219,56 @@ var mend_heal_per_level := 4.0     # Labung
 var echo_cast_per_level := 0.15    # Echo: Cast-Verlängerung sinkt je Stufe
 var sacrifice_per_level := 0.5     # Opferlicht: +0,5 Multiplikator je Stufe
 
+# --- Leiste mit Tiefe (v0.3) ----------------------------------------------------
+var branch_level := 3              # beim Aufstieg auf diese Skill-Stufe wählt man eine Abzweigung
+var stagger_time := 2.0            # s – Glockenschlag erschüttert (Gegner langsam, Sichel macht doppelt Schaden)
+var stagger_slow := 0.35           # erschütterte Gegner laufen nur so schnell
+var mark_time := 4.0               # s – markierte Gegner (Bogen „Markieren“) nehmen mehr Schaden
+var mark_bonus := 0.35             # +35 % Schaden auf markierte Gegner
+var combo_shatter := 2.0           # Sichel × erschüttert: Schaden ×2
+var combo_kindle := 1.5            # Glocke × brennend: restlicher Brandschaden sofort ×1,5
+var combo_flamearrow_radius := 2.2 # Bogen × brennend: Explosion (m)
+var kindle_burn_dps := 3.0         # Zündschnur: Brand/s auf getroffene Gegner
+var kindle_per_level := 1.0
+var mirror_copy := 0.7             # Spiegel: kopierter Angriff macht 70 % Schaden
+var mirror_per_level := 0.1
+var oath_bonus := 0.25             # Schwur im letzten Feld: ganze nächste Runde +25 %
+var oath_per_level := 0.05
+var oath_next := 0.1               # Schwur anderswo: nur der nächste Angriff +10 %
+var talisman_slots := 2            # so viele Talismane trägt der Hüter gleichzeitig
+var lost_talisman_chance := 0.12   # Verlorene lassen manchmal einen Talisman fallen
+var shrine_time := 1.5             # s neben einem Schrein stehen, um ihn zu öffnen
+
+# --- Wahnsinn (v0.3) -----------------------------------------------------------
+var madness_dark_rate := 0.15      # pro s draußen außerhalb fester Lichtquellen
+var madness_low_lantern_rate := 0.35 # zusätzlich pro s, wenn die Laterne unter 30 % ist
+var madness_empty_rate := 1.0      # zusätzlich pro s, wenn die Laterne leer ist
+var madness_fire_recover := 0.3    # pro s am Feuer (langsam – Ruhe kostet Zeit)
+var madness_death_relief := 25.0   # der Tod klärt den Geist etwas
+var madness_damage_per_stage := 0.1 # +10 % Schaden je Wahn-Stufe (25 / 50 / 75)
+var madness_dark_offer := 25.0     # ab so viel Wahnsinn bietet der Stufenaufstieg dunkle Skills an
+var madness_full_drain := 2.0      # Leben pro s bei 100 Wahnsinn
+var cast_rift := 0.7               # Schattenriss
+var rift_damage := 14.0
+var rift_length := 7.0             # m Linie vor dem Hüter
+var rift_madness := 0.6            # Wahnsinn pro Einsatz
+var cast_scream := 1.2             # Leerenschrei
+var scream_damage := 8.0
+var scream_radius := 5.0
+var scream_fear := 2.5             # s fliehen die Gegner
+var scream_madness := 1.0
+var pact_madness := 1.5            # Schattenpakt
+
+# --- Bewohner mit Eigenleben (v0.3) ----------------------------------------------
+var mood_start := 60.0             # Stimmung 0–100
+var mood_rate := 0.1               # so schnell (pro s) nähert sich die Stimmung ihrem Zielwert
+var mood_on_death := 12.0          # stirbt jemand, sinkt die Stimmung aller
+var grief_time := 240.0            # s Trauer des Verbundenen
+var desert_mood := 15.0            # darunter kann ein Bewohner die Festung verlassen
+var desert_chance := 0.25          # Chance pro Minute
+var event_interval := 210.0        # s zwischen zwei Ereignissen (ungefähr)
+var event_first := 150.0           # s bis zum ersten Ereignis
+
 # --- Sicht (v0.3) -----------------------------------------------------------
 var sight_enabled := true          # false = alle Gegner immer sichtbar (wie v0.2)
 var sight_near := 3.5              # m – so nah sieht man einen Gegner auch im Dunkeln ganz

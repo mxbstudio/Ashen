@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3]
+[gd_scene load_steps=31 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -26,6 +26,7 @@
 [ext_resource type="Script" path="res://scripts/ui/continue_panel.gd" id="24"]
 [ext_resource type="Script" path="res://scripts/fortress/gate_lamp.gd" id="25"]
 [ext_resource type="Script" path="res://scripts/ui/place_buttons.gd" id="26"]
+[ext_resource type="Script" path="res://scripts/ui/event_panel.gd" id="27"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -185,6 +186,17 @@ anchor_bottom = 1.0
 script = ExtResource("21")
 player = NodePath("../../Player")
 fortress = NodePath("../../Fortress")
+touch_controls = NodePath("../TouchControls")
+
+[node name="Events" type="Control" parent="UI" node_paths=PackedStringArray("player", "fortress", "siege", "touch_controls")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("27")
+player = NodePath("../../Player")
+fortress = NodePath("../../Fortress")
+siege = NodePath("../../Siege")
 touch_controls = NodePath("../TouchControls")
 
 [node name="LevelUp" type="Control" parent="UI" node_paths=PackedStringArray("player", "touch_controls")]

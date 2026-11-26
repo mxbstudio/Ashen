@@ -128,7 +128,7 @@ func _spawn_step(delta: float) -> void:
 ## Bewohner schießen von der Mauer auf Angreifer in Tornähe.
 func _defend(delta: float) -> void:
 	# Bewohner mit Bogen zählen doppelt
-	var n: int = fortress.residents.size() + fortress.armed_count()
+	var n: int = fortress.residents.size() + fortress.armed_count() + fortress.trait_count("schuetze")
 	if n == 0:
 		return
 	_defense_t -= delta
@@ -170,7 +170,8 @@ func _check_end() -> void:
 func _on_gate_broken() -> void:
 	if not active:
 		return
-	fortress.kill_resident("Das Tor ist gefallen – ein Bewohner ist tot.")
+	fortress.kill_resident("Das Tor ist gefallen – %s ist tot.")
+	fortress.mood_shock(-8.0)
 	# Angreifer ziehen ab
 	for e in _enemies:
 		if is_instance_valid(e) and e.is_alive():

@@ -46,4 +46,4 @@ static func label(text: String, font_size := 26, col := Color(1, 1, 1, 0.9)) -> 
 static func skill_text(id: String) -> String:
 	var d: Dictionary = SkillData.DEFS[id]
 	var kind := "Angriff" if d["type"] == SkillData.ATTACK else "Modifikator"
-	return "%s\n%s · %.1f s\n%s" % [d["name"], kind, SkillData.cast_time(id), d["desc"]]
+	return "%s\n%s · %s · %.1f s\n%s" % [d["name"], kind, d.get("elem", ""), SkillData.cast_time(id), d["desc"]]

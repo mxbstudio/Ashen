@@ -24,14 +24,18 @@ func _ready() -> void:
 	bg.color = Color(0, 0, 0, 0.85)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.offset_left = 30
+	scroll.offset_right = -30
+	scroll.offset_top = 110
+	scroll.offset_bottom = -30
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
 	_box = VBoxContainer.new()
-	_box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_box.offset_left = 30
-	_box.offset_right = -30
-	_box.offset_top = 170
-	_box.offset_bottom = -40
+	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_box.add_theme_constant_override("separation", 18)
-	add_child(_box)
+	scroll.add_child(_box)
 	# Knopf "Leiste umbauen" – erscheint über der Skill-Leiste, wenn der Hüter am Feuer steht
 	_open_button = UiStyle.button("Leiste umbauen", Color(1, 0.7, 0.3), 26, Vector2(300, 70))
 	_open_button.add_to_group("touch_blockers")
@@ -66,7 +70,9 @@ func _rebuild() -> void:
 		c.queue_free()
 	var bar: Node = player.skill_bar
 	_box.add_child(UiStyle.label("Skill-Leiste umbauen", 42, Color(1, 0.8, 0.45)))
-	_box.add_child(UiStyle.label("Läuft von links nach rechts im Kreis. Modifikatoren wirken auf den nächsten Angriff rechts davon.", 22, Color(1, 1, 1, 0.6)))
+	var dir_text := "von rechts nach links (Sanduhr)" if bar.direction() < 0 else "von links nach rechts"
+	_box.add_child(UiStyle.label("Läuft %s im Kreis. Modifikatoren wirken auf den nächsten Angriff danach. " % dir_text
+			+ "Spiegel kopiert das Feld davor, Schwur wirkt im letzten Feld auf die ganze Runde.", 22, Color(1, 1, 1, 0.6)))
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
@@ -74,7 +80,10 @@ func _rebuild() -> void:
 	for i in bar.slots.size():
 		var id: String = bar.slots[i]
 		var text := SkillData.short_with_level(id, bar.level_of(id)) if id != "" else "leer"
-		var b := UiStyle.button("%d\n%s" % [i + 1, text], SkillData.color(id), 24, Vector2(0, 130))
+		var br := SkillData.branch_name(id, bar.branches.get(id, ""))
+		if br != "":
+			text += "\n" + br
+		var b := UiStyle.button("%d\n%s" % [i + 1, text], SkillData.color(id), 22, Vector2(0, 150))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if i == _selected:
 			b.add_theme_stylebox_override("normal", UiStyle.box(Color(1, 0.8, 0.4, 0.5), Color.WHITE, 5))
@@ -100,9 +109,7 @@ func _rebuild() -> void:
 		grid.add_child(sb)
 	_box.add_child(grid)
 
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_box.add_child(spacer)
+	_box.add_child(_talisman_section())
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 16)
 	var clear := UiStyle.button("Feld leeren", Color(0.7, 0.7, 0.7), 28, Vector2(0, 100))
@@ -124,6 +131,9 @@ func _info_text() -> String:
 	var head := "Feld %d gewählt.\n" % (_selected + 1)
 	if id != "":
 		head += "Stufe %d · " % player.skill_bar.level_of(id) + UiStyle.skill_text(id).replace("\n", " · ") + "\n"
+		var b: String = player.skill_bar.branches.get(id, "")
+		if b != "":
+			head += "Abzweigung %s: %s\n" % [SkillData.BRANCHES[id][b][0], SkillData.BRANCHES[id][b][1]]
 	return head + "Jetzt: anderes Feld (tauschen) oder Skill aus dem Vorrat antippen."
 
 
@@ -152,3 +162,31 @@ func _on_clear() -> void:
 		player.skill_bar.clear_slot(_selected)
 		_selected = -1
 		_rebuild()
+
+
+## Talismane: angelegte oben, alle gefundenen darunter. Antippen = an-/ablegen.
+func _talisman_section() -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 10)
+	col.add_child(UiStyle.label("Talismane (%d / %d angelegt)" % [player.equipped.size(), Config.talisman_slots],
+			30, Color(1, 0.85, 0.55)))
+	if player.talismans.is_empty():
+		col.add_child(UiStyle.label("Noch keine gefunden – Schreine draußen im Dunkeln, Verlorene und der Hauptmann tragen welche.",
+				22, Color(1, 1, 1, 0.45)))
+		return col
+	for id in player.talismans:
+		var on: bool = player.equipped.has(id)
+		var b := UiStyle.button("%s%s\n%s" % ["[angelegt] " if on else "", TalismanData.name_of(id), TalismanData.desc_of(id)],
+				Color(1, 0.8, 0.35) if on else Color(0.6, 0.6, 0.65), 20, Vector2(0, 96))
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.pressed.connect(_on_talisman.bind(id))
+		col.add_child(b)
+	return col
+
+
+func _on_talisman(id: String) -> void:
+	if not player.toggle_talisman(id):
+		_info.text = "Schon %d Talismane angelegt – erst einen ablegen." % Config.talisman_slots
+		return
+	_selected = -1
+	_rebuild()

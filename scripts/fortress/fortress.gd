@@ -1,6 +1,9 @@
 ## Die Festung: Holz (im Feuer und für Gebäude), Nahrung, Bewohner, Gebäude.
 ## Läuft ständig weiter – auch während der Hüter draußen ist.
 ## advance(dt) wird jede Sekunde aufgerufen und beim Tod des Hüters mit 60 s ("Zeitsprung").
+## v0.3: Bewohner haben Namen, Eigenschaften und Stimmung. Die Stimmung strebt einem Zielwert zu
+## (satt? Feuer sicher? Prediger? Wahn des Hüters?), Schocks (Tod, Tor gefallen, Belagerung gehalten)
+## verschieben sie sofort. Tote bekommen ein Grab an der Westmauer.
 extends Node3D
 
 signal fire_out
@@ -26,6 +29,12 @@ var _starve_acc := 0.0
 var _survivor_acc := 0.0
 var _tick := 0.0
 var _fire_dead := false
+var graves: Array = []             # [Name, Todesursache] – Gräber an der Westmauer
+var away: Array = []               # Bewohner, die gerade unterwegs sind (Ereignis): [Identität, Restzeit, Begleitung?]
+var ration_t := 0.0                # s mit gekürzten Rationen (Ereignis)
+var _desert_acc := 0.0
+var _grave_nodes: Array[Node3D] = []
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -36,19 +45,76 @@ func _ready() -> void:
 	for c in get_children():
 		if c.is_in_group("buildings") or c.has_method("build"):
 			buildings.append(c)
+	_rng.randomize()
 	for i in Config.residents_start:
 		var a := TAU * i / Config.residents_start
 		_add_resident(Vector3(cos(a), 0, sin(a)) * 3.5)
+	# zwei Paare/Geschwister am Start
+	for k in mini(2, residents.size() / 2):
+		bond(residents[k * 2], residents[k * 2 + 1], "Geschwister" if k == 0 else "Paar")
 	_assign_jobs()
 
 
-func _add_resident(pos: Vector3) -> Node3D:
+## Neuer Bewohner. identity = gespeicherte/vorgegebene Daten, sonst wird gewürfelt.
+func _add_resident(pos: Vector3, identity := {}) -> Node3D:
 	var r := Node3D.new()
 	r.set_script(ResidentScript)
 	add_child(r)
 	r.position = pos
+	if identity.is_empty():
+		identity = new_identity()
+	r.setup_identity(identity)
 	residents.append(r)
 	return r
+
+
+## Zufälliger Name und Eigenschaften.
+func new_identity(extra_traits := []) -> Dictionary:
+	var taken := residents.map(func(r): return r.res_name)
+	for a in away:
+		taken.append(a[0].get("name", ""))
+	var t: Array = ResidentData.roll_traits(_rng)
+	for e in extra_traits:
+		if not t.has(e):
+			t.append(e)
+	return {"name": ResidentData.pick_name(_rng, taken), "traits": t, "mood": Config.mood_start}
+
+
+func bond(a: Node3D, b: Node3D, kind: String) -> void:
+	a.bond_name = b.res_name
+	b.bond_name = a.res_name
+	a.bond_kind = kind
+	b.bond_kind = kind
+
+
+func find_resident(n: String) -> Node3D:
+	for r in residents:
+		if r.res_name == n:
+			return r
+	return null
+
+
+func trait_count(t: String) -> int:
+	var n := 0
+	for r in residents:
+		if r.has_trait(t):
+			n += 1
+	return n
+
+
+## Stimmung aller ändern (Schock), z. B. +10 nach einer gehaltenen Belagerung.
+func mood_shock(amount: float) -> void:
+	for r in residents:
+		r.mood = clampf(r.mood + amount, 0.0, 100.0)
+
+
+func average_mood() -> float:
+	if residents.is_empty():
+		return 0.0
+	var sum := 0.0
+	for r in residents:
+		sum += r.mood
+	return sum / residents.size()
 
 
 func wood_cap() -> int:
@@ -118,8 +184,9 @@ func advance(dt: float) -> void:
 		if changed:
 			_assign_jobs()
 		_auto_jobs()
-	# Feuer verbrennt Holz
-	_burn_acc += dt
+	_mood_step(dt)
+	# Feuer verbrennt Holz (Feuerhüter sparen etwas)
+	_burn_acc += dt * (0.9 if trait_count("feuerhueter") > 0 else 1.0)
 	while _burn_acc >= Config.fire_seconds_per_wood:
 		_burn_acc -= Config.fire_seconds_per_wood
 		wood -= 1.0
@@ -130,7 +197,13 @@ func advance(dt: float) -> void:
 		return
 	# Bewohner essen
 	if residents.size() > 0:
-		_eat_acc += dt * residents.size()
+		var appetite := 0.0
+		for r in residents:
+			appetite += r.appetite()
+		if ration_t > 0.0:
+			ration_t -= dt
+			appetite *= 0.5
+		_eat_acc += dt * appetite
 		while _eat_acc >= Config.food_seconds_per_person:
 			_eat_acc -= Config.food_seconds_per_person
 			food -= 1.0
@@ -139,7 +212,7 @@ func advance(dt: float) -> void:
 			_starve_acc += dt
 			while _starve_acc >= Config.starve_seconds and residents.size() > 0:
 				_starve_acc -= Config.starve_seconds
-				kill_resident("Ein Bewohner ist verhungert.")
+				kill_resident("%s ist verhungert.")
 		else:
 			_starve_acc = 0.0
 	# Überlebende finden das Licht
@@ -147,13 +220,16 @@ func advance(dt: float) -> void:
 	while _survivor_acc >= Config.survivor_interval:
 		_survivor_acc -= Config.survivor_interval
 		if residents.size() < Config.residents_max and food >= Config.survivor_min_food:
-			_add_resident(Vector3(0, 0, -9.5))   # kommt durchs Tor herein
+			var nr := _add_resident(Vector3(0, 0, -9.5))   # kommt durchs Tor herein
 			_assign_jobs()
 			Sfx.play("pickup", 0.0, 0.0)
-			message.emit("Ein Überlebender hat das Licht gefunden (+1 Bewohner)")
+			message.emit("%s hat das Licht gefunden (+1 Bewohner)" % nr.title())
+	# Unterwegs (Ereignis): zurückkehren
+	_away_step(dt)
 
 
 ## Ein Bewohner stirbt. victim = null -> bevorzugt einer ohne Arbeit, sonst der letzte.
+## reason darf "%s" für den Namen enthalten. Er bekommt ein Grab, alle trauern, der Verbundene am meisten.
 func kill_resident(reason: String, victim: Node3D = null) -> void:
 	if residents.is_empty():
 		return
@@ -163,6 +239,32 @@ func kill_resident(reason: String, victim: Node3D = null) -> void:
 			if r.job == null and not r.has_zone_job():
 				victim = r
 				break
+	if "%s" in reason:
+		reason = reason % victim.res_name
+	else:
+		reason = "%s – %s" % [reason, victim.res_name]
+	graves.append([victim.res_name, reason])
+	_update_graves()
+	remove_resident(victim, reason, true)
+
+
+## Bewohner verlässt die Festung (tot, verbannt, fortgegangen). death = trauern die anderen?
+func remove_resident(victim: Node3D, reason: String, death := false, keep_bond := false) -> void:
+	if not residents.has(victim):
+		return
+	if death:
+		for r in residents:
+			if r == victim:
+				continue
+			r.mood = maxf(r.mood - Config.mood_on_death, 0.0)
+			if r.bond_name == victim.res_name:
+				r.grief = Config.grief_time
+				r.mood = maxf(r.mood - 30.0, 0.0)
+				message.emit("%s trauert um %s." % [r.res_name, victim.res_name])
+	if not keep_bond:
+		for r in residents:
+			if r.bond_name == victim.res_name:
+				r.bond_name = ""
 	# seine Zonen-Arbeit fällt weg (sonst würde einer aus einem Gebäude nachrücken)
 	var key: String = victim.zone_key()
 	if key != "" and zone_jobs.get(key, 0) > 0:
@@ -175,7 +277,8 @@ func kill_resident(reason: String, victim: Node3D = null) -> void:
 	if armed_target > bows_total():
 		armed_target = bows_total()
 	_assign_jobs()
-	resident_died.emit(reason)
+	if death:
+		resident_died.emit(reason)
 	message.emit(reason)
 
 
@@ -222,7 +325,7 @@ func _send_couriers() -> void:
 		# nur freie Bewohner (ohne Gebäude und ohne Zone) springen ein
 		var best: Node3D = null
 		for r in residents:
-			if r.state == 0 and r.is_free() and r.hp >= Config.resident_hp * 0.6:
+			if r.state == 0 and r.is_free() and r.hp >= r.max_hp() * 0.6:
 				best = r
 				break
 		if best == null:
@@ -422,7 +525,7 @@ func _auto_jobs() -> void:
 	var zone_for := {}
 	for k in need:
 		zone_for[k] = _zone_with(k)
-	var free := residents.filter(func(r): return r.is_free() and r.state != 4 and r.hp >= Config.resident_hp * 0.6)
+	var free := residents.filter(func(r): return r.is_free() and r.state != 4 and r.hp >= r.max_hp() * 0.6)
 	# wer schon hilft, zuerst (damit er bleiben kann)
 	free.sort_custom(func(a, b): return a.auto_job and not b.auto_job)
 	for r in free:
@@ -453,3 +556,116 @@ func change_building_workers(b: Node3D, delta: int) -> bool:
 	b.wanted = n
 	_assign_jobs()
 	return true
+
+
+
+# --- Stimmung (v0.3) -------------------------------------------------------------
+
+## Zielwert der Stimmung: satt, Feuer sicher, Prediger, Wahn des Hüters …
+func mood_target() -> float:
+	var t := 55.0
+	if food <= 0.0:
+		t -= 35.0
+	elif food >= residents.size() * 2:
+		t += 10.0
+	if wood_seconds_left() < 180.0:
+		t -= 15.0
+	else:
+		t += 5.0
+	if ration_t > 0.0:
+		t -= 10.0
+	t += 8.0 * trait_count("prediger")
+	var player := get_tree().get_first_node_in_group("player")
+	if player:
+		t -= [0.0, 0.0, 12.0, 25.0][player.madness.stage()]   # die Bewohner fürchten den Wahn des Hüters
+	return clampf(t, 5.0, 95.0)
+
+
+func _mood_step(dt: float) -> void:
+	var target := mood_target()
+	for r in residents:
+		var own := target - (30.0 if r.grief > 0.0 else 0.0)
+		r.mood = move_toward(r.mood, own, Config.mood_rate * dt)
+		r.grief = maxf(r.grief - dt, 0.0)
+	# Verzweifelte verlassen vielleicht die Festung (einmal pro Minute würfeln)
+	_desert_acc += dt
+	while _desert_acc >= 60.0:
+		_desert_acc -= 60.0
+		for r in residents.duplicate():
+			if r.mood < Config.desert_mood and r.state == 0 and _rng.randf() < Config.desert_chance:
+				remove_resident(r, "%s hat die Festung verlassen – die Verzweiflung war zu groß." % r.res_name)
+				mood_shock(-5.0)
+				break
+
+
+# --- Unterwegs (Ereignis „Suche nach Verwandten“) -----------------------------------
+
+## Bewohner zieht los. Er kommt nach dt Sekunden zurück – vielleicht mit Begleitung, vielleicht nie.
+func send_away(r: Node3D, seconds: float) -> void:
+	var id: Dictionary = r.identity()
+	away.append([id, seconds])
+	remove_resident(r, "%s ist in die Dunkelheit aufgebrochen." % r.res_name, false, true)
+
+
+func _away_step(dt: float) -> void:
+	for a in away.duplicate():
+		a[1] -= dt
+		if a[1] > 0.0:
+			continue
+		away.erase(a)
+		var id: Dictionary = a[0]
+		var roll := _rng.randf()
+		if roll < 0.2:
+			graves.append([id["name"], "%s kehrte nie zurück." % id["name"]])
+			_update_graves()
+			message.emit("%s ist nicht zurückgekehrt …" % id["name"])
+			mood_shock(-8.0)
+			continue
+		var r := _add_resident(Vector3(0, 0, -9.5), id)
+		r.mood = minf(r.mood + 10.0, 100.0)
+		if roll < 0.65:
+			var kin := _add_resident(Vector3(0.8, 0, -9.5))
+			bond(r, kin, "Geschwister")
+			message.emit("%s ist zurück – und bringt %s mit!" % [r.res_name, kin.res_name])
+			mood_shock(6.0)
+		else:
+			message.emit("%s ist allein zurückgekehrt." % r.res_name)
+		_assign_jobs()
+
+
+# --- Gräber -----------------------------------------------------------------------
+
+## Grabsteine an der Westmauer (innen), mit Namen.
+func _update_graves() -> void:
+	while _grave_nodes.size() < graves.size() and _grave_nodes.size() < 18:
+		var i := _grave_nodes.size()
+		var g := Node3D.new()
+		add_child(g)
+		g.position = Vector3(-10.6 + (i % 2) * 0.9, 0, -9.0 + (i / 2) * 1.3)
+		var m := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.5, 0.7, 0.18)
+		m.mesh = bm
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.4, 0.38, 0.4)
+		m.material_override = mat
+		m.position.y = 0.35
+		m.rotation.y = PI / 2.0
+		g.add_child(m)
+		var l := Label3D.new()
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.fixed_size = true
+		l.pixel_size = 0.0007
+		l.font_size = 24
+		l.outline_size = 6
+		l.modulate = Color(0.8, 0.8, 0.85, 0.75)
+		l.position.y = 1.0
+		g.add_child(l)
+		_grave_nodes.append(g)
+	for i in _grave_nodes.size():
+		var idx := graves.size() - _grave_nodes.size() + i   # die jüngsten Gräber zeigen
+		(_grave_nodes[i].get_child(1) as Label3D).text = "† " + str(graves[idx][0])
+
+
+func update_graves() -> void:
+	_update_graves()

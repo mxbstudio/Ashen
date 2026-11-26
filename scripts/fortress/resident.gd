@@ -8,6 +8,9 @@
 ## Geht eine Feuerstelle bald aus, bringt er Holz hin (Holzfäller in der Nähe direkt aus ihrer Ladung).
 ## Nebenbei: Ist er draußen im Lichtkreis einer Fackel/Feuerstelle, die unter 50 % ist, legt er kurz
 ## 1 Holz nach (aus seiner Ladung, sonst aus dem Lager) und macht dann weiter.
+## v0.3 – Eigenleben: Name, 1–2 Eigenschaften (resident_data.gd), Stimmung 0–100, manchmal verbunden
+## mit einem anderen Bewohner (Geschwister/Paar). Stirbt der Verbundene, trauert er.
+## Gute Stimmung: arbeitet schneller. Verzweifelt: arbeitet halb so schnell und verlässt vielleicht die Festung.
 extends Node3D
 
 const HpBar := preload("res://scripts/hp_bar.gd")
@@ -27,6 +30,13 @@ var cargo := 0                      # getragene Einheiten
 var cargo_kind := "wood"            # was er gerade trägt
 var has_bow := false                # trägt einen Bogen (verteilt von der Festung)
 var auto_job := false               # Zonen-Arbeit selbst gewählt (zählt weiter als "frei")
+var res_name := ""                  # Name (v0.3)
+var traits: Array = []              # Eigenschaften, z. B. ["flink"]
+var mood := 60.0                    # Stimmung 0–100
+var bond_name := ""                 # mit wem verbunden ("" = niemand)
+var bond_kind := ""                 # "Geschwister" oder "Paar"
+var grief := 0.0                    # s Trauer übrig
+var _name_label: Label3D
 var state := State.HOME
 
 var _path: Array[Vector3] = []
@@ -105,7 +115,87 @@ func _ready() -> void:
 	_hp_bar.setup(0.8)
 	_hp_bar.position.y = 1.9
 	_hp_bar._fill.material_override.albedo_color = Color(0.4, 0.85, 0.4)
+	_name_label = Label3D.new()
+	_name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_name_label.fixed_size = true
+	_name_label.pixel_size = 0.0008
+	_name_label.font_size = 26
+	_name_label.outline_size = 8
+	_name_label.position.y = 2.2
+	_name_label.visible = false
+	add_child(_name_label)
 	_pick_home_target()
+
+
+## Name, Eigenschaften usw. setzen (von der Festung, gleich nach dem Erschaffen).
+func setup_identity(d: Dictionary) -> void:
+	res_name = d.get("name", "Namenlos")
+	traits = Array(d.get("traits", []))
+	mood = float(d.get("mood", Config.mood_start))
+	bond_name = d.get("bond", "")
+	bond_kind = d.get("bond_kind", "")
+	grief = float(d.get("grief", 0.0))
+	hp = float(d.get("hp", max_hp()))
+	_hp_bar.set_fraction(hp / max_hp())
+
+
+func identity() -> Dictionary:
+	return {"name": res_name, "traits": traits, "mood": mood, "bond": bond_name, "bond_kind": bond_kind,
+			"grief": grief, "hp": hp}
+
+
+func has_trait(t: String) -> bool:
+	return traits.has(t)
+
+
+func max_hp() -> float:
+	var m := Config.resident_hp
+	if has_trait("zaeh"):
+		m *= 1.5
+	if has_trait("kraenklich"):
+		m *= 0.75
+	return m
+
+
+## Arbeitstempo: Stimmung, Trauer, Fleiß.
+func efficiency() -> float:
+	var e := 1.0
+	if mood >= 75.0:
+		e = 1.15
+	elif mood < 25.0:
+		e = 0.5
+	if grief > 0.0:
+		e *= 0.6
+	if has_trait("fleissig"):
+		e *= 1.25
+	return e
+
+
+func appetite() -> float:
+	if has_trait("vielfrass"):
+		return 2.0
+	if has_trait("genuegsam"):
+		return 0.5
+	return 1.0
+
+
+func _speed() -> float:
+	return Config.worker_speed * (1.3 if has_trait("flink") else 1.0)
+
+
+func carry_cap() -> int:
+	return Config.worker_carry + (2 if has_trait("kraeftig") else 0)
+
+
+## Weigert er sich gerade hinauszugehen? (Ängstlich bei schlechter Stimmung)
+func refuses() -> bool:
+	return has_trait("aengstlich") and mood < 40.0
+
+
+## Kurzbeschreibung für Menüs: "Hanna (Flink, Zäh)"
+func title() -> String:
+	var names := traits.map(func(t): return ResidentData.trait_name(t))
+	return "%s (%s)" % [res_name, ", ".join(names)] if not names.is_empty() else res_name
 
 
 func has_zone_job() -> bool:
@@ -133,7 +223,7 @@ func is_alive() -> bool:
 
 ## Darf er gerade in seiner Zone arbeiten?
 func can_work() -> bool:
-	return has_zone_job() and Zones.is_lit(get_tree(), zone_id) and not Zones.recalled(get_tree())
+	return has_zone_job() and Zones.is_lit(get_tree(), zone_id) and not Zones.recalled(get_tree()) and not refuses()
 
 
 ## Gebäude-Arbeit zuteilen (von der Festung).
@@ -167,11 +257,12 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 	_flash = 0.12
 	Sfx.play("hurt", -8.0)
 	_number(str(roundi(amount)), Color(1, 0.35, 0.3))
-	_hp_bar.set_fraction(hp / Config.resident_hp)
+	_hp_bar.set_fraction(hp / max_hp())
+	mood = maxf(mood - (4.0 if has_trait("aengstlich") else 2.0), 0.0)
 	if hp <= 0.0:
 		var fort := get_tree().get_first_node_in_group("fortress")
 		if fort:
-			fort.kill_resident("Ein Bewohner wurde draußen getötet.", self)
+			fort.kill_resident("%s wurde draußen getötet.", self)
 		return
 	# verletzt: Ladung bleibt, aber sofort zurück in die Festung
 	if state == State.TEND:
@@ -190,6 +281,7 @@ func _process(delta: float) -> void:
 	_mat.albedo_color = Color(1, 0.75, 0.7) if _flash > 0.0 else Color(0.5, 0.45, 0.38)
 	_load_mesh.visible = cargo > 0 or state == State.DELIVER
 	_bow_mesh.visible = has_bow
+	_update_name_label()
 	if has_bow and is_exposed():
 		_defend(delta)
 	_tend_cd -= delta
@@ -202,30 +294,31 @@ func _process(delta: float) -> void:
 		State.OUT:
 			if not can_work():
 				_go_home()
-			elif _follow_path(delta, Config.worker_speed):
+			elif _follow_path(delta, _speed()):
 				state = State.WORK
 				_node = null
 		State.WORK:
 			_work(delta)
 		State.BACK:
-			if _follow_path(delta, Config.worker_speed * (1.6 if _fleeing else 1.0)):
+			if _follow_path(delta, _speed() * (1.6 if _fleeing else 1.0)):
 				_arrive_home()
 		State.TEND:
 			_tend_step(delta)
 		State.DELIVER:
 			if Zones.recalled(get_tree()) or not is_instance_valid(_delivery) or _delivery.wood_space() <= 0:
 				_abort_delivery()
-			elif _follow_path(delta, Config.worker_speed):
+			elif _follow_path(delta, _speed()):
 				_finish_delivery()
 
 
 ## Drinnen: heilen, ums Feuer bummeln bzw. am Gebäude arbeiten; mit Zonen-Arbeit wieder losgehen.
 func _home(delta: float) -> void:
-	if hp < Config.resident_hp:
-		hp = minf(hp + Config.resident_heal_per_second * delta, Config.resident_hp)
-		_hp_bar.set_fraction(hp / Config.resident_hp)
+	if hp < max_hp():
+		var rate := Config.resident_heal_per_second * (0.5 if has_trait("kraenklich") else 1.0)
+		hp = minf(hp + rate * delta, max_hp())
+		_hp_bar.set_fraction(hp / max_hp())
 	_wait -= delta
-	if can_work() and _wait <= 0.0 and hp >= Config.resident_hp * 0.6:
+	if can_work() and _wait <= 0.0 and hp >= max_hp() * 0.6:
 		_go_out()
 		return
 	var to := _target - global_position
@@ -261,17 +354,17 @@ func _work(delta: float) -> void:
 		if cargo > 0:
 			_go_home()
 		else:
-			_step_towards(Zones.center(get_tree(), zone_id) + Vector3(1.5, 0, 1.5), Config.worker_speed, delta)
+			_step_towards(Zones.center(get_tree(), zone_id) + Vector3(1.5, 0, 1.5), _speed(), delta)
 		return
 	var to := spot - global_position
 	to.y = 0
 	var reach: float = _node.reach() if zone_kind == "stone" and _node else 1.1
 	if to.length() > reach:
-		_step_towards(spot, Config.worker_speed, delta)
+		_step_towards(spot, _speed(), delta)
 		return
 	_gather_t += delta
 	rotation.z = sin(_gather_t * 9.0) * 0.08   # kleine Arbeitsbewegung
-	if _gather_t >= Config.worker_gather_seconds:
+	if _gather_t >= Config.worker_gather_seconds / efficiency():
 		_gather_t = 0.0
 		var ok: bool = forest.take_one(_tree) if zone_kind == "wood" else _node.take_one()
 		if ok:
@@ -279,7 +372,7 @@ func _work(delta: float) -> void:
 			cargo_kind = zone_kind
 			_load_mat.albedo_color = {"wood": Color(0.5, 0.32, 0.18), "food": Color(0.45, 0.85, 0.75),
 					"stone": Color(0.6, 0.6, 0.65)}[zone_kind]
-		if cargo >= Config.worker_carry:
+		if cargo >= carry_cap():
 			# Holzfäller sieht eine Feuerstelle in der Nähe, die bald ausgeht? Dann bringt er das Holz dorthin.
 			var pit := _low_fire_pit_near() if zone_kind == "wood" else null
 			if pit:
@@ -444,7 +537,7 @@ func _tend_step(delta: float) -> void:
 		_end_tend(true)
 		return
 	var spot: Vector3 = _tend.global_position + (global_position - _tend.global_position).normalized() * 1.2
-	if not _step_towards(spot, Config.worker_speed, delta):
+	if not _step_towards(spot, _speed(), delta):
 		return
 	_tend_t += delta
 	if _tend_t < 1.2:
@@ -494,7 +587,7 @@ func _defend(delta: float) -> void:
 	arrow.set_script(ArrowScript)
 	get_parent().add_child(arrow)
 	arrow.global_position = global_position + Vector3(0, 1.2, 0)
-	arrow.launch(best, Config.resident_bow_damage, {}, self)
+	arrow.launch(best, Config.resident_bow_damage * (2.0 if has_trait("schuetze") else 1.0), {}, self)
 	Sfx.play("shoot", -10.0)
 
 
@@ -540,3 +633,20 @@ func _number(text: String, col: Color) -> void:
 	num.text = text
 	get_parent().add_child(num)
 	num.global_position = global_position + Vector3(0, 2.2, 0)
+
+
+## Name über dem Kopf: sichtbar, wenn der Hüter in der Nähe ist (Farbe = Stimmung).
+func _update_name_label() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	var near: bool = player != null and global_position.distance_to(player.global_position) < 6.5
+	var show := near or _flash > 0.0
+	if _name_label.visible != show:
+		_name_label.visible = show
+	if show:
+		var t := res_name
+		if grief > 0.0:
+			t += " (trauert)"
+		elif refuses():
+			t += " (hat Angst)"
+		_name_label.text = t
+		_name_label.modulate = ResidentData.mood_color(mood)

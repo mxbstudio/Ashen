@@ -272,21 +272,24 @@ func advance(dt: float) -> Dictionary:
 	var out := {"wood": 0, "food": 0, "bows": 0}
 	if not built or workers.is_empty():
 		return out
+	var work := 0.0                # Arbeitskraft: jeder Bewohner nach Stimmung und Fleiß (v0.3)
+	for w in workers:
+		work += w.efficiency() if is_instance_valid(w) else 0.0
 	match kind:
 		"scrapyard":
-			_timer += dt * workers.size()
+			_timer += dt * work
 			while _timer >= Config.scrapyard_seconds_per_wood:
 				_timer -= Config.scrapyard_seconds_per_wood
 				out["wood"] += 1
 		"mushroom":
-			_timer += dt * workers.size()
+			_timer += dt * work
 			while _timer >= Config.mushroom_seconds_per_food:
 				_timer -= Config.mushroom_seconds_per_food
 				out["food"] += 1
 		"workshop":
 			# Bögen bauen: kostet Holz; hört auf, wenn jeder Bewohner einen Bogen haben könnte
 			var fort := get_parent()
-			_timer += dt * workers.size()
+			_timer += dt * work
 			while _timer >= Config.bow_craft_seconds:
 				if fort.bows_total() + out["bows"] >= fort.residents.size() \
 						or fort.wood + out["wood"] < Config.bow_wood_cost + 1:
@@ -321,7 +324,8 @@ func _process(delta: float) -> void:
 	arrow.set_script(ArrowScript)
 	get_parent().add_child(arrow)
 	arrow.global_position = global_position + Vector3(0, 4.5, 0)
-	arrow.launch(best, tower_damage(), {}, self)
+	var sharp: bool = workers.any(func(w): return is_instance_valid(w) and w.has_trait("schuetze"))
+	arrow.launch(best, tower_damage() * (1.5 if sharp else 1.0), {}, self)
 
 
 ## Wird vom Pfeil aufgerufen (wie beim Hüter).

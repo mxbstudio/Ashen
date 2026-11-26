@@ -43,6 +43,9 @@ var _hp_bar: Node3D
 var _burn_time := 0.0
 var _burn_dps := 0.0
 var _burn_tick := 0.0
+var _stagger_t := 0.0              # erschüttert (Glockenschlag): langsam, Sichel macht doppelt Schaden
+var _mark_t := 0.0                 # markiert (Bogen „Markieren“): nimmt mehr Schaden von allem
+var _fear_t := 0.0                 # Furcht (Leerenschrei): flieht vor dem Hüter
 
 
 func _ready() -> void:
@@ -85,6 +88,8 @@ func is_alive() -> bool:
 func take_damage(amount: float, _from: Node3D = null) -> void:
 	if not is_alive():
 		return
+	if _mark_t > 0.0:
+		amount *= 1.0 + Config.mark_bonus
 	hp -= amount
 	_flash = 0.1
 	Sfx.play("hit", -6.0)
@@ -108,6 +113,39 @@ func knockback(impulse: Vector3) -> void:
 	_knock += impulse
 
 
+# --- Zustände (v0.3) -------------------------------------------------------------
+
+func is_burning() -> bool:
+	return _burn_time > 0.0
+
+
+## Restlicher Brandschaden (für die Kombo „Entfachen“).
+func burn_left() -> float:
+	return _burn_dps * maxf(_burn_time, 0.0)
+
+
+func extinguish() -> void:
+	_burn_time = 0.0
+
+
+func is_staggered() -> bool:
+	return _stagger_t > 0.0
+
+
+func stagger(t: float) -> void:
+	_stagger_t = maxf(_stagger_t, t)
+
+
+func mark(t: float) -> void:
+	_mark_t = maxf(_mark_t, t)
+
+
+func frighten(t: float) -> void:
+	if is_in_group("boss"):
+		t *= 0.3   # der Hauptmann lässt sich kaum erschrecken
+	_fear_t = maxf(_fear_t, t)
+
+
 func _die() -> void:
 	_dying = 0.35
 	remove_from_group("enemies")
@@ -116,6 +154,7 @@ func _die() -> void:
 	_hp_bar.visible = false
 	if player and player.has_method("gain_xp"):
 		player.gain_xp(xp)
+		player.combat.on_enemy_died(self, _burn_time > 0.0)
 	died.emit(self)
 
 
@@ -157,13 +196,22 @@ func _physics_process(delta: float) -> void:
 			take_damage(_burn_dps * 0.5)
 			if not is_alive():
 				return
+	_stagger_t -= delta
+	_mark_t -= delta
 	var desired: Vector3
-	if _in_siege_mode():
+	if _fear_t > 0.0 and player_available():
+		_fear_t -= delta
+		desired = -flat_to_player().normalized() * speed * 1.2
+		if has_method("_set_sucking"):
+			call("_set_sucking", false)   # Lichtfresser lässt los
+	elif _in_siege_mode():
 		desired = _siege_think(delta)
 	elif _update_prey(delta):
 		desired = _hunt_think(delta)
 	else:
 		desired = _think(delta)
+	if _stagger_t > 0.0:
+		desired *= Config.stagger_slow
 	velocity = desired + _knock
 	_knock = _knock.move_toward(Vector3.ZERO, 25.0 * delta)
 	move_and_slide()
@@ -184,6 +232,10 @@ func _update_visuals(delta: float) -> void:
 			_mats[i].albedo_color = Color.WHITE
 		elif burn:
 			_mats[i].albedo_color = _base_colors[i].lerp(Color(1, 0.4, 0.05), 0.5 + 0.2 * sin(_burn_time * 20.0))
+		elif _mark_t > 0.0:
+			_mats[i].albedo_color = _base_colors[i].lerp(Color(0.9, 0.3, 1.0), 0.45)
+		elif _stagger_t > 0.0:
+			_mats[i].albedo_color = _base_colors[i].lerp(Color(0.6, 0.8, 1.0), 0.45)
 		else:
 			_mats[i].albedo_color = _base_colors[i]
 	# Augen: im Dunkeln grell rot (= stärker), im Licht matter

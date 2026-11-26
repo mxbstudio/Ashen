@@ -1,9 +1,11 @@
 ## Die Skill-Leiste (Kern des Kampfes).
 ## Ablauf pro Feld: erst ausholen (Cast-Zeit, Feld füllt sich) -> wenn voll: Skill wird ausgelöst.
-## - 3 Slots, werden automatisch von links nach rechts abgearbeitet, dann wieder links (Kreis).
-## - Kein Cooldown: jeder Skill hat eine Cast-Zeit, danach ist der nächste Slot dran.
+## - Felder werden automatisch von links nach rechts abgearbeitet, dann wieder links (Kreis).
+##   Mit dem Talisman „Umgekehrte Sanduhr“ läuft sie rückwärts.
+## - Kein Cooldown: jeder Skill hat eine Cast-Zeit, danach ist das nächste Feld dran.
 ## - Angriffe wirken selbst. Modifikatoren werden "vorgemerkt" und verändern den
-##   nächsten Angriff (auch über das Ende der Leiste hinweg auf den ersten Slot).
+##   nächsten Angriff (auch über das Ende der Leiste hinweg auf das erste Feld).
+## - Lage zählt (v0.3): Spiegel kopiert das Feld davor, Schwur im letzten Feld stärkt die ganze nächste Runde.
 ## - Ohne Angriff in der Leiste passiert nichts.
 ## - Die Leiste läuft nur, wenn ein Gegner in der Nähe ist.
 ## - Ein Dash unterbricht den aktuellen Cast (Fortschritt geht verloren).
@@ -18,6 +20,12 @@ var pending_mods: Array[String] = []   # vorgemerkte Modifikatoren
 var running := false
 var stash: Array[String] = []          # Vorrat: besessene Skills, die nicht in der Leiste sind
 var levels := {"sickle": 1, "bow": 1}  # jeder Skill nur einmal – dafür mit Stufe
+var branches := {}                     # gewählte Abzweigung je Skill: "a" oder "b" (ab Stufe 3)
+
+var round_bonus := 0.0             # Schwur: Schadensbonus für die laufende Runde
+var _oath_pending := 0.0           # Schwur: Bonus für die nächste Runde
+var _carry_mods: Array[String] = []    # Bleiche Hand: Modifikatoren wirken noch einmal
+var _attack_count := 0             # Glockenseil: jeder 3. Angriff doppelt
 
 @onready var player: Node3D = get_parent()
 
@@ -29,12 +37,35 @@ func has_attack() -> bool:
 	return false
 
 
-## Cast-Zeit des aktuellen Slots (Echo verlängert den Angriff).
+func has_branch(id: String, b: String) -> bool:
+	return branches.get(id, "") == b
+
+
+func _talisman(id: String) -> bool:
+	return player.has_talisman(id)
+
+
+## +1 = links -> rechts, −1 = rückwärts (Umgekehrte Sanduhr)
+func direction() -> int:
+	return -1 if _talisman("hourglass") else 1
+
+
+func _start_index() -> int:
+	return 0 if direction() == 1 else slots.size() - 1
+
+
+## Cast-Zeit des aktuellen Slots (Echo verlängert den Angriff, Talismane verändern das Tempo).
 func current_cast_time() -> float:
 	var id := slots[index]
+	if id == "":
+		return 0.4 if _talisman("chalice") else 0.0
 	var t := SkillData.cast_time(id)
-	if SkillData.is_attack(id) and pending_mods.has("echo"):
-		t *= echo_multiplier()
+	if SkillData.is_attack(id) and pending_mods.has("echo") and not has_branch("echo", "a"):
+		t *= echo_multiplier() + (0.6 if has_branch("echo", "b") else 0.0)
+	if _talisman("haste"):
+		t *= 0.75
+	if _talisman("wick"):
+		t *= 1.15
 	return t
 
 
@@ -48,30 +79,111 @@ func interrupt() -> void:
 	progress = 0.0
 
 
+## Totenglocke: ein getöteter Gegner lädt den laufenden Cast auf.
+func on_kill() -> void:
+	if running and _talisman("deathbell"):
+		progress = minf(progress + current_cast_time() * 0.3, current_cast_time() * 0.95)
+
+
 func _physics_process(delta: float) -> void:
 	running = has_attack() and player.is_alive() and player.combat.enemy_near()
 	if not running:
 		progress = 0.0
 		return
-	# leere Slots überspringen
-	var guard := 0
-	while slots[index] == "" and guard < slots.size():
-		index = (index + 1) % slots.size()
-		guard += 1
+	index = clampi(index, 0, slots.size() - 1)
+	# leere Slots überspringen (mit dem Leeren Kelch nicht)
+	if not _talisman("chalice"):
+		var guard := 0
+		while slots[index] == "" and guard < slots.size():
+			_advance_index()
+			guard += 1
 	progress += delta
 	if progress >= current_cast_time():
 		progress = 0.0
-		_execute(slots[index])
-		index = (index + 1) % slots.size()
+		var id := slots[index]
+		if id == "":
+			player.lantern.fuel = minf(player.lantern.fuel + 3.0, Config.lantern_burn_time)   # Leerer Kelch
+		else:
+			_execute(id)
+		_advance_index()
+
+
+## Zum nächsten Feld (in Laufrichtung). Beim Rundenwechsel greift ein vorgemerkter Schwur.
+func _advance_index() -> void:
+	index = wrapi(index + direction(), 0, slots.size())
+	if index == _start_index():
+		round_bonus = _oath_pending
+		_oath_pending = 0.0
+		if round_bonus > 0.0 and has_branch("oath", "b"):
+			player.take_damage(3.0, null, true)   # Blutschwur
+
+
+## Ist dieses Feld das letzte belegte der Runde?
+func _is_last_filled(i: int) -> bool:
+	var j := i
+	for k in slots.size():
+		j = wrapi(j + direction(), 0, slots.size())
+		if j == _start_index():
+			return true
+		if slots[j] != "":
+			return false
+	return true
 
 
 func _execute(id: String) -> void:
-	if SkillData.is_modifier(id):
-		pending_mods.append(id)
-	else:
-		player.combat.perform(id, pending_mods.duplicate())
-		pending_mods.clear()
+	match id:
+		"oath":
+			_oath(index)
+		"mirror":
+			_mirror(index)
+		_:
+			if SkillData.is_modifier(id):
+				pending_mods.append(id)
+			else:
+				_fire_attack(id, 1.0)
 	skill_fired.emit(id, index)
+
+
+func _fire_attack(id: String, mult: float) -> void:
+	var mods := pending_mods.duplicate()
+	mods.append_array(_carry_mods)
+	_carry_mods.clear()
+	if _talisman("palehand") and not pending_mods.is_empty():
+		_carry_mods = pending_mods.duplicate()   # wirken beim nächsten Angriff noch einmal
+	pending_mods.clear()
+	_attack_count += 1
+	var extra := 1 if _talisman("bellrope") and _attack_count % 3 == 0 else 0
+	player.combat.perform(id, mods, mult, extra)
+
+
+## Schwur: im letzten Feld (oder mit „Ewiger Schwur“ überall) -> Bonus für die ganze nächste Runde.
+func _oath(i: int) -> void:
+	var lvl := level_of("oath") - 1
+	if has_branch("oath", "a"):
+		_oath_pending = maxf(_oath_pending, 0.15 + Config.oath_per_level * lvl)
+	elif _is_last_filled(i):
+		var base := 0.5 if has_branch("oath", "b") else Config.oath_bonus
+		_oath_pending = maxf(_oath_pending, base + Config.oath_per_level * lvl)
+	else:
+		pending_mods.append("oath")
+
+
+## Spiegel: das Feld davor (links, bzw. rechts mit der Sanduhr) wird noch einmal ausgelöst.
+func _mirror(i: int) -> void:
+	var prev := wrapi(i - direction(), 0, slots.size())
+	var left := slots[prev]
+	if left == "" or left == "mirror":
+		return
+	if SkillData.is_modifier(left):
+		var times := 2 if has_branch("mirror", "b") else 1
+		for t in times:
+			if left == "oath":
+				_oath(prev)
+			else:
+				pending_mods.append(left)
+	elif not has_branch("mirror", "b"):
+		var m := 1.0 if has_branch("mirror", "a") else Config.mirror_copy + Config.mirror_per_level * (level_of("mirror") - 1)
+		_fire_attack(left, minf(m, 1.0))
 
 
 # --- Besitz, Stufen & Umbau -----------------------------------------------
@@ -91,6 +203,15 @@ func echo_multiplier() -> float:
 
 func upgrade(id: String) -> void:
 	levels[id] = mini(level_of(id) + 1, Config.max_skill_level)
+
+
+func choose_branch(id: String, b: String) -> void:
+	branches[id] = b
+
+
+## Muss bei der nächsten Stufe eine Abzweigung gewählt werden?
+func needs_branch(id: String) -> bool:
+	return level_of(id) + 1 >= Config.branch_level and not branches.has(id) and SkillData.BRANCHES.has(id)
 
 
 ## Ein weiteres Feld rechts anhängen; ein Skill aus dem Vorrat rückt direkt nach.
@@ -139,8 +260,15 @@ func swap_slots(a: int, b: int) -> void:
 	_reset_cycle()
 
 
-## Nach einem Umbau beginnt die Leiste wieder links, ohne Vormerkungen.
+## Nach einem Umbau beginnt die Leiste wieder am Anfang, ohne Vormerkungen.
 func _reset_cycle() -> void:
-	index = 0
+	index = _start_index()
 	progress = 0.0
 	pending_mods.clear()
+	_carry_mods.clear()
+	round_bonus = 0.0
+	_oath_pending = 0.0
+
+
+func reset_cycle() -> void:
+	_reset_cycle()

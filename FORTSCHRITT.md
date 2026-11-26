@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 fertig bis auf Werte-Feinschliff (PR #2 nach `main`). v0.3 begonnen: Sicht zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.3 „Tiefe“ zum Testen: Leiste als Puzzle (Kombos, Abzweigungen, Talismane), Bewohner mit Eigenleben, Wahnsinn.** v0.2 fertig bis auf Werte-Feinschliff. Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -165,10 +165,85 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 
 ---
 
-# Version v0.3 – (in Arbeit)
+# Version v0.3 – Tiefe (zum Testen)
 
-Max: „Fang damit an, was du am sinnvollsten hältst.“ Reihenfolge-Vorschlag: Sicht → Ausrüstung → Wahnsinn →
-echte Grafik → Meta-Fortschritt/Herkünfte/Story.
+Max: „Es wirkt mir noch nicht deep genug.“ Diagnose: viele Systeme, aber fast jede Entscheidung war „mehr ist besser“.
+v0.3 baut **Abwägungen** ein – in drei Teilen. Danach: echte Grafik → Meta-Fortschritt/Herkünfte/Story.
+
+| Teil | Inhalt | Status |
+|---|---|---|
+| Sicht | Gegner nur bei freier Sicht, im Dunkeln nur Augen | zum Testen |
+| 1 | Leiste als Puzzle: Zustände & Kombos, Lage zählt, Abzweigungen, Talismane | zum Testen |
+| 2 | Bewohner mit Eigenleben: Namen, Eigenschaften, Stimmung, Trauer, Gräber, Ereignisse | zum Testen |
+| 3 | Wahnsinn: steigt im Dunkeln, macht stärker, dunkle Skills, Trugbilder, Bewohner fürchten dich | zum Testen |
+
+Automatisch geprüft (headless, Godot 4.7.2): alle Skripte laden fehlerfrei; Testlauf mit Kombos, Schwur, Sanduhr,
+dunklen Skills, Schrein, Tod/Trauer/Grab, Rückkehr von der Suche, allen 7 Ereignissen, Speichern/Laden,
+Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufzeitfehler. **Am Handy noch nicht getestet.**
+
+## Teil 1 – Leiste als Puzzle
+- **Zustände & Kombos** (Gegner verfärben sich):
+  - Glockenschlag **erschüttert** 2 s (hellblau, Gegner nur 35 % so schnell).
+  - Glut / Zündschnur / Glutkrone setzen **in Brand** (orange).
+  - Bogen „Markieren“ **markiert** 4 s (violett): +35 % Schaden von allem (auch Turm und Bewohner).
+  - **Zerschmettern**: Sichel trifft Erschütterte → doppelter Schaden. Reihenfolge Glocke → Sichel lohnt sich.
+  - **Entfachen**: Glocke trifft Brennende → restlicher Brandschaden sofort ×1,5.
+  - **Flammenpfeil**: Bogen trifft Brennende → Explosion (2,2 m), Nachbarn brennen mit.
+  - Kombos stehen als gelber Schriftzug über dem Gegner.
+- **Neue Modifikatoren, bei denen die Lage zählt:**
+  - **Zündschnur**: nächster Angriff setzt alle Getroffenen in Brand – macht Kombos mit jedem Angriff möglich.
+  - **Spiegel**: löst das Feld *davor* noch einmal aus (Angriff 70 %, Modifikator ganz).
+  - **Schwur**: im *letzten* Feld → die ganze nächste Runde +25 % Schaden (Anzeige „Schwur +25 %“ über der Leiste).
+    Anderswo nur der nächste Angriff +10 %.
+- **Abzweigungen**: Beim Aufstieg eines Skills auf Stufe 3 wählt man eine von zwei Regeln (für immer). Beispiele:
+  Sichel *Wirbel* (rundum, −20 %) oder *Ernte* (unter 25 % Leben → tot); Bogen *Salve* oder *Markieren*;
+  Glut *Flächenbrand* oder *Funkentod*; Glocke *Sog* (zieht heran) oder *Lichtglocke* (+1 s Laterne pro Treffer);
+  Echo *Nachhall* oder *Dreiklang*; Opferlicht *Blutopfer* (Leben statt Licht) oder *Wahnopfer* (Wahnsinn statt Licht) …
+  Alle in `scripts/skill_data.gd` → `BRANCHES`. Die Abzweigung steht im Umbau-Menü unter dem Skill.
+- **Talismane** (Ausrüstung, `scripts/talisman_data.gd`): 11 Stück, biegen Regeln um, z. B. *Umgekehrte Sanduhr*
+  (Leiste läuft rückwärts), *Leerer Kelch* (leere Felder geben Laternenlicht), *Glockenseil* (jeder 3. Angriff doppelt),
+  *Bleiche Hand* (Modifikatoren wirken zweimal), *Hast-Amulett* (schneller, aber verwundbarer), *Wahnstein* …
+  - Höchstens **2 angelegt**; an-/ablegen nur am Feuer im Menü „Leiste umbauen“ (unten, antippen).
+  - Fundorte: **6 Schreine** im Dunkeln (violettes Glühen, 1,5 s daneben stehen, +5 Wahnsinn), Verlorene (12 %),
+    der Hauptmann, das Ereignis „Fund in den Trümmern“.
+- Umbau-Menü scrollt jetzt (wegen der Talismane).
+
+## Teil 2 – Bewohner mit Eigenleben
+- Jeder Bewohner hat einen **Namen** und **1–2 Eigenschaften** (`scripts/fortress/resident_data.gd`):
+  Flink, Kräftig, Zäh, Guter Schütze, Fleißig, Genügsam, Vielfraß, Prediger, Kränklich, Feuerhüter, Ängstlich –
+  jede wirkt wirklich (Tempo, Tragen, Leben, Schaden, Essen, Feuerverbrauch …).
+- Am Start sind zwei Paare **verbunden** (Geschwister / Paar). Stirbt einer, **trauert** der andere 4 min
+  (arbeitet langsamer, Stimmung stark unten).
+- **Stimmung** 0–100 strebt einem Zielwert zu: satt (+), Feuer sicher (+), Prediger (+), gekürzte Rationen (−),
+  Hunger (−−), Wahn des Hüters (−). Sofort-Schocks: Tod (−12 für alle), Tor gefallen, Belagerung gehalten (+10).
+  - zuversichtlich (≥ 75): +15 % Arbeitstempo · verzweifelt (< 25): halbes Tempo.
+  - Unter 15 kann ein Bewohner die Festung **verlassen**. Ängstliche gehen bei schlechter Stimmung nicht hinaus.
+- **Gräber** mit Namen an der Westmauer (innen). Meldungen nennen Namen („Hanna wurde draußen getötet.“).
+- **Name über dem Kopf**, wenn der Hüter in der Nähe ist (Farbe = Stimmung).
+- Menü „Bewohner einteilen“: neuer Abschnitt **Leute** (Name, Eigenschaften, Stimmung, Arbeit, Verbindung, Gräber).
+  HUD: „Bewohner: 7 · gefasst“ (Farbe = Durchschnittsstimmung).
+- **Ereignisse** (`scripts/ui/event_panel.gd`): etwa alle 3,5 min (nicht bei Belagerung/Vorzeichen), Spiel pausiert,
+  zwei Antworten mit Preis: Fremder am Tor (krank – aufnehmen?), Die Suche (Verwandte suchen – vielleicht nie zurück),
+  Leere Vorräte (Rationen kürzen?), Streit am Feuer, Fund in den Trümmern (Talisman oder Opfer), Prediger der Dunkelheit
+  (verbannen?), Gebet für den Hüter (bei Wahn ≥ 50: −25 Wahnsinn gegen Nahrung).
+
+## Teil 3 – Wahnsinn
+- **Wahn-Balken** oben rechts unter der Laterne (Stufen: klar · unruhig 25 · gezeichnet 50 · verloren 75).
+- **Steigt** draußen außerhalb fester Lichtquellen (0,15/s), schneller bei Laterne < 30 % (+0,35/s) und leer (+1/s),
+  durch dunkle Skills, Schreine, Wahnopfer. **Sinkt** nur langsam am Feuer (0,3/s, Prediger helfen), beim Tod (−25),
+  durch das Gebet-Ereignis.
+- **Macht stärker**: +10 % Schaden je Stufe. Ab 25 bietet der Stufenaufstieg **dunkle Skills** an:
+  *Schattenriss* (Linie, stärker mit Wahn), *Leerenschrei* (Gegner fliehen, Lichtfresser lassen los),
+  *Schattenpakt* (Modifikator, Schaden mit dem Wahn). Sie nähren den Wahn.
+- **Kostet**: violetter Bildschirmrand, **Flüstern** (violette Schrift), ab 50 **Trugbilder** (falsche Augen im Dunkeln),
+  die Anzeige **lügt** kurz (Laterne, Bewohnerzahl), die **Bewohner fürchten dich** (Stimmung −12 / −25).
+  Ab 75 springen Trugbilder dich an. Bei 100 zehrt der Wahn am Leben (2/s, tötet aber nicht).
+- Verbindung der drei Teile: Wer draußen ins Risiko geht, wird stärker – belastet damit aber die Festung.
+
+## Neue Werte (frei gewählt)
+Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.
+Im Werte-Menü neue Gruppen: „Leiste & Talismane“, „Wahnsinn“, „Bewohner-Stimmung“.
+Speicherstand Version 2 (alte Stände laden weiter; Bewohner bekommen dann neue Namen).
 
 ## Sicht (zum Testen)
 - Jeder Gegner bekommt `scripts/enemies/enemy_sight.gd` (prüft ~7× pro Sekunde, versetzt):

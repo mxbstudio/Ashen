@@ -94,6 +94,7 @@ func _rebuild() -> void:
 			+ "Bei Belagerung kommen alle heim. Freie Bewohner helfen selbstständig, wo das Lager etwas braucht; "
 			+ "Gebäude ruhen, solange ihr Lager voll ist (ihre Arbeiter helfen dann woanders).", 20, Color(1, 1, 1, 0.6)))
 	_box.add_child(_bow_row())
+	_box.add_child(_people())
 	_box.add_child(_section("Gebäude"))
 	var any := false
 	for b in fortress.buildings:
@@ -212,3 +213,50 @@ func _has_workshop() -> bool:
 		if b.kind == "workshop" and b.built:
 			return true
 	return false
+
+
+## Die Leute: Name, Eigenschaften, Stimmung, Arbeit, Verbindungen (v0.3).
+func _people() -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	col.add_child(_section("Leute – Stimmung Ø %d (%s)" % [roundi(fortress.average_mood()),
+			ResidentData.mood_word(fortress.average_mood())]))
+	for r in fortress.residents:
+		var traits := []
+		for t in r.traits:
+			traits.append("%s (%s)" % [ResidentData.trait_name(t), ResidentData.trait_desc(t)])
+		var line := "%s · %s %d" % [r.res_name, ResidentData.mood_word(r.mood), roundi(r.mood)]
+		var extra := []
+		extra.append(_job_text(r))
+		if r.bond_name != "":
+			extra.append("%s mit %s" % [r.bond_kind, r.bond_name])
+		if r.grief > 0.0:
+			extra.append("trauert")
+		if r.refuses():
+			extra.append("hat Angst, hinauszugehen")
+		var l := UiStyle.label("%s\n   %s\n   %s" % [line, ", ".join(traits), " · ".join(extra)], 20,
+				ResidentData.mood_color(r.mood))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		col.add_child(l)
+	for a in fortress.away:
+		var l := UiStyle.label("%s · unterwegs in der Dunkelheit …" % a[0].get("name", "?"), 20, Color(0.7, 0.7, 0.85))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		col.add_child(l)
+	if not fortress.graves.is_empty():
+		var names: Array = fortress.graves.map(func(g): return str(g[0]))
+		var l := UiStyle.label("Gräber (%d): %s" % [names.size(), ", ".join(names)], 20, Color(0.7, 0.7, 0.75))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		col.add_child(l)
+	col.add_child(UiStyle.label("Stimmung: satt, sicheres Feuer und Prediger heben sie; Hunger, Tote und der Wahn des Hüters "
+			+ "drücken sie. Zuversichtliche arbeiten schneller, Verzweifelte langsamer – und verlassen vielleicht die Festung.",
+			18, Color(1, 1, 1, 0.5)))
+	return col
+
+
+func _job_text(r: Node3D) -> String:
+	if r.job:
+		return r.job.display_name()
+	if r.has_zone_job():
+		var k: String = {"wood": "Holzfäller", "food": "Sammler", "stone": "Steinbrecher"}.get(r.zone_kind, "")
+		return "%s %s%s" % [k, Zones.zone_name(r.zone_id), " (selbstständig)" if r.auto_job else ""]
+	return "frei"

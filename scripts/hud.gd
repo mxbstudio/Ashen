@@ -43,6 +43,13 @@ func saved_flash() -> void:
 	_saved_t = 1.5
 
 
+## Flüstern des Wahns: violette Schrift an zufälliger Stelle, verblasst langsam.
+var _whispers: Array = []   # [text, pos, restzeit]
+func whisper(text: String) -> void:
+	var pos := Vector2(randf_range(40.0, maxf(60.0, size.x - 420.0)), randf_range(size.y * 0.35, size.y * 0.6))
+	_whispers.append([text, pos, 4.0])
+
+
 ## Kurze Meldung in der Bildschirmmitte (z. B. "Abgeladen: +5 Holz").
 func toast(text: String, duration := 2.5) -> void:
 	_toasts.append([text, duration])
@@ -69,6 +76,9 @@ func _process(delta: float) -> void:
 	for t in _toasts:
 		t[1] -= delta
 	_toasts = _toasts.filter(func(t): return t[1] > 0.0)
+	for w in _whispers:
+		w[2] -= delta
+	_whispers = _whispers.filter(func(w): return w[2] > 0.0)
 	queue_redraw()
 
 
@@ -82,9 +92,27 @@ func _draw() -> void:
 	_draw_bar(font, x, y, "Leben  %d" % ceili(player.health),
 			player.health / Config.player_max_health, Color(0.85, 0.2, 0.18))
 	y += 62.0
-	_draw_bar(font, x, y, "Laterne", lantern.fraction(), Color(1.0, 0.7, 0.3),
+	var lie: float = player.madness.lie_amount()
+	var lantern_shown: float = lantern.fraction()
+	if lie > 0.0:
+		lantern_shown = clampf(lantern_shown + sin(_t * 3.7) * 0.35, 0.02, 1.0)   # die Anzeige lügt
+	_draw_bar(font, x, y, "Laterne", lantern_shown, Color(1.0, 0.7, 0.3),
 			lantern.refilling)
 	y += 62.0
+	var mad: Node = player.madness
+	var mcol := Color(0.75, 0.5, 1.0, 0.95)
+	if mad.value >= 75.0:
+		mcol = mcol.lerp(Color(1, 0.3, 0.8), 0.5 + 0.5 * sin(_t * 6.0))
+	draw_string(font, Vector2(x, y + 16), "Wahn", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, mcol)
+	var mr := Rect2(x + 60, y + 1, BAR_W - 60, 20)
+	draw_rect(mr, Color(0, 0, 0, 0.6))
+	draw_rect(Rect2(mr.position, Vector2(mr.size.x * mad.value / 100.0, mr.size.y)), Color(0.5, 0.22, 0.8))
+	for k in [0.25, 0.5, 0.75]:
+		draw_line(mr.position + Vector2(mr.size.x * k, 0), mr.position + Vector2(mr.size.x * k, mr.size.y), Color(1, 1, 1, 0.3), 1.0)
+	var sp := mr.position + Vector2(8, 16)
+	draw_string_outline(font, sp, mad.stage_name(), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 5, Color(0, 0, 0, 0.8))
+	draw_string(font, sp, mad.stage_name(), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, mcol)
+	y += 26.0
 	draw_string(font, Vector2(x, y + 22), "Tränke: %d / %d" % [player.potions, Config.potions_start],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.6, 1.0, 0.6, 0.9))
 	y += 34.0
@@ -119,9 +147,28 @@ func _draw() -> void:
 		draw_string(font, Vector2((size.x - sw) / 2.0 + 10.0, 80), st, HORIZONTAL_ALIGNMENT_LEFT, -1, 18,
 				Color(0.7, 1, 0.7, clampf(_saved_t, 0.0, 1.0) * 0.8))
 	_draw_skill_bar(font, player.skill_bar)
+	_draw_madness(font)
 	_draw_hurt(player.hurt_flash)
 	if not player.is_alive():
 		_draw_death(font)
+
+
+## Wahnsinn: violetter Rand (stärker mit dem Wahn), Flüstern.
+func _draw_madness(font: Font) -> void:
+	var v: float = player.madness.value / 100.0
+	if v > 0.2:
+		var a := (v - 0.2) * 0.45 * (0.85 + 0.15 * sin(_t * 1.7))
+		var t := 30.0 + 60.0 * v
+		var c := Color(0.35, 0.05, 0.5, a)
+		draw_rect(Rect2(0, 0, size.x, t), c)
+		draw_rect(Rect2(0, size.y - t, size.x, t), c)
+		draw_rect(Rect2(0, 0, t, size.y), c)
+		draw_rect(Rect2(size.x - t, 0, t, size.y), c)
+	for w in _whispers:
+		var a: float = clampf(w[2] / 1.5, 0.0, 1.0) * clampf((4.0 - w[2]) * 2.0, 0.0, 1.0)
+		var p: Vector2 = w[1] + Vector2(sin(_t * 2.0 + w[1].x) * 6.0, 0)
+		draw_string_outline(font, p, w[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 26, 6, Color(0, 0, 0, 0.7 * a))
+		draw_string(font, p, w[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(0.8, 0.55, 1.0, a))
 
 
 ## Roter Rand, wenn der Hüter getroffen wird.
@@ -211,6 +258,9 @@ func _draw_skill_bar(font: Font, bar: Node) -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(p[1].lightened(0.3), 1.0 - k))
 
 	# vorgemerkte Modifikatoren anzeigen
+	if bar.round_bonus > 0.0:
+		draw_string(font, Vector2(x0 + total - 170, y0 - 22), "Schwur +%d %%" % roundi(bar.round_bonus * 100),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.85, 0.4))
 	if not bar.pending_mods.is_empty():
 		var names := []
 		for m in bar.pending_mods:
@@ -245,7 +295,7 @@ func _draw_fortress(font: Font) -> void:
 		return
 	var x := MARGIN
 	var y := 40.0
-	draw_rect(Rect2(x - 6, y - 4, 330, 188), Color(0, 0, 0, 0.4))
+	draw_rect(Rect2(x - 6, y - 4, 360, 188), Color(0, 0, 0, 0.4))
 	var secs := int(fortress.wood_seconds_left())
 	var low_wood: bool = fortress.wood < 5
 	var blink := 0.5 + 0.5 * sin(_t * 8.0)
@@ -262,9 +312,13 @@ func _draw_fortress(font: Font) -> void:
 	draw_string(font, Vector2(x, y + 60), "Nahrung: %d / %d" % [int(fortress.food), fortress.food_cap()],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, food_col)
 	var outside: int = fortress.residents_outside()
-	draw_string(font, Vector2(x, y + 96), "Bewohner: %d%s" % [fortress.residents.size(),
-			"  (%d draußen)" % outside if outside > 0 else ""],
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.9, 0.85, 0.8))
+	var shown_res: int = fortress.residents.size()
+	if player.madness.lie_amount() > 0.0:
+		shown_res = maxi(0, shown_res + (1 if sin(_t * 2.3) > 0.0 else -2))
+	var avg: float = fortress.average_mood()
+	draw_string(font, Vector2(x, y + 96), "Bewohner: %d%s · %s" % [shown_res,
+			" (%d drau.)" % outside if outside > 0 else "", ResidentData.mood_word(avg)],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, ResidentData.mood_color(avg) if fortress.residents.size() > 0 else Color(0.9, 0.85, 0.8))
 	# Fackeln draußen: wie viele brennen? Rot blinkend, wenn eine angegriffen wird.
 	var burning := 0
 	var total := 0
@@ -286,10 +340,14 @@ func _draw_toasts(font: Font) -> void:
 	for t in _toasts:
 		var a := clampf(t[1], 0.0, 1.0)
 		var txt: String = t[0]
-		var ts := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 28)
+		var fs := 28
+		var ts := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
+		while ts.x > size.x - 48.0 and fs > 16:   # lange Meldungen kleiner schreiben
+			fs -= 2
+			ts = font.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
 		var px := (size.x - ts.x) / 2.0
 		draw_rect(Rect2(px - 14, y - 30, ts.x + 28, 42), Color(0, 0, 0, 0.55 * a))
-		draw_string(font, Vector2(px, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(1, 0.9, 0.7, a))
+		draw_string(font, Vector2(px, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 0.9, 0.7, a))
 		y += 50.0
 
 
