@@ -43,7 +43,7 @@ func has_line_of_sight(e: Node3D) -> bool:
 
 
 func enemy_near() -> bool:
-	return nearest_enemy(Config.combat_range) != null
+	return nearest_enemy(Config.combat_range + player.range_bonus()) != null
 
 
 func _lvl(id: String) -> int:
@@ -118,7 +118,7 @@ func _ember(mult: float, heal: Dictionary) -> void:
 
 ## Geschoss auf den nächsten Gegner (Pfeil oder Glut).
 func _shoot(damage: float, heal: Dictionary, burning: bool) -> void:
-	var target := nearest_enemy(Config.bow_range)
+	var target := nearest_enemy(Config.bow_range + player.range_bonus())
 	if target == null:
 		return
 	var arrow := Node3D.new()

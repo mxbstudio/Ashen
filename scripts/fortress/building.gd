@@ -206,6 +206,16 @@ func _add_box(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	return m
 
 
+## Wachturm: Standplatz oben auf dem Dach (für den Hüter).
+func top_position() -> Vector3:
+	return global_position + Vector3(0, 4.4, 0)
+
+
+## Wachturm: so viel weiter reicht der Hüter, wenn er oben steht.
+func climb_range_bonus() -> float:
+	return Config.tower_climb_range + Config.tower_climb_range_per_level * (level - 1)
+
+
 ## Stelle, an der Bewohner arbeiten und der Hüter verbessern kann (vor dem Gebäude, Richtung Feuer).
 func work_spot() -> Vector3:
 	var to_center := -global_position

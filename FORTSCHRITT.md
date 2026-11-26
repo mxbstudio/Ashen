@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 in Arbeit – Etappe 2 repariert, Etappe 3 (Gebäude-Upgrades) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 in Arbeit – Etappe 3 getestet („ganz nice“), mehr Bewohner, Etappe 4 (begehbarer Wachturm) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -118,6 +118,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Bewohner-Verteidigung | 3 Schaden, 2,5 s | 2 Schaden, 3,5 s | zu leicht |
 | Trage des Hüters | 15 | 6 | v0.2: Sammeln übernehmen die Bewohner |
 | Sammeln des Hüters | 0,6 s pro Einheit | 1,2 s | v0.2: Sammeln übernehmen die Bewohner |
+| Bewohner am Start | 5 | 7 | Max: „bräuchte mehr Dorfbewohner“ |
+| Nahrung pro Bewohner | alle 60 s | alle 75 s | damit 7+ Bewohner satt werden |
 
 ## Etappe 7 – fertig
 - **Belagerung** alle 8 min: 30 s vorher flackert das Feuer unruhig („Das Feuer flackert unruhig …“, kein Countdown). Dann läutet die Glocke (heller Blitz), Angreifer erscheinen in Gruppen vor dem Tor (12, jede weitere +4) und schlagen aufs Tor (Anzeige „BELAGERUNG“ mit Torleben und Angreifern). Normale Gegner erscheinen währenddessen nicht.
@@ -161,9 +163,9 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 | Etappe | Inhalt | Aufwand | Status |
 |---|---|---|---|
 | 1 | Gebiete erhellen: Zonen, Fackelpfähle, Brennstoff, Lichtfresser löschen | mittel | fertig, am Handy getestet (Build #17) |
-| 2 | Bewohner als Holzfäller / Sammler in helle Zonen schicken | groß | zum Testen |
-| 3 | Gebäude-Upgrades (3 Stufen) | mittel | zum Testen |
-| 4 | Begehbarer Wachturm | mittel | offen |
+| 2 | Bewohner als Holzfäller / Sammler in helle Zonen schicken | groß | fertig, am Handy getestet |
+| 3 | Gebäude-Upgrades (3 Stufen) | mittel | fertig, am Handy getestet |
+| 4 | Begehbarer Wachturm | mittel | zum Testen |
 | 5 | Speicherstand im Browser | mittel | offen |
 | 6 | Werte einstellen mit Max | klein | offen |
 
@@ -223,3 +225,21 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 - Pro Stufe ein Fähnchen auf dem Dach; Schild zeigt „(St. 2)“ und „2/3 Bewohner“.
 - Bewohner-Verteilung: Pilzkeller, Trümmerhof, Wachturm; wer schon in einem Gebäude arbeitet, bleibt dort.
 - Werte-Menü: Kosten Stufe 2 und Stufe 3.
+
+### Nach Max' Test von Etappe 3: mehr Bewohner
+- Start mit **7 Bewohnern** (statt 5).
+- **Überlebende**: alle 4 min findet ein Überlebender das Licht und kommt durchs Tor (+1 Bewohner, Meldung),
+  höchstens 12 Bewohner und nur, wenn mindestens 3 Nahrung da sind.
+- Jeder Bewohner isst 1 Nahrung alle 75 s (statt 60 s).
+- Werte-Menü: Bewohner am Start, neuer Bewohner alle … s, Bewohner höchstens.
+
+## Etappe 4 – Begehbarer Wachturm
+- Vor dem gebauten Wachturm (Seite zum Feuer) → Knopf **„Turm besteigen (+5 m Reichweite)“**.
+- Oben: Der Hüter steht erhöht (4,4 m) und schießt über die Mauer. Reichweite +5 m (+2 m je Turmstufe über 1),
+  freie Sicht wird von oben berechnet – Gegner direkt an der Mauer sind verdeckt.
+- Oben kann er nicht laufen und nicht dashen; Sichelhieb und Glockenschlag reichen nicht hinaus (Bogen und Glut schon).
+  Gegner draußen erreichen ihn dort nicht.
+- Die Kamera schwenkt oben nach draußen und zoomt etwas heraus.
+- Knopf **„Herabsteigen“** → steht wieder vor dem Turm. Beim Tod steigt er automatisch ab.
+- Der Bewohner im Turm schießt weiter mit.
+- Neue Werte: `tower_climb_range` (5 m), `tower_climb_range_per_level` (2 m) in `scripts/config.gd`.

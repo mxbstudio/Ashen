@@ -29,6 +29,7 @@ var protect_timer := 0.0           # > 0: unverwundbar (nach dem Wiedererscheine
 var carry := {"wood": 0, "food": 0}   # Inhalt der Trage
 var _gather_t := 0.0
 var _full_warned := false
+var on_tower: Node3D = null        # Wachturm, auf dem er gerade steht (oder null)
 
 
 func _ready() -> void:
@@ -102,7 +103,33 @@ func _spawn_number(amount: float, col: Color, prefix := "") -> void:
 	num.global_position = global_position + Vector3(0, 2.4, 0)
 
 
+## Turm besteigen: oben stehen, nicht laufen, mit mehr Reichweite schießen.
+func climb(tower: Node3D) -> void:
+	on_tower = tower
+	skill_bar.interrupt()
+	velocity = Vector3.ZERO
+	global_position = tower.top_position()
+	Sfx.play("gate", -4.0)
+
+
+## Vom Turm herabsteigen: unten vor dem Turm abstellen.
+func descend() -> void:
+	if on_tower == null:
+		return
+	var spot: Vector3 = on_tower.work_spot()
+	on_tower = null
+	skill_bar.interrupt()
+	global_position = spot
+	Sfx.play("gate", -4.0)
+
+
+## Zusätzliche Reichweite (auf dem Turm).
+func range_bonus() -> float:
+	return on_tower.climb_range_bonus() if on_tower else 0.0
+
+
 func _die() -> void:
+	on_tower = null
 	health = 0.0
 	dead_timer = Config.respawn_delay
 	Sfx.play("death", 0.0, 0.0)
@@ -112,6 +139,7 @@ func _die() -> void:
 
 
 func _respawn() -> void:
+	on_tower = null
 	health = Config.player_max_health
 	potions = Config.potions_start
 	lantern.fuel = Config.lantern_burn_time
@@ -140,9 +168,12 @@ func _physics_process(delta: float) -> void:
 		if Config.potions_refill_at_fire:
 			potions = Config.potions_start
 		_unload()
-	_gather(delta)
 	if Input.is_action_just_pressed("potion"):
 		drink_potion()
+	if on_tower:
+		_tower_step(delta)
+		return
+	_gather(delta)
 
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var move := Vector3.ZERO
@@ -177,7 +208,18 @@ func _physics_process(delta: float) -> void:
 	DebugOverlay.watch("Stufe", "%d (EP %d/%d)" % [level, xp, xp_for_next_level()])
 
 
+## Auf dem Turm: steht oben fest, dreht sich zum nächsten Gegner.
+func _tower_step(delta: float) -> void:
+	velocity = Vector3.ZERO
+	global_position = on_tower.top_position()
+	face_nearest_enemy()
+	var target_angle := atan2(facing.x, facing.z)
+	model.rotation.y = lerp_angle(model.rotation.y, target_angle, 1.0 - exp(-40.0 * delta))
+
+
 func try_dash() -> void:
+	if on_tower:
+		return   # auf dem Turm kein Dash
 	if _dash_cd > 0.0 or _dash_time > 0.0:
 		return
 	_dash_dir = facing
@@ -189,7 +231,7 @@ func try_dash() -> void:
 
 ## Dreht den Hüter zum nächsten Gegner, falls einer in Kampfreichweite ist.
 func face_nearest_enemy() -> void:
-	var e: Node3D = combat.nearest_enemy(Config.combat_range)
+	var e: Node3D = combat.nearest_enemy(Config.combat_range + range_bonus())
 	if e:
 		var to := e.global_position - global_position
 		to.y = 0

@@ -26,14 +26,21 @@ func _ready() -> void:
 		global_position = target.global_position
 
 
+var _tower_k := 0.0                # 0 = normal, 1 = Hüter auf dem Turm (Kamera schaut nach draußen)
+
+
 func _process(delta: float) -> void:
+	var on_tower: bool = target != null and "on_tower" in target and target.on_tower != null
+	_tower_k = move_toward(_tower_k, 1.0 if on_tower else 0.0, delta * 3.0)
 	_update_size()
 	if target:
+		# auf dem Turm: Blick über die Mauer nach Norden (Turmhöhe ausgleichen)
+		var goal: Vector3 = target.global_position + Vector3(0, -target.global_position.y, -7.0 * _tower_k)
 		if Config.camera_follow <= 0.0:
-			global_position = target.global_position
+			global_position = goal
 		else:
 			var w := 1.0 - exp(-Config.camera_follow * delta)
-			global_position = global_position.lerp(target.global_position, w)
+			global_position = global_position.lerp(goal, w)
 
 
 ## Hochformat: feste Breite in Metern. Querformat (z. B. PC): gleiche Zahl als Höhe.
@@ -43,7 +50,7 @@ func _update_size() -> void:
 		camera.keep_aspect = Camera3D.KEEP_WIDTH
 	else:
 		camera.keep_aspect = Camera3D.KEEP_HEIGHT
-	camera.size = Config.camera_width
+	camera.size = Config.camera_width + 5.0 * _tower_k   # auf dem Turm etwas weiter herauszoomen
 
 
 ## Wandelt eine Bildschirm-Richtung (x rechts, y unten) in eine Bodenrichtung um.

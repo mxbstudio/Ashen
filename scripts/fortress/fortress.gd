@@ -18,6 +18,7 @@ var zone_jobs := {}                # Zonen-Arbeit: "west:wood" -> Anzahl Bewohne
 var _burn_acc := 0.0
 var _eat_acc := 0.0
 var _starve_acc := 0.0
+var _survivor_acc := 0.0
 var _tick := 0.0
 var _fire_dead := false
 
@@ -30,13 +31,18 @@ func _ready() -> void:
 		if c.is_in_group("buildings") or c.has_method("build"):
 			buildings.append(c)
 	for i in Config.residents_start:
-		var r := Node3D.new()
-		r.set_script(ResidentScript)
-		add_child(r)
 		var a := TAU * i / Config.residents_start
-		r.position = Vector3(cos(a), 0, sin(a)) * 3.5
-		residents.append(r)
+		_add_resident(Vector3(cos(a), 0, sin(a)) * 3.5)
 	_assign_jobs()
+
+
+func _add_resident(pos: Vector3) -> Node3D:
+	var r := Node3D.new()
+	r.set_script(ResidentScript)
+	add_child(r)
+	r.position = pos
+	residents.append(r)
+	return r
 
 
 func wood_cap() -> int:
@@ -106,6 +112,15 @@ func advance(dt: float) -> void:
 				kill_resident("Ein Bewohner ist verhungert.")
 		else:
 			_starve_acc = 0.0
+	# Überlebende finden das Licht
+	_survivor_acc += dt
+	while _survivor_acc >= Config.survivor_interval:
+		_survivor_acc -= Config.survivor_interval
+		if residents.size() < Config.residents_max and food >= Config.survivor_min_food:
+			_add_resident(Vector3(0, 0, -9.5))   # kommt durchs Tor herein
+			_assign_jobs()
+			Sfx.play("pickup", 0.0, 0.0)
+			message.emit("Ein Überlebender hat das Licht gefunden (+1 Bewohner)")
 
 
 ## Ein Bewohner stirbt. victim = null -> bevorzugt einer ohne Arbeit, sonst der letzte.

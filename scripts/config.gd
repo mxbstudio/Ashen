@@ -31,8 +31,11 @@ var fire_seconds_per_wood := 20.0
 var fire_light_radius := 10.0      # m Lichtkreis des Feuers
 var fire_refill_range := 3.5       # m – so nah ran, um die Laterne aufzufüllen
 var food_start := 15
-var food_seconds_per_person := 60.0
-var residents_start := 5
+var food_seconds_per_person := 75.0 # (v0.1: 60)
+var residents_start := 7          # (v0.1: 5)
+var survivor_interval := 240.0     # s – so oft findet ein Überlebender das Licht (+1 Bewohner)
+var residents_max := 12            # mehr Bewohner kommen nicht dazu
+var survivor_min_food := 3         # nur wenn mindestens so viel Nahrung da ist
 var scrapyard_seconds_per_wood := 45.0   # Trümmerhof
 var mushroom_seconds_per_food := 40.0    # Pilzkeller
 var starve_seconds := 30.0         # ohne Nahrung stirbt alle 30 s ein Bewohner
@@ -53,6 +56,8 @@ var upgrade_cost_3 := 16
 var tower_damage_per_level := 0.5  # Wachturm: +50 % Schaden je Stufe
 var tower_range_per_level := 3.0   # m mehr Reichweite je Stufe
 var tower_interval_per_level := 0.8 # Schussabstand × 0,8 je Stufe (schneller)
+var tower_climb_range := 5.0       # m mehr Reichweite, wenn der Hüter auf dem Turm steht
+var tower_climb_range_per_level := 2.0  # m zusätzlich je Turmstufe über 1
 
 # --- Sammeln ----------------------------------------------------------------
 var gather_seconds := 1.2          # s pro Einheit, solange man neben der Fundstelle steht (v0.1: 0,6)
