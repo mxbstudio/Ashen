@@ -180,6 +180,13 @@ echte Grafik → Meta-Fortschritt/Herkünfte/Story.
 - Lebensbalken nur bei voll sichtbaren Gegnern. Warnkreise (Verlorener, Boss) bleiben immer sichtbar.
 - Werte-Menü, Gruppe „Sicht“: Sicht an/aus (zum Vergleichen), „Im Dunkeln ganz sichtbar bis m“.
 - Neue Werte: `sight_enabled`, `sight_near` (3,5 m), `sight_range` (24 m).
+- Max' Test: „merkt man kaum, egal“ – Augen gut erkennbar, keine Überraschungen, läuft flüssig. Bleibt so.
+
+## Ruckler beim ersten Verlassen der Festung
+- Ursache (sehr wahrscheinlich): Beim ersten Anzeigen jeder Art von Oberfläche muss der Browser ein kleines
+  Grafikprogramm vorbereiten. Draußen tauchen auf einmal viele neue Dinge auf.
+- Lösung: `scripts/shader_warmup.gd` zeigt beim Start je ein Beispiel (Gegner, Bewohner, Feuerstelle, kleine Fackel,
+  Fels, Schadenszahl, Sichel, Glockenwelle, Pfeil, Glut) für 8 Bilder versteckt unter dem Boden beim Hüter.
 
 ---
 
