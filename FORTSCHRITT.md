@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 fertig bis auf Werte-Feinschliff (PR #2 nach `main`). v0.3: Sicht fertig, Ausrüstung zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 fertig bis auf Werte-Feinschliff (PR #2 nach `main`). v0.3: Sicht und Ausrüstung fertig, Wahnsinn zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -191,6 +191,18 @@ echte Grafik → Meta-Fortschritt/Herkünfte/Story.
   Stufe 2 und 3 brauchen eine Werkstatt der gleichen Stufe.
 - HUD oben rechts: „Klinge I · Rüstung – · Laterne II“ (sobald etwas geschmiedet ist). Wird gespeichert.
 - Werte-Menü: Gruppe „Ausrüstung“. Neue Werte im Abschnitt „Ausrüstung“ in `scripts/config.gd`.
+
+## Wahnsinn (zum Testen)
+- Wert 0–100 (`scripts/madness.gd`), lila Balken oben rechts unter der Laterne (erscheint, sobald er steigt).
+- **Steigt** draußen außerhalb fester Lichter: 0,35/s bei voller Laterne, bis ×3 bei schwacher, 3/s bei leerer Laterne.
+- **Sinkt** im Licht einer Fackel/Feuerstelle, auf dem Turm und in der Festung (3/s), am Feuer/Leuchtfeuer/an
+  Feuerstellen schnell (8/s). Nach dem Tod 0. Wird gespeichert.
+- **Ab 30**: dunkel-violetter Bildschirmrand (pulsiert, unter der Anzeige), Flüstern (neuer Platzhalter-Klang).
+- **Ab 50**: Trugbilder (`scripts/phantom.gd`): rote Augen im Dunkeln, die blinzeln und verschwinden; ab und zu ein
+  Schatten-Kriecher, der heranstürzt und kurz vor dem Hüter verpufft. Kein Schaden, keine Ziele für die Skill-Leiste.
+- **Ab 75**: Leben und Laterne zittern in der Anzeige, falsche Warnungen („Etwas ist hinter dir.“ …).
+- **Bei 100**: 3 Schaden pro Sekunde.
+- Werte-Menü: Gruppe „Wahnsinn“ (an/aus, Anstieg, Abbau am Feuer).
 
 ## Am PC kam nur „Bitte Handy drehen“
 - Der Hinweis erschien bei Querformat + „Touchscreen vorhanden“ – das melden auch viele PCs/Laptops.

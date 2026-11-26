@@ -76,15 +76,24 @@ func _draw() -> void:
 	if player == null:
 		return
 	var font := get_theme_default_font()
+	_draw_madness()   # zuerst: der dunkle Rand liegt UNTER der Anzeige, damit alles lesbar bleibt
 	var x := size.x - BAR_W - MARGIN
 	var y := MARGIN + 6.0
 	var lantern = player.lantern
-	_draw_bar(font, x, y, "Leben  %d" % ceili(player.health),
-			player.health / player.max_health(), Color(0.85, 0.2, 0.18))
+	# Wahnsinn ab 75: Leben und Laterne zittern (unzuverlässige Anzeige)
+	var mad := get_tree().get_first_node_in_group("madness")
+	var lie := 0.0
+	if mad and mad.level() >= 3:
+		lie = randf_range(-0.15, 0.15)
+	_draw_bar(font, x, y, "Leben  %d" % ceili(player.health * (1.0 + lie)),
+			clampf(player.health / player.max_health() + lie, 0.0, 1.0), Color(0.85, 0.2, 0.18))
 	y += 62.0
-	_draw_bar(font, x, y, "Laterne", lantern.fraction(), Color(1.0, 0.7, 0.3),
+	_draw_bar(font, x, y, "Laterne", clampf(lantern.fraction() - lie, 0.0, 1.0), Color(1.0, 0.7, 0.3),
 			lantern.refilling)
 	y += 62.0
+	if mad and mad.value > 0.5:
+		_draw_bar(font, x, y, "Wahnsinn", mad.value / 100.0, Color(0.6, 0.3, 0.85), mad.level() >= 3)
+		y += 62.0
 	draw_string(font, Vector2(x, y + 22), "Tränke: %d / %d" % [player.potions, Config.potions_start],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.6, 1.0, 0.6, 0.9))
 	y += 34.0
@@ -130,6 +139,22 @@ func _draw() -> void:
 	_draw_hurt(player.hurt_flash)
 	if not player.is_alive():
 		_draw_death(font)
+
+
+## Wahnsinn ab 30: der Bildschirmrand wird dunkel-violett, je mehr, desto breiter (pulsiert leicht).
+func _draw_madness() -> void:
+	var mad := get_tree().get_first_node_in_group("madness")
+	if mad == null or mad.value < 30.0:
+		return
+	var k := clampf((mad.value - 30.0) / 70.0, 0.0, 1.0)
+	var pulse := 0.85 + 0.15 * sin(_t * 2.2)
+	for i in 4:
+		var w := (40.0 + 140.0 * k) * (1.0 - i * 0.22)
+		var c := Color(0.08, 0.0, 0.1, (0.18 + 0.25 * k) * pulse)
+		draw_rect(Rect2(0, 0, size.x, w), c)
+		draw_rect(Rect2(0, size.y - w, size.x, w), c)
+		draw_rect(Rect2(0, 0, w, size.y), c)
+		draw_rect(Rect2(size.x - w, 0, w, size.y), c)
 
 
 ## Roter Rand, wenn der Hüter getroffen wird.

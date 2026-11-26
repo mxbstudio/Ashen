@@ -32,6 +32,7 @@ func _ready() -> void:
 	_streams["levelup"] = _arpeggio([523.0, 659.0, 784.0, 1047.0])
 	_streams["death"] = _arpeggio([392.0, 330.0, 262.0, 196.0], 0.18)
 	_streams["ignite"] = _whoosh(0.5)
+	_streams["whisper"] = _whisper(1.6)
 
 
 ## Klang abspielen. pitch_var = zufällige Tonhöhen-Schwankung (klingt natürlicher).
@@ -63,6 +64,23 @@ func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	w.stereo = false
 	w.data = data
 	return w
+
+
+## Flüstern (Wahnsinn): gedämpftes Rauschen, das wie Silben an- und abschwillt.
+func _whisper(dur: float) -> AudioStreamWAV:
+	var n := int(RATE * dur)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var lp := 0.0
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for i in n:
+		var t := float(i) / RATE
+		lp += (rng.randf_range(-1.0, 1.0) - lp) * 0.18          # dumpfes Rauschen
+		var syll := maxf(sin(TAU * 4.3 * t + sin(TAU * 1.1 * t) * 2.0), 0.0)   # "Silben"
+		var env := sin(PI * t / dur)                                  # leise rein und raus
+		s[i] = lp * syll * env * 0.9
+	return _wav(s)
 
 
 ## Glocke: mehrere Teiltöne, die langsam ausklingen.

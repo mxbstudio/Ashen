@@ -21,7 +21,7 @@ func _spawn() -> void:
 	var scripts := [
 		"res://scripts/enemies/crawler.gd", "res://scripts/enemies/lighteater.gd", "res://scripts/enemies/lost.gd",
 		"res://scripts/fortress/resident.gd", "res://scripts/zones/fire_pit.gd", "res://scripts/zones/small_torch.gd",
-		"res://scripts/rock_node.gd",
+		"res://scripts/rock_node.gd", "res://scripts/phantom.gd",
 	]
 	var x := -3.0
 	for path in scripts:
