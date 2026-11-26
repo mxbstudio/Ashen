@@ -292,6 +292,6 @@ func _hunt_think(_delta: float) -> Vector3:
 		return v.normalized() * speed
 	if _hunt_cd <= 0.0:
 		_hunt_cd = hunt_interval
-		var amount := hunt_damage * (1.0 + Config.dark_damage_bonus if in_darkness() else 1.0)
+		var amount := hunt_damage * Config.resident_damage_factor * (1.0 + Config.dark_damage_bonus if in_darkness() else 1.0)
 		_prey.take_damage(amount, self)
 	return Vector3.ZERO

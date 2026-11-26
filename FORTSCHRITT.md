@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 in Arbeit – Etappe 1–4 getestet, Etappe 5 (Speicherstand) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 – Etappe 1–5 am Handy getestet, Etappe 6 (Werte einstellen) läuft.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -126,6 +126,9 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Nahrung am Start | 15 | 25 | Max: mehr Nahrung |
 | Bewohner-Leben | 25 | 40 | auf dem dunklen Weg zur Zone starben zu viele |
 | Kriecher bemerken Bewohner ab | 10 m, Biss alle 2 s | 7 m, Biss alle 2,5 s | ebenso |
+| Schaden an Bewohnern | voll | ×0,5 | Probelauf: Kriecher-Rudel vor dem Tor |
+| Lichtfresser-Raubzug | alle 45 s, 8 s/s | alle 90 s, 5 s/s | Probelauf: Fackel-Nachlegen fraß mehr Holz als gehackt wurde |
+| Arbeiter pro Gang | 2 | 3 | Probelauf: zu viel Lauferei |
 
 ## Etappe 7 – fertig
 - **Belagerung** alle 8 min: 30 s vorher flackert das Feuer unruhig („Das Feuer flackert unruhig …“, kein Countdown). Dann läutet die Glocke (heller Blitz), Angreifer erscheinen in Gruppen vor dem Tor (12, jede weitere +4) und schlagen aufs Tor (Anzeige „BELAGERUNG“ mit Torleben und Angreifern). Normale Gegner erscheinen währenddessen nicht.
@@ -172,8 +175,8 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 | 2 | Bewohner als Holzfäller / Sammler in helle Zonen schicken | groß | fertig, am Handy getestet |
 | 3 | Gebäude-Upgrades (3 Stufen) | mittel | fertig, am Handy getestet |
 | 4 | Begehbarer Wachturm | mittel | fertig, am Handy getestet |
-| 5 | Speicherstand im Browser | mittel | zum Testen |
-| 6 | Werte einstellen mit Max | klein | offen |
+| 5 | Speicherstand im Browser | mittel | fertig, am Handy getestet |
+| 6 | Werte einstellen mit Max | klein | läuft |
 
 ## Etappe 1 – Gebiete erhellen
 - **5 Zonen** draußen (Daten in `scripts/zones/zone_defs.gd`): Westsenke, Osthain, Leuchtfeuer, Pilzmoor, Nordwald.
@@ -284,3 +287,17 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 - **Werte-Menü-Einstellungen** (auch Lautstärke) werden jetzt im Browser gemerkt und gelten auch nach dem Schließen
   (`user://einstellungen.json`). „Alles auf Standard“ setzt sie zurück.
 - Neuer Wert: `autosave_interval` (20 s) in `scripts/config.gd`.
+
+## Etappe 6 – Werte einstellen
+### Vorbereitung (ohne Max)
+- **Werte-Menü** nach Gruppen sortiert (Feuer & Vorräte, Bewohner, Draußen, Fackeln, Gebäude, Belagerung,
+  Gegner & Kampf, Hüter & Technik) und um Startvorräte, Lagergrenzen, Pilz- und Gebäudewerte sowie
+  „Schaden an Bewohnern ×“ erweitert.
+- **Automatischer Probelauf** (15 min, Hüter bleibt am Feuer, Fackel Westsenke, 3 Holzfäller + 2 Sammler, Pilzkeller):
+  - Zuerst starben 5 von 7 Bewohnern in der ersten Minute: Sitzt der Hüter am Feuer, lauerten die Kriecher
+    genau vor dem Tor. → **Torfeuer** (zwei Feuerschalen vor dem Tor, 6 m Licht, `scripts/fortress/gate_lamp.gd`),
+    **Kriecher streifen durch den Wald**, solange der Hüter sicher am Feuer ist, statt vor der Mauer zu lauern,
+    und es sind dann **nur halb so viele Gegner** unterwegs. Gegner machen Bewohnern halben Schaden.
+  - Danach ging das Feuer trotzdem aus: Lichtfresser fraßen die Fackel ständig leer. → Raubzug seltener und schwächer,
+    Arbeiter tragen 3 statt 2.
+  - Ergebnis jetzt: keine Toten, Holzlager nach 3 min voll, Nahrung stabil, Überlebende kommen dazu.

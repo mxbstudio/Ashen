@@ -33,7 +33,11 @@ func _process(delta: float) -> void:
 	if _timer > 0.0:
 		return
 	_timer = Config.spawn_interval
-	var free_slots := Config.max_enemies - alive_count()
+	# Sitzt der Hüter sicher am Feuer, streifen nur halb so viele Gegner umher
+	var limit := Config.max_enemies
+	if Lights.fixed_source_at(player.global_position) != null:
+		limit = Config.max_enemies / 2
+	var free_slots := limit - alive_count()
 	if free_slots <= 0:
 		return
 	# Mischung: meist Kriecher-Rudel, manchmal Lichtfresser oder ein Verlorener

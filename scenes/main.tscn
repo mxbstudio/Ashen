@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -24,6 +24,7 @@
 [ext_resource type="Script" path="res://scripts/ui/climb_button.gd" id="22"]
 [ext_resource type="Script" path="res://scripts/save_game.gd" id="23"]
 [ext_resource type="Script" path="res://scripts/ui/continue_panel.gd" id="24"]
+[ext_resource type="Script" path="res://scripts/fortress/gate_lamp.gd" id="25"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -58,6 +59,10 @@ script = ExtResource("4")
 [node name="Gate" type="StaticBody3D" parent="Fortress"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -12)
 script = ExtResource("5")
+
+[node name="GateLamp" type="Node3D" parent="Fortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -13.6)
+script = ExtResource("25")
 
 [node name="Storehouse" type="Node3D" parent="Fortress"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 6)

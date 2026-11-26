@@ -94,16 +94,19 @@ var torch_build_cost := 4          # Holz zum Errichten (brennt danach mit volle
 var torch_max_wood := 4            # so viele Scheite passen hinein
 var torch_seconds_per_wood := 90.0 # s Brenndauer pro Holz (voll = 4 × 90 s = 6 min)
 var torch_light_radius := 8.0      # m – Lichtkreis der Zone, Kriecher meiden ihn
-var torch_drain_lighteater := 8.0  # s Fackel-Brenndauer, die ein Lichtfresser pro Sekunde frisst
-var torch_raid_interval := 45.0    # s – so oft schickt die Dunkelheit einen Lichtfresser zu einer Fackel
+var torch_drain_lighteater := 5.0  # s Fackel-Brenndauer, die ein Lichtfresser pro Sekunde frisst (zuerst 8)
+var torch_raid_interval := 90.0    # s – so oft schickt die Dunkelheit einen Lichtfresser zu einer Fackel (zuerst 45)
 var torch_use_range := 2.6         # m – so nah muss der Hüter ran zum Errichten/Nachlegen
+
+var gate_light_radius := 6.0       # m – Torfeuer: hält Kriecher vom Platz vor dem Tor fern
 
 # --- Bewohner draußen (v0.2) ------------------------------------------------
 var resident_hp := 40.0            # Leben eines Bewohners (heilt am Feuer; zuerst 25)
 var resident_heal_per_second := 3.0
 var worker_speed := 2.6            # m/s draußen (Holzfäller/Sammler)
-var worker_carry := 2              # so viel bringt ein Bewohner pro Gang mit
+var worker_carry := 3              # so viel bringt ein Bewohner pro Gang mit (zuerst 2)
 var worker_gather_seconds := 4.0   # s pro Einheit an der Fundstelle
+var resident_damage_factor := 0.5  # Gegner machen Bewohnern nur diesen Anteil ihres Schadens
 var resident_hunt_range := 7.0     # m (zuerst 10) – so nah müssen Gegner sein, um einen Bewohner draußen anzugreifen
 
 # --- Boss -------------------------------------------------------------------

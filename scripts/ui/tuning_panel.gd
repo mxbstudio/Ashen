@@ -8,29 +8,45 @@ extends Control
 @export var touch_controls: Control
 
 ## [Anzeigename, Wert in Config (oder "sfx"), Minimum, Maximum, Schritt, Hinweis]
+## Einträge mit nur einem Text sind Überschriften.
 const ENTRIES := [
-	["Belagerung alle … s", "siege_interval", 60, 900, 30, "ab der nächsten"],
-	["Angreifer pro Belagerung", "siege_size", 4, 50, 2, ""],
-	["Torleben", "gate_health", 50, 600, 25, "ab der nächsten Reparatur"],
+	["Feuer & Vorräte"],
+	["Holz am Start", "fire_wood_start", 5, 60, 5, "ab Neustart"],
+	["Nahrung am Start", "food_start", 5, 60, 5, "ab Neustart"],
 	["Feuer: Sekunden pro Holz", "fire_seconds_per_wood", 5, 60, 5, ""],
-	["Nahrung: Sekunden pro Bewohner", "food_seconds_per_person", 20, 180, 10, ""],
-	["Laterne: Brenndauer s", "lantern_burn_time", 60, 480, 20, ""],
-	["Fackel: Holz zum Errichten", "torch_build_cost", 1, 15, 1, ""],
-	["Fackel: Sekunden pro Holz", "torch_seconds_per_wood", 20, 300, 10, ""],
-	["Fackel: Lichtradius m", "torch_light_radius", 4, 14, 1, ""],
-	["Lichtfresser-Raubzug alle … s", "torch_raid_interval", 15, 240, 15, ""],
+	["Nahrung: Sekunden pro Bewohner", "food_seconds_per_person", 20, 180, 5, ""],
+	["Lager: Holz ohne Vorratslager", "wood_cap", 10, 100, 5, ""],
+	["Lager: Nahrung ohne Vorratslager", "food_cap", 10, 100, 5, ""],
+	["Bewohner"],
 	["Bewohner am Start", "residents_start", 1, 12, 1, "ab Neustart"],
 	["Neuer Bewohner alle … s", "survivor_interval", 60, 900, 30, ""],
 	["Bewohner höchstens", "residents_max", 3, 20, 1, ""],
 	["Bewohner: Leben", "resident_hp", 5, 100, 5, ""],
+	["Schaden an Bewohnern ×", "resident_damage_factor", 0.0, 2.0, 0.1, "0 = harmlos"],
 	["Arbeiter: Einheiten pro Gang", "worker_carry", 1, 8, 1, ""],
 	["Arbeiter: Sekunden pro Einheit", "worker_gather_seconds", 1, 15, 0.5, ""],
 	["Arbeiter: Tempo m/s", "worker_speed", 1, 6, 0.2, ""],
-	["Hüter: Trage", "carry_capacity", 0, 30, 1, ""],
+	["Draußen: Holz & Pilze"],
 	["Holz pro Baum", "tree_wood", 5, 100, 5, "neue Bäume"],
 	["Baum wächst nach … s", "tree_regrow", 60, 1200, 30, ""],
+	["Nahrung pro Pilzstelle", "food_per_node", 1, 20, 1, "nach Nachwachsen"],
+	["Pilze wachsen nach … s", "resource_regrow", 30, 600, 15, ""],
+	["Hüter: Trage", "carry_capacity", 0, 30, 1, ""],
+	["Fackeln"],
+	["Fackel: Holz zum Errichten", "torch_build_cost", 1, 15, 1, ""],
+	["Fackel: Sekunden pro Holz", "torch_seconds_per_wood", 20, 300, 10, ""],
+	["Fackel: Lichtradius m", "torch_light_radius", 4, 14, 1, ""],
+	["Lichtfresser-Raubzug alle … s", "torch_raid_interval", 15, 240, 15, ""],
+	["Gebäude"],
+	["Pilzkeller: Sekunden pro Nahrung", "mushroom_seconds_per_food", 10, 120, 5, ""],
+	["Trümmerhof: Sekunden pro Holz", "scrapyard_seconds_per_wood", 10, 120, 5, ""],
 	["Gebäude Stufe 2: Holz", "upgrade_cost_2", 2, 40, 1, ""],
 	["Gebäude Stufe 3: Holz", "upgrade_cost_3", 2, 60, 1, ""],
+	["Belagerung"],
+	["Belagerung alle … s", "siege_interval", 60, 900, 30, "ab der nächsten"],
+	["Angreifer pro Belagerung", "siege_size", 4, 50, 2, ""],
+	["Torleben", "gate_health", 50, 600, 25, "ab der nächsten Reparatur"],
+	["Gegner & Kampf"],
 	["Max. Gegner gleichzeitig", "max_enemies", 4, 30, 2, "Leistung!"],
 	["Nachschub alle … s", "spawn_interval", 1.0, 10.0, 0.5, ""],
 	["Kriecher-Schaden", "crawler_damage", 1, 20, 1, "neue Gegner"],
@@ -40,6 +56,8 @@ const ENTRIES := [
 	["Bogenschuss-Schaden", "bow_damage", 3, 30, 1, ""],
 	["EP für Stufe 2", "xp_first_level", 2, 40, 1, ""],
 	["EP mehr pro Stufe", "xp_level_step", 0, 30, 1, ""],
+	["Hüter & Technik"],
+	["Laterne: Brenndauer s", "lantern_burn_time", 60, 480, 20, ""],
 	["Laufgeschwindigkeit", "player_speed", 3.0, 10.0, 0.5, ""],
 	["Kamera-Breite m", "camera_width", 8, 26, 1, ""],
 	["Lautstärke dB", "sfx", -30, 6, 2, ""],
@@ -76,7 +94,12 @@ func _ready() -> void:
 	_box.add_child(UiStyle.label("Werte einstellen", 40, Color(1, 0.8, 0.45)))
 	_box.add_child(UiStyle.label("Mit − / + ändern, dann „Weiter“ und ausprobieren.", 22, Color(1, 1, 1, 0.6)))
 	for e in ENTRIES:
-		_box.add_child(_row(e))
+		if e.size() == 1:
+			var h := UiStyle.label(e[0], 30, Color(1, 0.75, 0.4))
+			h.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			_box.add_child(h)
+		else:
+			_box.add_child(_row(e))
 	var show := UiStyle.button("Änderungen anzeigen / kopieren", Color(0.5, 0.7, 1.0), 24, Vector2(0, 80))
 	show.pressed.connect(_show_changes)
 	_box.add_child(show)
@@ -160,7 +183,8 @@ func open() -> void:
 	get_tree().paused = true
 	visible = true
 	for e in ENTRIES:
-		_value_labels[e[1]].text = _fmt(_read_value(e[1]))
+		if e.size() > 1:
+			_value_labels[e[1]].text = _fmt(_read_value(e[1]))
 
 
 func close() -> void:
@@ -173,6 +197,8 @@ func close() -> void:
 func _show_changes() -> void:
 	var lines := []
 	for e in ENTRIES:
+		if e.size() == 1:
+			continue
 		var now := _read_value(e[1])
 		var orig: float = -6.0 if e[1] == "sfx" else float(Config.original(e[1]))
 		if not is_equal_approx(now, orig):
@@ -186,6 +212,8 @@ func _show_changes() -> void:
 
 func _reset_all() -> void:
 	for e in ENTRIES:
+		if e.size() == 1:
+			continue
 		if e[1] == "sfx":
 			Sfx.volume_db = -6.0
 		else:

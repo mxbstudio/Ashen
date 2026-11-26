@@ -10,6 +10,8 @@ var _angle := 0.0
 var _orbit_dir := 1.0
 var _attack_cd := 2.0
 var _retreat_t := 0.0
+var _roam_target := Vector3.INF
+var _roam_t := 0.0
 
 
 func _build() -> void:
@@ -55,6 +57,8 @@ func _think(delta: float) -> Vector3:
 
 	match _state:
 		State.LURK:
+			if player_safe and d > 8.0:
+				return _flee_light(_roam(delta))   # Hüter sitzt sicher am Feuer: durch den Wald streifen
 			_angle += delta * 0.5 * _orbit_dir
 			var r: float = player.lantern.get_light_radius() + 1.2
 			var target: Vector3 = player.global_position + Vector3(cos(_angle), 0, sin(_angle)) * r
@@ -79,6 +83,18 @@ func _think(delta: float) -> Vector3:
 				_attack_cd = randf_range(Config.crawler_attack_pause.x, Config.crawler_attack_pause.y)
 			return -to_p.normalized() * speed
 	return Vector3.ZERO
+
+
+## Ziellos durch den Wald streifen (statt vor der Mauer zu lauern).
+func _roam(delta: float) -> Vector3:
+	_roam_t -= delta
+	if _roam_t <= 0.0 or _roam_target == Vector3.INF:
+		_roam_t = randf_range(4.0, 7.0)
+		var p := global_position + Vector3(randf_range(-10, 10), 0, randf_range(-12, 4))
+		p.x = clampf(p.x, -27.0, 27.0)
+		p.z = clampf(p.z, -88.0, -20.0)
+		_roam_target = _push_out_of_fixed_light(p)
+	return _arrive(_roam_target, speed * 0.5)
 
 
 ## Läuft auf ein Ziel zu und bremst kurz davor ab.
