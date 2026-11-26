@@ -1,14 +1,56 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 fertig bis auf Werte-Feinschliff (PR #2 nach `main`). v0.3: Sicht und Ausrüstung fertig, Wahnsinn zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand (Build #36): v0.1 und v0.2 fertig. v0.3 läuft – Sicht, Ausrüstung, Wahnsinn (mit Narben) fertig.**
+**Nächster Schritt: Meta-Fortschritt** (siehe „Wie es weitergeht“).
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
-Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
+Die Build-Nummer oben links im Spiel (z. B. `#36 (abc1234)`) zeigt, welcher Stand geladen ist.
 
-Technik: Godot 4.7.2 · GDScript · Renderer „Compatibility“ · Web-Export ohne Threads.
+Technik: Godot 4.7.2 · GDScript · Renderer „Compatibility“ · Web-Export ohne Threads · Hochformat (am PC Querformat).
 Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt sie in den Branch `gh-pages`.
 
-## Etappen
+## Überblick: was das Spiel heute kann
+- **Hüter**: Laufen, Dash, Tränke, Laterne (schrumpfendes Licht), automatische Skill-Leiste (Sichel, Bogen, Glut,
+  Glocke + Modifikatoren Labung, Echo, Opferlicht), Stufenaufstieg, Leiste umbauen am Feuer.
+  Ausrüstung: Klinge, Rüstung, Laterne (je 3 Stufen, geschmiedet in der Werkstatt).
+- **Licht & Zonen**: Feuer in der Festung, Torfeuer, Leuchtfeuer (Schnellreise), 4 Zonen-Fackelpfähle,
+  kleine Fackeln und Feuerstellen frei platzierbar. Kriecher meiden festes Licht. Lichtfresser löschen Fackeln.
+- **Rohstoffe**: Holz (jeder Baum fällbar), Nahrung (Pilzstellen), Stein (Felsen). Lager mit Grenzen.
+- **Festung**: Vorratslager, Trümmerhof, Pilzkeller, Werkstatt (Bögen, Ausrüstung), Wachturm (begehbar) – je 3 Stufen.
+- **Bewohner**: Max teilt über „Bewohner einteilen“ ein (Gebäude, Holzfäller/Sammler/Steinbrecher je Zone, Bögen).
+  Freie Bewohner helfen selbstständig nach Bedarf, ruhende Gebäude geben Arbeiter frei, Bewohner legen nebenbei
+  Holz nach und bringen Holz zu Feuerstellen. Überlebende kommen dazu. Draußen in Gefahr.
+- **Gegner**: Kriecher, Lichtfresser, Verlorener, Boss „Der verwandelte Hauptmann“. Belagerungen alle 8 min.
+  Sicht: Gegner im Dunkeln nur als glühende Augen, hinter Hindernissen unsichtbar.
+- **Wahnsinn**: steigt im Dunkeln, Flüstern, Trugbilder, lügende Anzeige, Narben, Schaden bei 100.
+- **Sieg**: Boss besiegen, dann die letzte Belagerung halten. **Niederlage**: Feuer erlischt.
+- **Speicherstand** im Browser (automatisch alle 20 s), Startfenster „Weiterspielen / Neues Spiel“.
+  Werte-Menü (oben Mitte) mit allen wichtigen Werten in Gruppen; Einstellungen bleiben im Browser gespeichert.
+
+## Wie es weitergeht (v0.3, offen)
+| Schritt | Inhalt | Aufwand | Status |
+|---|---|---|---|
+| Wahnsinn/Narben einstellen | Max testet Build #36 | klein | offen |
+| **Meta-Fortschritt** | etwas, das zwischen Runden bleibt (nach Sieg/Niederlage) | mittel | **als Nächstes** |
+| Herkünfte | verschiedene Hüter mit eigenen Stärken/Startwerten | mittel | offen |
+| Story | Geschichte mit Anfang und Ende | mittel–groß | offen |
+| Echte Grafik | Figuren/Gebäude statt Formen – leistungskritisch am Handy, eigener Chat | groß | offen |
+
+## Arbeitsweise (für Claude in neuen Chats)
+- Max programmiert nicht und hat nur ein Handy. Einfach erklären, ohne Fachchinesisch.
+- **Nach jedem Push: Build-Nummer UND den Link https://mxbstudio.github.io/Ashen/ nennen** (Wunsch Max) und sagen,
+  worauf er achten soll. Build-Nummer über die GitHub-Actions-Liste (Workflow `web-export.yml`).
+- Vor jedem Push selbst testen: Godot ohne Bildschirm (Fehler?), automatische Testskripte, Web-Export + Playwright-Bilder
+  in Handygröße (390×844, Touch). Details: `docs/prompt-v0.3.md` → „Technische Tipps“.
+- Kleine Schritte, `FORTSCHRITT.md` pflegen (inkl. Tabelle „Geänderte Werte“), alle Werte in `scripts/config.gd`,
+  wichtige auch ins Werte-Menü (`scripts/ui/tuning_panel.gd`).
+- Code landet per Pull Request in `main` (Max bestätigt am Handy). Nie force-pushen; nach einem Merge `main`
+  normal in den Arbeitszweig zusammenführen.
+
+---
+
+# Prototyp v0.1 – Etappen
+
 
 | Etappe | Inhalt | Status |
 |---|---|---|
@@ -167,62 +209,6 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 
 ---
 
-# Version v0.3 – (in Arbeit)
-
-Max: „Fang damit an, was du am sinnvollsten hältst.“ Reihenfolge-Vorschlag: Sicht → Ausrüstung → Wahnsinn →
-echte Grafik → Meta-Fortschritt/Herkünfte/Story.
-
-## Sicht (zum Testen)
-- Jeder Gegner bekommt `scripts/enemies/enemy_sight.gd` (prüft ~7× pro Sekunde, versetzt):
-  - **voll sichtbar**: freie Sicht vom Hüter und der Gegner steht im Licht (Laterne, Feuer …) oder ist näher als 3,5 m –
-    oder er steht im Licht eines Feuers/einer Fackel/Feuerstelle/des Torfeuers (dort wachen die Bewohner; so sieht man
-    die Belagerung auch von drinnen).
-  - **nur Augen**: freie Sicht, aber im Dunkeln → nur die roten Augen leuchten (doppelt so groß).
-  - **unsichtbar**: Baum, Fels oder Mauer im Weg, oder weiter als 24 m.
-- Lebensbalken nur bei voll sichtbaren Gegnern. Warnkreise (Verlorener, Boss) bleiben immer sichtbar.
-- Werte-Menü, Gruppe „Sicht“: Sicht an/aus (zum Vergleichen), „Im Dunkeln ganz sichtbar bis m“.
-- Neue Werte: `sight_enabled`, `sight_near` (3,5 m), `sight_range` (24 m).
-- Max' Test: „merkt man kaum, egal“ – Augen gut erkennbar, keine Überraschungen, läuft flüssig. Bleibt so.
-
-## Ausrüstung (zum Testen)
-- **Schmieden an der Werkstatt**: vor der gebauten Werkstatt (Seite zum Feuer) → Knopf „Ausrüstung schmieden“
-  → Menü (pausiert). Skript: `scripts/ui/forge_panel.gd`.
-- **Klinge**: +20 % Schaden je Stufe (alle Angriffe). **Rüstung**: +20 Leben und −10 % Schaden je Stufe.
-  **Laterne**: +45 s Brenndauer und +1 m Lichtkreis je Stufe. Je 3 Stufen.
-- **Kosten** (Holz/Stein): Stufe 1 10/4, Stufe 2 16/10, Stufe 3 24/18 – zuerst aus der Trage, dann aus dem Lager.
-  Stufe 2 und 3 brauchen eine Werkstatt der gleichen Stufe.
-- HUD oben rechts: „Klinge I · Rüstung – · Laterne II“ (sobald etwas geschmiedet ist). Wird gespeichert.
-- Werte-Menü: Gruppe „Ausrüstung“. Neue Werte im Abschnitt „Ausrüstung“ in `scripts/config.gd`.
-
-## Wahnsinn (zum Testen)
-- Wert 0–100 (`scripts/madness.gd`), lila Balken oben rechts unter der Laterne (erscheint, sobald er steigt).
-- **Steigt** draußen außerhalb fester Lichter: 0,35/s bei voller Laterne, bis ×3 bei schwacher, 3/s bei leerer Laterne.
-- **Sinkt** im Licht einer Fackel, auf dem Turm und in der Festung (0,5/s), am Feuer/Leuchtfeuer/an
-  Feuerstellen (1,5/s; zuerst 3 bzw. 8 – Max: zu einfach). Nach dem Tod 0. Wird gespeichert.
-- **Ab 30**: dunkel-violetter Bildschirmrand (pulsiert, unter der Anzeige), Flüstern (neuer Platzhalter-Klang).
-- **Ab 50**: Trugbilder (`scripts/phantom.gd`): rote Augen im Dunkeln, die blinzeln und verschwinden; ab und zu ein
-  Schatten-Kriecher, der heranstürzt und kurz vor dem Hüter verpufft. Kein Schaden, keine Ziele für die Skill-Leiste.
-- **Ab 75**: Leben und Laterne zittern in der Anzeige, falsche Warnungen („Etwas ist hinter dir.“ …).
-- **Bei 100**: 3 Schaden pro Sekunde.
-- **Narben** (Wunsch Max): Jedes Mal über 75 bleibt eine Narbe von 10 – darunter sinkt der Wahnsinn nicht mehr.
-  Neue Narbe erst nach Erholung unter 60. Höchstens 50. Nach dem Tod weg. Im Balken dunkel eingefärbt, Meldung
-  „Der Wahnsinn hinterlässt eine Narbe“. Wird gespeichert. Werte: `madness_scar`, `madness_scar_at`, `madness_scar_max`.
-- Werte-Menü: Gruppe „Wahnsinn“ (an/aus, Anstieg, Abbau am Feuer).
-
-## Am PC kam nur „Bitte Handy drehen“
-- Der Hinweis erschien bei Querformat + „Touchscreen vorhanden“ – das melden auch viele PCs/Laptops.
-  Jetzt nur noch auf echten Handys/Tablets (Android, iPhone, iPad). Am PC läuft das Spiel im Querformat.
-- Steuerung am PC: WASD/Pfeiltasten laufen, Leertaste Dash, Q Trank, Knöpfe mit der Maus.
-  Joystick auch per Maus: in die untere Bildhälfte klicken und ziehen.
-
-## Ruckler beim ersten Verlassen der Festung
-- Ursache (sehr wahrscheinlich): Beim ersten Anzeigen jeder Art von Oberfläche muss der Browser ein kleines
-  Grafikprogramm vorbereiten. Draußen tauchen auf einmal viele neue Dinge auf.
-- Lösung: `scripts/shader_warmup.gd` zeigt beim Start je ein Beispiel (Gegner, Bewohner, Feuerstelle, kleine Fackel,
-  Fels, Schadenszahl, Sichel, Glockenwelle, Pfeil, Glut) für 8 Bilder versteckt unter dem Boden beim Hüter.
-
----
-
 # Version v0.2 – Licht erobern statt selbst sammeln
 
 Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bewohner.
@@ -234,8 +220,8 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 | 3 | Gebäude-Upgrades (3 Stufen) | mittel | fertig, am Handy getestet |
 | 4 | Begehbarer Wachturm | mittel | fertig, am Handy getestet |
 | 5 | Speicherstand im Browser | mittel | fertig, am Handy getestet |
-| 6 | Werte einstellen mit Max | klein | läuft |
-| 7 | Wunsch Max: Stein, Bögen für Bewohner, kleine Fackeln, Feuerstellen | groß | zum Testen |
+| 6 | Werte einstellen mit Max | klein | Probelauf + Max' Wünsche umgesetzt; Feinschliff laufend |
+| 7 | Wunsch Max: Stein, Bögen für Bewohner, kleine Fackeln, Feuerstellen, schlaue Bewohner | groß | fertig, am Handy getestet |
 
 ## Etappe 1 – Gebiete erhellen
 - **5 Zonen** draußen (Daten in `scripts/zones/zone_defs.gd`): Westsenke, Osthain, Leuchtfeuer, Pilzmoor, Nordwald.
@@ -403,3 +389,59 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
   in der es das gibt. Sie verteilen sich (jeder Helfer senkt den Bedarf). Ist alles fast voll, bleiben sie am Feuer.
   Sie zählen weiter als **frei** – Max kann sie jederzeit einteilen. Menü: „davon helfen selbstständig: 2 Holz, 1 Stein“.
 - Neue Werte: `smart_interval` (5 s), `smart_min_need` (0,15), `smart_need_per_helper` (0,25).
+
+---
+
+# Version v0.3 – in Arbeit
+
+Max: „Fang damit an, was du am sinnvollsten hältst.“ Erledigt: Sicht → Ausrüstung → Wahnsinn (+ Narben).
+Offen: Meta-Fortschritt (als Nächstes) → Herkünfte → Story → echte Grafik (eigener Chat).
+
+## Sicht – fertig, am Handy getestet
+- Jeder Gegner bekommt `scripts/enemies/enemy_sight.gd` (prüft ~7× pro Sekunde, versetzt):
+  - **voll sichtbar**: freie Sicht vom Hüter und der Gegner steht im Licht (Laterne, Feuer …) oder ist näher als 3,5 m –
+    oder er steht im Licht eines Feuers/einer Fackel/Feuerstelle/des Torfeuers (dort wachen die Bewohner; so sieht man
+    die Belagerung auch von drinnen).
+  - **nur Augen**: freie Sicht, aber im Dunkeln → nur die roten Augen leuchten (doppelt so groß).
+  - **unsichtbar**: Baum, Fels oder Mauer im Weg, oder weiter als 24 m.
+- Lebensbalken nur bei voll sichtbaren Gegnern. Warnkreise (Verlorener, Boss) bleiben immer sichtbar.
+- Werte-Menü, Gruppe „Sicht“: Sicht an/aus (zum Vergleichen), „Im Dunkeln ganz sichtbar bis m“.
+- Neue Werte: `sight_enabled`, `sight_near` (3,5 m), `sight_range` (24 m).
+- Max' Test: „merkt man kaum, egal“ – Augen gut erkennbar, keine Überraschungen, läuft flüssig. Bleibt so.
+
+## Ausrüstung – fertig, am Handy getestet („passt“)
+- **Schmieden an der Werkstatt**: vor der gebauten Werkstatt (Seite zum Feuer) → Knopf „Ausrüstung schmieden“
+  → Menü (pausiert). Skript: `scripts/ui/forge_panel.gd`.
+- **Klinge**: +20 % Schaden je Stufe (alle Angriffe). **Rüstung**: +20 Leben und −10 % Schaden je Stufe.
+  **Laterne**: +45 s Brenndauer und +1 m Lichtkreis je Stufe. Je 3 Stufen.
+- **Kosten** (Holz/Stein): Stufe 1 10/4, Stufe 2 16/10, Stufe 3 24/18 – zuerst aus der Trage, dann aus dem Lager.
+  Stufe 2 und 3 brauchen eine Werkstatt der gleichen Stufe.
+- HUD oben rechts: „Klinge I · Rüstung – · Laterne II“ (sobald etwas geschmiedet ist). Wird gespeichert.
+- Werte-Menü: Gruppe „Ausrüstung“. Neue Werte im Abschnitt „Ausrüstung“ in `scripts/config.gd`.
+
+## Wahnsinn – getestet; Narben (Build #36) zum Testen
+- Wert 0–100 (`scripts/madness.gd`), lila Balken oben rechts unter der Laterne (erscheint, sobald er steigt).
+- **Steigt** draußen außerhalb fester Lichter: 0,35/s bei voller Laterne, bis ×3 bei schwacher, 3/s bei leerer Laterne.
+- **Sinkt** im Licht einer Fackel, auf dem Turm und in der Festung (0,5/s), am Feuer/Leuchtfeuer/an
+  Feuerstellen (1,5/s; zuerst 3 bzw. 8 – Max: zu einfach). Nach dem Tod 0. Wird gespeichert.
+- **Ab 30**: dunkel-violetter Bildschirmrand (pulsiert, unter der Anzeige), Flüstern (neuer Platzhalter-Klang).
+- **Ab 50**: Trugbilder (`scripts/phantom.gd`): rote Augen im Dunkeln, die blinzeln und verschwinden; ab und zu ein
+  Schatten-Kriecher, der heranstürzt und kurz vor dem Hüter verpufft. Kein Schaden, keine Ziele für die Skill-Leiste.
+- **Ab 75**: Leben und Laterne zittern in der Anzeige, falsche Warnungen („Etwas ist hinter dir.“ …).
+- **Bei 100**: 3 Schaden pro Sekunde.
+- **Narben** (Wunsch Max): Jedes Mal über 75 bleibt eine Narbe von 10 – darunter sinkt der Wahnsinn nicht mehr.
+  Neue Narbe erst nach Erholung unter 60. Höchstens 50. Nach dem Tod weg. Im Balken dunkel eingefärbt, Meldung
+  „Der Wahnsinn hinterlässt eine Narbe“. Wird gespeichert. Werte: `madness_scar`, `madness_scar_at`, `madness_scar_max`.
+- Werte-Menü: Gruppe „Wahnsinn“ (an/aus, Anstieg, Abbau am Feuer).
+
+## Am PC kam nur „Bitte Handy drehen“
+- Der Hinweis erschien bei Querformat + „Touchscreen vorhanden“ – das melden auch viele PCs/Laptops.
+  Jetzt nur noch auf echten Handys/Tablets (Android, iPhone, iPad). Am PC läuft das Spiel im Querformat.
+- Steuerung am PC: WASD/Pfeiltasten laufen, Leertaste Dash, Q Trank, Knöpfe mit der Maus.
+  Joystick auch per Maus: in die untere Bildhälfte klicken und ziehen.
+
+## Ruckler beim ersten Verlassen der Festung (von Max danach nicht mehr gemeldet)
+- Ursache (sehr wahrscheinlich): Beim ersten Anzeigen jeder Art von Oberfläche muss der Browser ein kleines
+  Grafikprogramm vorbereiten. Draußen tauchen auf einmal viele neue Dinge auf.
+- Lösung: `scripts/shader_warmup.gd` zeigt beim Start je ein Beispiel (Gegner, Bewohner, Feuerstelle, kleine Fackel,
+  Fels, Schadenszahl, Sichel, Glockenwelle, Pfeil, Glut) für 8 Bilder versteckt unter dem Boden beim Hüter.
