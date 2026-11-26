@@ -182,6 +182,12 @@ echte Grafik → Meta-Fortschritt/Herkünfte/Story.
 - Neue Werte: `sight_enabled`, `sight_near` (3,5 m), `sight_range` (24 m).
 - Max' Test: „merkt man kaum, egal“ – Augen gut erkennbar, keine Überraschungen, läuft flüssig. Bleibt so.
 
+## Am PC kam nur „Bitte Handy drehen“
+- Der Hinweis erschien bei Querformat + „Touchscreen vorhanden“ – das melden auch viele PCs/Laptops.
+  Jetzt nur noch auf echten Handys/Tablets (Android, iPhone, iPad). Am PC läuft das Spiel im Querformat.
+- Steuerung am PC: WASD/Pfeiltasten laufen, Leertaste Dash, Q Trank, Knöpfe mit der Maus.
+  Joystick auch per Maus: in die untere Bildhälfte klicken und ziehen.
+
 ## Ruckler beim ersten Verlassen der Festung
 - Ursache (sehr wahrscheinlich): Beim ersten Anzeigen jeder Art von Oberfläche muss der Browser ein kleines
   Grafikprogramm vorbereiten. Draußen tauchen auf einmal viele neue Dinge auf.

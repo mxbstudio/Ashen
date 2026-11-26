@@ -87,6 +87,12 @@ func _build_ui() -> void:
 	add_child(_rotate)
 
 
+## Läuft das Spiel auf einem Handy oder Tablet (Android, iPhone, iPad)?
+func _is_phone() -> bool:
+	return OS.has_feature("web_android") or OS.has_feature("web_ios") \
+			or OS.has_feature("android") or OS.has_feature("ios")
+
+
 func _on_info_input(event: InputEvent) -> void:
 	if (event is InputEventScreenTouch or event is InputEventMouseButton) and event.pressed:
 		_details = not _details
@@ -106,7 +112,8 @@ func _process(_delta: float) -> void:
 		_add_error_line(e)
 
 	var size := get_viewport().get_visible_rect().size
-	_rotate.visible = size.x > size.y and DisplayServer.is_touchscreen_available()
+	# Nur auf echten Handys/Tablets – PCs melden teils auch einen Touchscreen
+	_rotate.visible = size.x > size.y and _is_phone()
 
 	var txt := "Aschen %s · %d FPS" % [_build, Engine.get_frames_per_second()]
 	if _error_count > 0:
