@@ -234,6 +234,9 @@ var madness_rise := 0.35           # pro Sekunde draußen im Dunkeln bei voller 
 var madness_rise_no_lantern := 3.0 # pro Sekunde, wenn die Laterne aus ist
 var madness_heal_light := 0.5      # sinkt pro Sekunde im Licht einer Fackel, auf dem Turm, in der Festung (zuerst 3)
 var madness_heal_fire := 1.5       # sinkt pro Sekunde am Feuer, Leuchtfeuer, an einer Feuerstelle (zuerst 8)
+var madness_scar := 10.0           # Narbe: so viel bleibt dauerhaft, wenn der Wahnsinn über 75 steigt
+var madness_scar_at := 75.0        # ab diesem Wert gibt es eine Narbe
+var madness_scar_max := 50.0       # höchstens so viel Narbe (bis zum Tod)
 var madness_damage := 3.0          # Schaden pro Sekunde bei 100 Wahnsinn
 
 # --- Sicht (v0.3) -----------------------------------------------------------

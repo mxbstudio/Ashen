@@ -92,7 +92,11 @@ func _draw() -> void:
 			lantern.refilling)
 	y += 62.0
 	if mad and mad.value > 0.5:
-		_draw_bar(font, x, y, "Wahnsinn", mad.value / 100.0, Color(0.6, 0.3, 0.85), mad.level() >= 3)
+		var label := "Wahnsinn" + ("  (Narben %d)" % int(mad.scar) if mad.scar > 0.0 else "")
+		_draw_bar(font, x, y, label, mad.value / 100.0, Color(0.6, 0.3, 0.85), mad.level() >= 3)
+		if mad.scar > 0.0:
+			# Narben-Teil dunkel: so viel geht nicht mehr weg
+			draw_rect(Rect2(x + 2, y + 28, (BAR_W - 4) * mad.scar / 100.0, BAR_H - 4), Color(0.22, 0.05, 0.28))
 		y += 62.0
 	draw_string(font, Vector2(x, y + 22), "Tränke: %d / %d" % [player.potions, Config.potions_start],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.6, 1.0, 0.6, 0.9))

@@ -204,6 +204,9 @@ echte Grafik → Meta-Fortschritt/Herkünfte/Story.
   Schatten-Kriecher, der heranstürzt und kurz vor dem Hüter verpufft. Kein Schaden, keine Ziele für die Skill-Leiste.
 - **Ab 75**: Leben und Laterne zittern in der Anzeige, falsche Warnungen („Etwas ist hinter dir.“ …).
 - **Bei 100**: 3 Schaden pro Sekunde.
+- **Narben** (Wunsch Max): Jedes Mal über 75 bleibt eine Narbe von 10 – darunter sinkt der Wahnsinn nicht mehr.
+  Neue Narbe erst nach Erholung unter 60. Höchstens 50. Nach dem Tod weg. Im Balken dunkel eingefärbt, Meldung
+  „Der Wahnsinn hinterlässt eine Narbe“. Wird gespeichert. Werte: `madness_scar`, `madness_scar_at`, `madness_scar_max`.
 - Werte-Menü: Gruppe „Wahnsinn“ (an/aus, Anstieg, Abbau am Feuer).
 
 ## Am PC kam nur „Bitte Handy drehen“

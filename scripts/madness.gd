@@ -3,6 +3,8 @@
 ## Sinkt in festem Licht (Fackel, Feuerstelle, Leuchtfeuer, Feuer), am Feuer/an Feuerstellen besonders schnell.
 ## Wirkung: ab 30 dunkler Rand + Flüstern, ab 50 Trugbilder (Augen, Schatten-Kriecher),
 ## ab 75 unzuverlässige Anzeige und falsche Warnungen, bei 100 zehrt er am Leben.
+## Narben: Wer über 75 kommt, behält 10 Wahnsinn, der nicht mehr weggeht (bis zum Tod).
+## Eine weitere Narbe gibt es erst, wenn man sich zwischendurch unter 60 erholt hat.
 ## Das HUD liest "value" und "level()" für Balken und Effekte.
 extends Node
 
@@ -13,6 +15,8 @@ const FAKE_WARNINGS := ["Das Feuer flackert unruhig …", "Etwas ist hinter dir.
 @export var player: Node3D
 
 var value := 0.0
+var scar := 0.0                    # Narben: darunter sinkt der Wahnsinn nicht mehr
+var _above := false                # gerade über der Narben-Schwelle (gegen mehrere Narben auf einmal)
 var _whisper_t := 4.0
 var _phantom_t := 3.0
 var _fake_t := 20.0
@@ -30,7 +34,13 @@ func level() -> int:
 
 func _ready() -> void:
 	add_to_group("madness")
-	player.respawned.connect(func(): value = 0.0)
+	player.respawned.connect(_on_respawn)
+
+
+func _on_respawn() -> void:
+	value = 0.0
+	scar = 0.0
+	_above = false
 
 
 func _process(delta: float) -> void:
@@ -39,6 +49,7 @@ func _process(delta: float) -> void:
 	_change(delta)
 	if not Config.madness_enabled:
 		value = 0.0
+		scar = 0.0
 		return
 	var l := level()
 	if l >= 1:
@@ -78,7 +89,15 @@ func _change(delta: float) -> void:
 		if f <= 0.0:
 			rate = Config.madness_rise_no_lantern
 		value += rate * delta
-	value = clampf(value, 0.0, 100.0)
+	value = clampf(value, scar, 100.0)
+	# Narbe, wenn er über 75 steigt
+	if value >= Config.madness_scar_at and not _above:
+		_above = true
+		if scar < Config.madness_scar_max:
+			scar = minf(scar + Config.madness_scar, Config.madness_scar_max)
+			get_tree().call_group("hud", "toast", "Der Wahnsinn hinterlässt eine Narbe (%d)" % int(scar))
+	elif value < Config.madness_scar_at - 15.0:
+		_above = false
 
 
 ## Trugbild im Dunkeln um den Hüter herum.

@@ -75,6 +75,7 @@ const ENTRIES := [
 	["Steigt pro s im Dunkeln", "madness_rise", 0.05, 2.0, 0.05, "bei voller Laterne"],
 	["Sinkt pro s am Feuer", "madness_heal_fire", 0.1, 10, 0.1, ""],
 	["Sinkt pro s in Fackellicht/Festung", "madness_heal_light", 0.0, 5, 0.1, ""],
+	["Narbe pro Mal über 75", "madness_scar", 0, 30, 5, "0 = keine Narben"],
 	["Sicht"],
 	["Sicht an (1) / aus (0)", "sight_enabled", 0, 1, 1, "0 = alle Gegner sichtbar"],
 	["Im Dunkeln ganz sichtbar bis m", "sight_near", 0, 10, 0.5, ""],
