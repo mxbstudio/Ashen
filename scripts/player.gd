@@ -30,14 +30,29 @@ var carry := {"wood": 0, "food": 0, "stone": 0}   # Inhalt der Trage
 var _gather_t := 0.0
 var _full_warned := false
 var on_tower: Node3D = null        # Wachturm, auf dem er gerade steht (oder null)
+var equip := {"weapon": 0, "armor": 0, "lantern": 0}   # Ausrüstungs-Stufen (0 = einfach), geschmiedet in der Werkstatt
 
 
 func _ready() -> void:
 	add_to_group("player")
-	health = Config.player_max_health
+	health = max_health()
 	potions = Config.potions_start
 	collision_layer = 2            # Ebene 2: Hüter (Gegner laufen nicht gegen ihn)
 	collision_mask = 1             # stößt nur an die Welt
+
+
+## Höchstes Leben (Rüstung gibt mehr).
+func max_health() -> float:
+	return Config.player_max_health + Config.armor_health_per_level * equip["armor"]
+
+
+## Ausrüstung auf eine Stufe setzen (Schmieden, Laden).
+func set_equip(slot: String, lvl: int) -> void:
+	var before := max_health()
+	equip[slot] = lvl
+	if slot == "armor":
+		health += max_health() - before   # neues Leben gleich dazu
+	lantern.level = equip["lantern"]
 
 
 func is_alive() -> bool:
@@ -53,6 +68,7 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 		return   # während des Dashs und kurz nach dem Wiedererscheinen unverwundbar
 	if _from:
 		DebugOverlay.watch("Letzter Treffer", "%s (%d)" % [_from.get_script().resource_path.get_file().get_basename(), int(amount)])
+	amount *= 1.0 - Config.armor_reduction_per_level * equip["armor"]   # Rüstung schützt
 	health -= amount
 	hurt_flash = 0.35
 	Sfx.play("hurt")
@@ -64,7 +80,7 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 func heal(amount: float) -> void:
 	if not is_alive():
 		return
-	health = minf(health + amount, Config.player_max_health)
+	health = minf(health + amount, max_health())
 
 
 func gain_xp(amount: int) -> void:
@@ -86,7 +102,7 @@ func show_heal(amount: float) -> void:
 
 
 func drink_potion() -> void:
-	if not is_alive() or potions <= 0 or health >= Config.player_max_health:
+	if not is_alive() or potions <= 0 or health >= max_health():
 		return
 	potions -= 1
 	heal(Config.potion_heal)
@@ -140,9 +156,9 @@ func _die() -> void:
 
 func _respawn() -> void:
 	on_tower = null
-	health = Config.player_max_health
+	health = max_health()
 	potions = Config.potions_start
-	lantern.fuel = Config.lantern_burn_time
+	lantern.fuel = lantern.burn_time()
 	model.visible = true
 	protect_timer = Config.respawn_protection
 	if respawn_point:

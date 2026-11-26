@@ -80,7 +80,7 @@ func _draw() -> void:
 	var y := MARGIN + 6.0
 	var lantern = player.lantern
 	_draw_bar(font, x, y, "Leben  %d" % ceili(player.health),
-			player.health / Config.player_max_health, Color(0.85, 0.2, 0.18))
+			player.health / player.max_health(), Color(0.85, 0.2, 0.18))
 	y += 62.0
 	_draw_bar(font, x, y, "Laterne", lantern.fraction(), Color(1.0, 0.7, 0.3),
 			lantern.refilling)
@@ -104,6 +104,14 @@ func _draw() -> void:
 		load_txt += ": " + ", ".join(parts)
 	draw_string(font, Vector2(x - 40, y + 22), load_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20,
 			Color(1, 0.85, 0.6, 0.9) if player.carry_total() < Config.carry_capacity else Color(1, 0.5, 0.3))
+	# Ausrüstung (nur wenn schon etwas geschmiedet ist)
+	var eq: Dictionary = player.equip
+	if eq["weapon"] + eq["armor"] + eq["lantern"] > 0:
+		y += 30.0
+		var roman := ["–", "I", "II", "III"]
+		draw_string(font, Vector2(x - 40, y + 22), "Klinge %s · Rüstung %s · Laterne %s" % [
+				roman[eq["weapon"]], roman[eq["armor"]], roman[eq["lantern"]]],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.8, 0.55, 0.9))
 	if not player.skill_bar.stash.is_empty():
 		y += 34.0
 		draw_string(font, Vector2(x, y + 22), "Vorrat: %d Skill(s)" % player.skill_bar.stash.size(),

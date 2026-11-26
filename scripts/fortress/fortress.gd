@@ -277,6 +277,22 @@ func deposit(carry: Dictionary) -> Dictionary:
 	return gave
 
 
+## Wie viel Holz/Stein steht zur Verfügung: Trage + Lager (beim Holz bleibt das letzte fürs Feuer)?
+func available(kind: String, carry: Dictionary) -> int:
+	var store: int = int(wood) - 1 if kind == "wood" else int(stone)
+	return carry.get(kind, 0) + maxi(store, 0)
+
+
+## Bezahlen: zuerst aus der Trage, der Rest aus dem Lager.
+func pay(kind: String, n: int, carry: Dictionary) -> void:
+	var from_carry := mini(carry.get(kind, 0), n)
+	carry[kind] -= from_carry
+	if kind == "wood":
+		wood -= n - from_carry
+	else:
+		stone -= n - from_carry
+
+
 ## Bauen oder verbessern möglich? Das letzte Holz bleibt immer fürs Feuer.
 func can_build(b: Node3D) -> bool:
 	return b.can_improve() and wood >= b.next_cost() + 1

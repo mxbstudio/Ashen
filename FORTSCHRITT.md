@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 fertig bis auf Werte-Feinschliff (PR #2 nach `main`). v0.3 begonnen: Sicht zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 fertig bis auf Werte-Feinschliff (PR #2 nach `main`). v0.3: Sicht fertig, Ausrüstung zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -181,6 +181,16 @@ echte Grafik → Meta-Fortschritt/Herkünfte/Story.
 - Werte-Menü, Gruppe „Sicht“: Sicht an/aus (zum Vergleichen), „Im Dunkeln ganz sichtbar bis m“.
 - Neue Werte: `sight_enabled`, `sight_near` (3,5 m), `sight_range` (24 m).
 - Max' Test: „merkt man kaum, egal“ – Augen gut erkennbar, keine Überraschungen, läuft flüssig. Bleibt so.
+
+## Ausrüstung (zum Testen)
+- **Schmieden an der Werkstatt**: vor der gebauten Werkstatt (Seite zum Feuer) → Knopf „Ausrüstung schmieden“
+  → Menü (pausiert). Skript: `scripts/ui/forge_panel.gd`.
+- **Klinge**: +20 % Schaden je Stufe (alle Angriffe). **Rüstung**: +20 Leben und −10 % Schaden je Stufe.
+  **Laterne**: +45 s Brenndauer und +1 m Lichtkreis je Stufe. Je 3 Stufen.
+- **Kosten** (Holz/Stein): Stufe 1 10/4, Stufe 2 16/10, Stufe 3 24/18 – zuerst aus der Trage, dann aus dem Lager.
+  Stufe 2 und 3 brauchen eine Werkstatt der gleichen Stufe.
+- HUD oben rechts: „Klinge I · Rüstung – · Laterne II“ (sobald etwas geschmiedet ist). Wird gespeichert.
+- Werte-Menü: Gruppe „Ausrüstung“. Neue Werte im Abschnitt „Ausrüstung“ in `scripts/config.gd`.
 
 ## Am PC kam nur „Bitte Handy drehen“
 - Der Hinweis erschien bei Querformat + „Touchscreen vorhanden“ – das melden auch viele PCs/Laptops.

@@ -6,6 +6,7 @@ extends Node3D
 signal refilling_changed(active: bool)
 
 var fuel := 0.0                    # Sekunden Brenndauer übrig
+var level := 0                     # Laternen-Stufe (Ausrüstung): brennt länger, leuchtet weiter
 var refilling := false
 var omen := false                  # Vorzeichen der Belagerung: Laterne zuckt mit
 var _light: OmniLight3D
@@ -14,7 +15,7 @@ var _t := 0.0
 
 
 func _ready() -> void:
-	fuel = Config.lantern_burn_time
+	fuel = burn_time()
 	_light = OmniLight3D.new()
 	_light.light_color = Color(1.0, 0.72, 0.4)
 	_light.omni_attenuation = 0.6       # flacher Abfall -> klarer Lichtkreis
@@ -42,14 +43,19 @@ func _exit_tree() -> void:
 	Lights.unregister(self)
 
 
+## Volle Brenndauer (mit Ausrüstung).
+func burn_time() -> float:
+	return Config.lantern_burn_time + Config.lantern_time_per_level * level
+
+
 ## Anteil Brennstoff 0..1
 func fraction() -> float:
-	return clampf(fuel / Config.lantern_burn_time, 0.0, 1.0)
+	return clampf(fuel / burn_time(), 0.0, 1.0)
 
 
 ## Aktueller Lichtradius in Metern (für Gegner, HUD usw.)
 func get_light_radius() -> float:
-	return lerpf(Config.lantern_radius_min, Config.lantern_radius_max, fraction())
+	return lerpf(Config.lantern_radius_min, Config.lantern_radius_max + Config.lantern_radius_per_level * level, fraction())
 
 
 ## Brennstoff abziehen (z. B. später durch Lichtfresser oder Opferlicht).
@@ -60,10 +66,9 @@ func drain(seconds: float) -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	var source := Lights.lantern_refill_at(global_position)   # Feuer, Leuchtfeuer, Feuerstelle
-	var now_refilling := source != null and fuel < Config.lantern_burn_time
+	var now_refilling := source != null and fuel < burn_time()
 	if source != null:
-		fuel = minf(fuel + Config.lantern_burn_time / Config.lantern_refill_seconds * delta,
-				Config.lantern_burn_time)
+		fuel = minf(fuel + burn_time() / Config.lantern_refill_seconds * delta, burn_time())
 	else:
 		fuel = maxf(fuel - delta, 0.0)
 	if now_refilling != refilling:

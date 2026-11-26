@@ -219,6 +219,15 @@ var mend_heal_per_level := 4.0     # Labung
 var echo_cast_per_level := 0.15    # Echo: Cast-Verlängerung sinkt je Stufe
 var sacrifice_per_level := 0.5     # Opferlicht: +0,5 Multiplikator je Stufe
 
+# --- Ausrüstung (v0.3) – geschmiedet in der Werkstatt ----------------------------
+var weapon_damage_per_level := 0.2   # Klinge: +20 % Schaden je Stufe
+var armor_health_per_level := 20.0   # Rüstung: +20 Leben je Stufe
+var armor_reduction_per_level := 0.1 # Rüstung: −10 % Schaden je Stufe
+var lantern_time_per_level := 45.0   # Laterne: +45 s Brenndauer je Stufe
+var lantern_radius_per_level := 1.0  # Laterne: +1 m Lichtkreis je Stufe
+var equip_wood := [10, 16, 24]       # Holz für Stufe 1 / 2 / 3
+var equip_stone := [4, 10, 18]       # Stein für Stufe 1 / 2 / 3
+
 # --- Sicht (v0.3) -----------------------------------------------------------
 var sight_enabled := true          # false = alle Gegner immer sichtbar (wie v0.2)
 var sight_near := 3.5              # m – so nah sieht man einen Gegner auch im Dunkeln ganz
