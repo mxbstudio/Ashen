@@ -8,6 +8,7 @@ extends Node3D
 @export var zone_name := "Zone"
 
 var built := false                 # Pfahl steht schon
+var tender: Node3D = null          # Bewohner, der gerade nebenbei Holz nachlegt
 var fuel := 0.0                    # Sekunden Brenndauer übrig
 var _attacked_t := 0.0             # > 0: ein Lichtfresser saugt gerade daran
 var _warned_low := false

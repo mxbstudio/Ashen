@@ -13,6 +13,7 @@ const MAX_LEVEL := 3
 var level := 0                     # 0 = noch nicht gebaut
 var built := false                 # = level >= 1
 var workers: Array[Node3D] = []    # zugeteilte Bewohner
+var wanted := 0                    # so viele sollen hier arbeiten (Einteilen-Menü; beim Bauen = alle Plätze)
 var _timer := 0.0
 var _label: Label3D
 var _house: Node3D
@@ -55,6 +56,10 @@ func needs_worker() -> bool:
 
 
 ## Wie viele Bewohner können hier arbeiten?
+func wanted_workers() -> int:
+	return mini(wanted, capacity())
+
+
 func capacity(at_level := -1) -> int:
 	var l := level if at_level < 0 else at_level
 	if l <= 0 or not needs_worker():

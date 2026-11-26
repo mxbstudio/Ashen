@@ -155,6 +155,9 @@ func kill_resident(reason: String, victim: Node3D = null) -> void:
 	var key: String = victim.zone_key()
 	if key != "" and zone_jobs.get(key, 0) > 0:
 		zone_jobs[key] -= 1
+	for b in buildings:
+		if b.workers.has(victim):
+			b.wanted = maxi(b.wanted - 1, 0)
 	residents.erase(victim)
 	victim.queue_free()   # sein Bogen geht mit verloren
 	if armed_target > bows_total():
@@ -204,11 +207,12 @@ func _send_couriers() -> void:
 		var n := mini(Config.firepit_courier_wood, pit.wood_space())
 		if n <= 0 or wood < n + 1:
 			continue
+		# nur freie Bewohner (ohne Gebäude und ohne Zone) springen ein
 		var best: Node3D = null
 		for r in residents:
-			if r.state == 0 and not r.has_zone_job() and r.hp >= Config.resident_hp * 0.6:
-				if best == null or (best.job != null and r.job == null):
-					best = r
+			if r.state == 0 and not r.has_zone_job() and r.job == null and r.hp >= Config.resident_hp * 0.6:
+				best = r
+				break
 		if best == null:
 			return
 		wood -= n
@@ -227,8 +231,8 @@ func zone_workers_total() -> int:
 func change_zone_job(zone_id: String, kind: String, delta: int) -> bool:
 	var key := "%s:%s" % [zone_id, kind]
 	var n: int = zone_jobs.get(key, 0) + delta
-	if n < 0 or (delta > 0 and zone_workers_total() >= residents.size()):
-		return false
+	if n < 0 or (delta > 0 and free_count() <= 0):
+		return false   # einteilen nur, wenn ein Bewohner frei ist
 	zone_jobs[key] = n
 	_assign_jobs()
 	return true
@@ -273,6 +277,7 @@ func build(b: Node3D) -> void:
 	var c: int = b.next_cost()
 	wood -= c
 	b.improve()
+	b.wanted = b.capacity()   # neue Plätze: freie Bewohner rücken automatisch nach
 	_assign_jobs()
 	if b.level == 1:
 		message.emit("%s gebaut (−%d Holz)" % [b.display_name(), c])
@@ -280,52 +285,53 @@ func build(b: Node3D) -> void:
 		message.emit("%s auf Stufe %d (−%d Holz)" % [b.display_name(), b.level, c])
 
 
-## Bewohner verteilen: zuerst die Zonen-Arbeit (wer schon die richtige hat, behält sie),
-## dann Gebäude in dieser Reihenfolge: Pilzkeller, Trümmerhof, Wachturm. Der Rest bummelt am Feuer.
+## Bewohner verteilen. Grundsatz: Max teilt über das Menü ein – niemand wird automatisch
+## aus einem Gebäude oder einer Zone abgezogen. Es passiert nur zweierlei:
+##  1. Wer über die gewünschte Zahl hinaus eingeteilt ist (Max hat "−" gedrückt), wird frei.
+##  2. Freie Bewohner füllen offene Plätze (gewünschte Zahl > besetzt): zuerst Gebäude
+##     (Pilzkeller, Trümmerhof, Werkstatt, Wachturm), dann Zonen.
 func _assign_jobs() -> void:
-	var need := zone_jobs.duplicate()
-	var free: Array[Node3D] = []
+	# 1a. Zonen: überzählige werden frei
+	var seen := {}
 	for r in residents:
 		var k: String = r.zone_key()
-		if k != "" and need.get(k, 0) > 0:
-			need[k] -= 1
-		else:
-			free.append(r)
-	# für neue Zonen-Arbeit zuerst Bewohner ohne Gebäude nehmen
-	free.sort_custom(func(a, b): return a.job == null and b.job != null)
-	var keys := need.keys()
-	keys.sort()
-	for k in keys:
-		while need[k] > 0 and not free.is_empty():
-			var r: Node3D = free.pop_front()
-			var parts: PackedStringArray = k.split(":")
-			r.set_zone_job(parts[0], parts[1])
-			need[k] -= 1
-	for r in free:
-		r.set_zone_job("", "")
-	# Gebäude mit den Übrigen besetzen
-	var home: Array[Node3D] = []
+		if k == "":
+			continue
+		seen[k] = seen.get(k, 0) + 1
+		if seen[k] > zone_jobs.get(k, 0):
+			r.set_zone_job("", "")
+	# 1b. Gebäude: Tote und Überzählige raus
+	for b in buildings:
+		var list: Array[Node3D] = []
+		for w in b.workers:
+			if residents.has(w) and not w.has_zone_job() and list.size() < b.wanted_workers():
+				list.append(w)
+		b.set_workers(list)
+	# 2. freie Bewohner auf offene Plätze
+	var free: Array[Node3D] = []
 	for r in residents:
-		if not r.has_zone_job():
-			home.append(r)
-	# Reihenfolge: Pilzkeller, Trümmerhof, Wachturm. Wer schon im Gebäude arbeitet, bleibt;
-	# freie Plätze bekommen zuerst Bewohner ohne Arbeit, dann irgendein noch nicht verteilter.
-	var taken := {}
+		if not r.has_zone_job() and not _in_building(r):
+			free.append(r)
 	for kind in ["mushroom", "scrapyard", "workshop", "tower"]:
 		for b in buildings:
 			if b.kind != kind:
 				continue
-			var list: Array[Node3D] = []
-			for w in b.workers:
-				if home.has(w) and not taken.has(w) and list.size() < b.capacity():
-					list.append(w)
-					taken[w] = true
-			for pass_ in 2:
-				for r in home:
-					if list.size() < b.capacity() and not taken.has(r) and (pass_ == 1 or r.job == null):
-						list.append(r)
-						taken[r] = true
+			var list: Array[Node3D] = b.workers.duplicate()
+			while list.size() < b.wanted_workers() and not free.is_empty():
+				list.append(free.pop_front())
 			b.set_workers(list)
+	var keys := zone_jobs.keys()
+	keys.sort()
+	for k in keys:
+		var have := 0
+		for r in residents:
+			if r.zone_key() == k:
+				have += 1
+		while have < zone_jobs[k] and not free.is_empty():
+			var r: Node3D = free.pop_front()
+			var parts: PackedStringArray = k.split(":")
+			r.set_zone_job(parts[0], parts[1])
+			have += 1
 	for r in residents:
 		var j: Node3D = null
 		for b in buildings:
@@ -333,3 +339,29 @@ func _assign_jobs() -> void:
 				j = b
 		r.assign(j)
 	_hand_out_bows()
+
+
+func _in_building(r: Node3D) -> bool:
+	for b in buildings:
+		if b.workers.has(r):
+			return true
+	return false
+
+
+## Bewohner ohne jede Arbeit.
+func free_count() -> int:
+	var n := 0
+	for r in residents:
+		if not r.has_zone_job() and not _in_building(r):
+			n += 1
+	return n
+
+
+## Gebäude-Arbeiter ändern (aus dem Einteilen-Menü). "+" geht nur mit einem freien Bewohner.
+func change_building_workers(b: Node3D, delta: int) -> bool:
+	var n: int = b.workers.size() + delta   # vom tatsächlich besetzten Stand aus
+	if n < 0 or n > b.capacity() or (delta > 0 and free_count() <= 0):
+		return false
+	b.wanted = n
+	_assign_jobs()
+	return true

@@ -324,3 +324,14 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 - Bezahlt wird immer zuerst aus der Trage, dann aus dem Lager.
 - Alles wird im Speicherstand gemerkt (Stein, Bögen, Bewaffnete, Feuerstellen, kleine Fackeln, Felsen).
 - Werte-Menü: neue Regler für kleine Fackel, Feuerstelle, Stein pro Felsen, Werkstatt, Bogen-Holz, Bewohner-Bogen-Schaden.
+
+### Nach Max' Test von Etappe 7: Einteilen nur durch Max, nebenbei nachlegen
+- **Einteilen nur noch über das Menü**: Niemand wird mehr automatisch aus einem Gebäude oder einer Zone abgezogen.
+  „+“ (Zone oder Gebäude) geht nur, wenn ein Bewohner **frei** ist; „−“ macht jemanden frei. Oben im Menü: „frei: n“.
+  Gebäude haben jetzt eigene − / + Zeilen. **Freie Bewohner** besetzen offene Plätze von selbst (z. B. beim Bauen
+  oder Verbessern eines Gebäudes). Nimmt Max jemanden aus einem Gebäude, bleibt der Platz leer.
+  Holzträger für Feuerstellen sind nur noch freie Bewohner.
+- **Nebenbei nachlegen**: Ist ein Bewohner draußen im Lichtkreis einer Fackel oder Feuerstelle, die unter 50 % ist,
+  geht er kurz hin, legt 1 Holz nach (aus seiner Ladung, sonst aus dem Lager) und macht dann weiter, wo er war.
+  Pro Fackel immer nur einer gleichzeitig, derselbe Bewohner frühestens nach 15 s wieder.
+- Neue Werte: `tend_below` (0,5), `tend_cooldown` (15 s).

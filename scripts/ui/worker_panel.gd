@@ -78,14 +78,24 @@ func _rebuild() -> void:
 	for c in _box.get_children():
 		c.queue_free()
 	var total: int = fortress.residents.size()
-	var outside: int = fortress.zone_workers_total()
+	var free: int = fortress.free_count()
 	_box.add_child(UiStyle.label("Bewohner einteilen", 40, Color(0.7, 1, 0.8)))
-	_box.add_child(UiStyle.label("Bewohner: %d · draußen eingeteilt: %d · in der Festung: %d" % [total, outside, total - outside],
-			24, Color(1, 0.9, 0.7)))
-	_box.add_child(UiStyle.label("Einteilen geht in jeder Zone – arbeiten können sie aber nur, solange die Zone hell ist "
-			+ "(Fackel brennt bzw. Leuchtfeuer entzündet). Sonst warten sie am Feuer. Draußen im Dunkeln greifen "
-			+ "Kriecher sie an – mit Bogen wehren sie sich. Bei Belagerung kommen alle heim. Die übrigen Bewohner besetzen die Gebäude.", 20, Color(1, 1, 1, 0.6)))
+	_box.add_child(UiStyle.label("Bewohner: %d · frei: %d" % [total, free], 28,
+			Color(0.6, 1, 0.6) if free > 0 else Color(1, 0.9, 0.7)))
+	_box.add_child(UiStyle.label("Einteilen geht nur mit freien Bewohnern – mit „−“ machst du jemanden frei. "
+			+ "Freie Bewohner besetzen neue Gebäudeplätze von selbst. Zonen: Arbeit nur, solange die Zone hell ist, "
+			+ "sonst warten sie am Feuer. Draußen im Dunkeln greifen Kriecher an – mit Bogen wehren sie sich. "
+			+ "Bei Belagerung kommen alle heim.", 20, Color(1, 1, 1, 0.6)))
 	_box.add_child(_bow_row())
+	_box.add_child(_section("Gebäude"))
+	var any := false
+	for b in fortress.buildings:
+		if b.built and b.needs_worker():
+			any = true
+			_box.add_child(_building_row(b, free))
+	if not any:
+		_box.add_child(UiStyle.label("Noch keine Gebäude mit Arbeitsplätzen gebaut.", 22, Color(1, 1, 1, 0.5)))
+	_box.add_child(_section("Zonen draußen"))
 	var tree := get_tree()
 	for z in ZoneDefs.ZONES:
 		var lit := Zones.is_lit(tree, z["id"])
@@ -99,7 +109,6 @@ func _rebuild() -> void:
 			_box.add_child(_row(z["id"], "food", "Sammler", lit))
 		if z.get("rocks", 0) > 0:
 			_box.add_child(_row(z["id"], "stone", "Steinbrecher", lit))
-	_box.add_child(UiStyle.label(_building_text(), 22, Color(0.9, 0.85, 0.8)))
 
 
 func _row(zone_id: String, kind: String, title: String, lit: bool) -> Control:
@@ -118,7 +127,7 @@ func _row(zone_id: String, kind: String, title: String, lit: bool) -> Control:
 	val.custom_minimum_size = Vector2(70, 0)
 	row.add_child(val)
 	var plus := UiStyle.button("+", Color(0.5, 0.9, 0.5), 34, Vector2(80, 70))
-	plus.disabled = fortress.zone_workers_total() >= fortress.residents.size()
+	plus.disabled = fortress.free_count() <= 0
 	plus.pressed.connect(_change.bind(zone_id, kind, 1))
 	row.add_child(plus)
 	return row
@@ -127,6 +136,35 @@ func _row(zone_id: String, kind: String, title: String, lit: bool) -> Control:
 func _change(zone_id: String, kind: String, delta: int) -> void:
 	fortress.change_zone_job(zone_id, kind, delta)
 	_rebuild()
+
+
+func _section(text: String) -> Label:
+	var l := UiStyle.label(text, 30, Color(1, 0.75, 0.4))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	return l
+
+
+## Gebäude: Arbeiter mit − / + (höchstens so viele, wie es Plätze gibt).
+func _building_row(b: Node3D, free: int) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var places := "1 Platz" if b.capacity() == 1 else "%d Plätze" % b.capacity()
+	var name := UiStyle.label("   %s (%s)" % [b.display_name(), places], 24)
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name)
+	var minus := UiStyle.button("−", Color(1, 0.6, 0.4), 34, Vector2(80, 70))
+	minus.disabled = b.workers.is_empty()
+	minus.pressed.connect(func(): fortress.change_building_workers(b, -1); _rebuild())
+	row.add_child(minus)
+	var val := UiStyle.label(str(b.workers.size()), 28, Color(1, 0.9, 0.6))
+	val.custom_minimum_size = Vector2(70, 0)
+	row.add_child(val)
+	var plus := UiStyle.button("+", Color(0.5, 0.9, 0.5), 34, Vector2(80, 70))
+	plus.disabled = free <= 0 or b.workers.size() >= b.capacity()
+	plus.pressed.connect(func(): fortress.change_building_workers(b, 1); _rebuild())
+	row.add_child(plus)
+	return row
 
 
 ## Bögen verteilen: wie viele Bewohner tragen einen (wer draußen arbeitet, zuerst)?
@@ -163,14 +201,3 @@ func _has_workshop() -> bool:
 		if b.kind == "workshop" and b.built:
 			return true
 	return false
-
-
-## Welche Gebäude sind besetzt?
-func _building_text() -> String:
-	var parts := []
-	for b in fortress.buildings:
-		if b.built and b.needs_worker():
-			parts.append("%s: %d/%d" % [b.display_name(), b.workers.size(), b.capacity()])
-	if parts.is_empty():
-		return "Gebäude: noch keine mit Arbeitsplatz gebaut."
-	return "Gebäude – " + ", ".join(parts)

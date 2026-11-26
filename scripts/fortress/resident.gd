@@ -6,13 +6,15 @@
 ## Steinbrecher holen Stein von den Felsen der Zone.
 ## Mit Bogen (aus der Werkstatt) schießt er draußen selbst auf Gegner in der Nähe.
 ## Geht eine Feuerstelle bald aus, bringt er Holz hin (Holzfäller in der Nähe direkt aus ihrer Ladung).
+## Nebenbei: Ist er draußen im Lichtkreis einer Fackel/Feuerstelle, die unter 50 % ist, legt er kurz
+## 1 Holz nach (aus seiner Ladung, sonst aus dem Lager) und macht dann weiter.
 extends Node3D
 
 const HpBar := preload("res://scripts/hp_bar.gd")
 const DamageNumber := preload("res://scripts/damage_number.gd")
 const ArrowScript := preload("res://scripts/arrow.gd")
 
-enum State { HOME, OUT, WORK, BACK, DELIVER }
+enum State { HOME, OUT, WORK, BACK, DELIVER, TEND }
 
 const GATE_IN := Vector3(0, 0, -9.5)     # innen vor dem Tor
 const GATE_OUT := Vector3(0, 0, -15.0)   # draußen vor dem Tor
@@ -44,6 +46,10 @@ var _shoot_cd := 0.0
 var _delivery: Node3D = null        # Feuerstelle, zu der er Holz bringt
 var _delivery_wood := 0
 var _work_after_delivery := false  # Holzfäller: nach dem Abliefern weiterarbeiten
+var _tend: Node3D = null            # Fackel/Feuerstelle, an der er gerade nebenbei nachlegt
+var _tend_prev := 0                 # was er vorher gemacht hat
+var _tend_t := 0.0
+var _tend_cd := 0.0
 
 
 func _ready() -> void:
@@ -160,6 +166,8 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 			fort.kill_resident("Ein Bewohner wurde draußen getötet.", self)
 		return
 	# verletzt: Ladung bleibt, aber sofort zurück in die Festung
+	if state == State.TEND:
+		_end_tend(false)
 	if state == State.DELIVER:
 		_work_after_delivery = false
 		_abort_delivery()
@@ -176,6 +184,10 @@ func _process(delta: float) -> void:
 	_bow_mesh.visible = has_bow
 	if has_bow and is_exposed():
 		_defend(delta)
+	_tend_cd -= delta
+	if _tend_cd <= 0.0 and not _fleeing and state in [State.OUT, State.WORK, State.BACK]:
+		_tend_cd = 1.0
+		_start_tend(_torch_to_tend())
 	match state:
 		State.HOME:
 			_home(delta)
@@ -190,6 +202,8 @@ func _process(delta: float) -> void:
 		State.BACK:
 			if _follow_path(delta, Config.worker_speed * (1.6 if _fleeing else 1.0)):
 				_arrive_home()
+		State.TEND:
+			_tend_step(delta)
 		State.DELIVER:
 			if Zones.recalled(get_tree()) or not is_instance_valid(_delivery) or _delivery.wood_space() <= 0:
 				_abort_delivery()
@@ -384,6 +398,70 @@ func _low_fire_pit_near() -> Node3D:
 				and global_position.distance_to(pit.global_position) < 15.0:
 			return pit
 	return null
+
+
+# --- Nebenbei nachlegen --------------------------------------------------------------
+
+## Fackel/Feuerstelle in Reichweite (im eigenen Lichtkreis), die unter 50 % ist und um die sich keiner kümmert.
+func _torch_to_tend() -> Node3D:
+	if Zones.recalled(get_tree()):
+		return null
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var has_wood: bool = (cargo_kind == "wood" and cargo > 0) or (fort and fort.wood >= 2.0)
+	if not has_wood:
+		return null
+	for t in get_tree().get_nodes_in_group("torches") + get_tree().get_nodes_in_group("fire_pits"):
+		if not t.built or t.wood_space() < 1 or t.fuel >= t.max_fuel() * Config.tend_below:
+			continue
+		if t.tender and is_instance_valid(t.tender):
+			continue
+		var d := Vector2(t.global_position.x - global_position.x, t.global_position.z - global_position.z).length()
+		if d < t.light_radius_full():
+			return t
+	return null
+
+
+func _start_tend(t: Node3D) -> void:
+	if t == null:
+		return
+	_tend = t
+	t.tender = self
+	_tend_prev = state
+	_tend_t = 0.0
+	state = State.TEND
+
+
+func _tend_step(delta: float) -> void:
+	if not is_instance_valid(_tend) or _tend.wood_space() < 1:
+		_end_tend(true)
+		return
+	var spot: Vector3 = _tend.global_position + (global_position - _tend.global_position).normalized() * 1.2
+	if not _step_towards(spot, Config.worker_speed, delta):
+		return
+	_tend_t += delta
+	if _tend_t < 1.2:
+		return   # kurz nachlegen
+	var fort := get_tree().get_first_node_in_group("fortress")
+	if cargo_kind == "wood" and cargo > 0:
+		cargo -= 1
+	elif fort and fort.wood >= 2.0:
+		fort.wood -= 1.0
+	else:
+		_end_tend(true)
+		return
+	_tend.add_wood(1)
+	_number("+1 Holz nachgelegt", Color(1, 0.75, 0.45))
+	_end_tend(true)
+
+
+## Nachlegen beenden und weitermachen, wo er war.
+func _end_tend(resume: bool) -> void:
+	if is_instance_valid(_tend):
+		_tend.tender = null
+	_tend = null
+	_tend_cd = Config.tend_cooldown
+	if resume and state == State.TEND:
+		state = _tend_prev
 
 
 # --- Bogen ------------------------------------------------------------------------

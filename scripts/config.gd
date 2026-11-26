@@ -116,6 +116,8 @@ var firepit_seconds_per_wood := 90.0
 var firepit_light_radius := 9.0    # m
 var firepit_max := 4               # höchstens so viele (Leistung im Browser)
 var firepit_refill_below := 0.35   # Bewohner bringen Holz, wenn weniger als 35 % drin sind
+var tend_below := 0.5              # Bewohner legen nebenbei nach, wenn eine Fackel/Feuerstelle unter 50 % ist
+var tend_cooldown := 15.0          # s Pause, bevor derselbe Bewohner wieder nachlegt
 var firepit_courier_wood := 3      # so viel Holz bringt ein Bewohner auf einmal
 var torch_use_range := 2.6         # m – so nah muss der Hüter ran zum Errichten/Nachlegen
 

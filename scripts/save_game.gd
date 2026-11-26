@@ -113,7 +113,7 @@ func _collect() -> Dictionary:
 		"boss_defeated": get_parent().boss_defeated,
 	}
 	for b in fortress.buildings:
-		d["fort"]["buildings"][b.name] = b.level
+		d["fort"]["buildings"][b.name] = [b.level, b.wanted]
 	for t in get_tree().get_nodes_in_group("torches"):
 		d["torches"][t.zone_id] = [t.built, t.fuel]
 	return d
@@ -215,8 +215,11 @@ func _apply_fortress(f: Dictionary) -> void:
 	fortress._survivor_acc = float(f.get("survivor", 0.0))
 	var levels: Dictionary = f.get("buildings", {})
 	for b in fortress.buildings:
-		for i in int(levels.get(String(b.name), 0)):
+		var e = levels.get(String(b.name), 0)
+		var lvl := int(e[0]) if typeof(e) == TYPE_ARRAY else int(e)   # ältere Stände: nur die Stufe
+		for i in lvl:
 			b.improve()
+		b.wanted = int(e[1]) if typeof(e) == TYPE_ARRAY else b.capacity()
 	# Bewohner: Anzahl angleichen, Leben übernehmen
 	var hps: Array = f.get("residents", [])
 	while fortress.residents.size() > hps.size():
