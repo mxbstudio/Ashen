@@ -120,6 +120,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Sammeln des Hüters | 0,6 s pro Einheit | 1,2 s | v0.2: Sammeln übernehmen die Bewohner |
 | Bewohner am Start | 5 | 7 | Max: „bräuchte mehr Dorfbewohner“ |
 | Nahrung pro Bewohner | alle 60 s | alle 75 s | damit 7+ Bewohner satt werden |
+| Holz-Fundstellen | 10 Holzhaufen à 5 Holz | 33 fällbare Bäume à 25 Holz | Wunsch Max |
+| Pilzstellen | 6 | 13 | Wunsch Max |
 
 ## Etappe 7 – fertig
 - **Belagerung** alle 8 min: 30 s vorher flackert das Feuer unruhig („Das Feuer flackert unruhig …“, kein Countdown). Dann läutet die Glocke (heller Blitz), Angreifer erscheinen in Gruppen vor dem Tor (12, jede weitere +4) und schlagen aufs Tor (Anzeige „BELAGERUNG“ mit Torleben und Angreifern). Normale Gegner erscheinen währenddessen nicht.
@@ -243,3 +245,11 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 - Knopf **„Herabsteigen“** → steht wieder vor dem Turm. Beim Tod steigt er automatisch ab.
 - Der Bewohner im Turm schießt weiter mit.
 - Neue Werte: `tower_climb_range` (5 m), `tower_climb_range_per_level` (2 m) in `scripts/config.gd`.
+
+### Nach Max' Test von Etappe 4: Bäume fällen, mehr Pilze
+- **Keine Holzhaufen mehr**: Holz kommt von **fällbaren Bäumen** (je 25 Holz). Sie sind etwas heller als der übrige
+  Wald und glimmen leicht, Schild „Baum: 25 Holz“. Hacken dauert so lange wie früher das Sammeln
+  (Hüter 1,2 s, Bewohner 4 s pro Holz). Leer → Stumpf, nach 6 min wächst der Baum nach.
+- **6 Bäume um jede Zone** (im Fackellicht, 4,5–6,5 m von der Mitte), dazu 3 einzelne im Dunkeln für den Hüter.
+- **Mehr Pilze**: 13 statt 6 Pilzstellen – jede Zone 2–3, dazu 2 einzelne im Dunkeln.
+- Werte-Menü: Holz pro Baum, Baum wächst nach … s.

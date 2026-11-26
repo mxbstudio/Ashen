@@ -92,7 +92,7 @@ func _rebuild() -> void:
 				Color(1, 0.85, 0.5) if lit else Color(0.6, 0.6, 0.7))
 		head.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_box.add_child(head)
-		if not z["wood"].is_empty():
+		if z["trees"] > 0:
 			_box.add_child(_row(z["id"], "wood", "Holzfäller", lit))
 		if not z["food"].is_empty():
 			_box.add_child(_row(z["id"], "food", "Sammler", lit))

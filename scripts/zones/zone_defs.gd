@@ -6,30 +6,60 @@ class_name ZoneDefs
 extends RefCounted
 
 ## name: Anzeigename · torch: Platz des Fackelpfahls (null = Leuchtfeuer-Zone)
-## wood / food: Fundstellen in dieser Zone
+## center: Mitte der Zone · trees: so viele fällbare Bäume rund um die Mitte · food: Pilzstellen
 const ZONES := [
-	{"id": "west", "name": "Westsenke", "torch": Vector3(-17, 0, -25),
-		"wood": [Vector3(-20, 0, -29), Vector3(-12, 0, -28)], "food": [Vector3(-15, 0, -20)]},
-	{"id": "east", "name": "Osthain", "torch": Vector3(18, 0, -27),
-		"wood": [Vector3(21, 0, -31), Vector3(14, 0, -31)], "food": [Vector3(22, 0, -23)]},
-	{"id": "beacon", "name": "Leuchtfeuer", "torch": null,
-		"wood": [Vector3(-5, 0, -45), Vector3(5, 0, -55)], "food": [Vector3(-6, 0, -54)]},
-	{"id": "moor", "name": "Pilzmoor", "torch": Vector3(-20, 0, -62),
-		"wood": [Vector3(-22, 0, -57)], "food": [Vector3(-23, 0, -66), Vector3(-16, 0, -65)]},
-	{"id": "north", "name": "Nordwald", "torch": Vector3(19, 0, -60),
-		"wood": [Vector3(16, 0, -64), Vector3(22, 0, -56)], "food": [Vector3(15, 0, -56)]},
+	{"id": "west", "name": "Westsenke", "torch": Vector3(-17, 0, -25), "center": Vector3(-17, 0, -25),
+		"trees": 6, "food": [Vector3(-15, 0, -20), Vector3(-21, 0, -21)]},
+	{"id": "east", "name": "Osthain", "torch": Vector3(18, 0, -27), "center": Vector3(18, 0, -27),
+		"trees": 6, "food": [Vector3(22, 0, -23), Vector3(14, 0, -23)]},
+	{"id": "beacon", "name": "Leuchtfeuer", "torch": null, "center": Vector3(0, 0, -50),
+		"trees": 6, "food": [Vector3(-6, 0, -54), Vector3(-5, 0, -46)]},
+	{"id": "moor", "name": "Pilzmoor", "torch": Vector3(-20, 0, -62), "center": Vector3(-20, 0, -62),
+		"trees": 6, "food": [Vector3(-23, 0, -66), Vector3(-16, 0, -65), Vector3(-24, 0, -59)]},
+	{"id": "north", "name": "Nordwald", "torch": Vector3(19, 0, -60), "center": Vector3(19, 0, -60),
+		"trees": 6, "food": [Vector3(15, 0, -56), Vector3(23, 0, -64)]},
 ]
 
-## Fundstellen, die zu keiner Zone gehören (liegen im Dunkeln, z. B. vor dem Tor).
-const LOOSE_WOOD := [Vector3(-8, 0, -20)]
-const LOOSE_FOOD := []
+## Fundstellen, die zu keiner Zone gehören (liegen im Dunkeln – für den Hüter selbst).
+const LOOSE_WOOD := [Vector3(-8, 0, -20), Vector3(9, 0, -19), Vector3(-10, 0, -38)]
+const LOOSE_FOOD := [Vector3(9, 0, -40), Vector3(-12, 0, -44)]
+
+
+## Plätze der fällbaren Bäume einer Zone: im Kreis um die Mitte (4,5–6,5 m, also im Fackellicht),
+## nicht auf Pilzstellen, nicht auf dem Weg nach Norden und nicht am Kartenrand.
+static func tree_spots(z: Dictionary) -> Array:
+	var out := []
+	var c: Vector3 = z["center"]
+	var offset := float(c.x * 0.37 + c.z * 0.11)   # jede Zone etwas anders gedreht
+	for i in 12:
+		if out.size() >= z["trees"]:
+			break
+		var a := offset + TAU * i / 12.0
+		var r := 4.5 if i % 2 == 0 else 6.5
+		var p := c + Vector3(cos(a), 0, sin(a)) * r
+		if absf(p.x) > 27.0 or p.z > -15.0 or p.z < -89.0:
+			continue
+		if absf(p.x - path_x(p.z)) < 2.5:
+			continue
+		var free := true
+		for f in z["food"]:
+			if p.distance_to(f) < 2.5:
+				free = false
+		if free:
+			out.append(p)
+	return out
+
+
+## Der Weg vom Tor nach Norden schlängelt sich leicht (gleiche Formel wie in world.gd).
+static func path_x(z: float) -> float:
+	return sin(z * 0.08) * 5.0 if z < -37.0 else 0.0
 
 
 ## Alle Fundstellen-Positionen (für die Lichtungen im Wald).
 static func all_spots() -> Array:
 	var out := LOOSE_WOOD + LOOSE_FOOD
 	for z in ZONES:
-		out += z["wood"] + z["food"]
+		out += tree_spots(z) + z["food"]
 	return out
 
 

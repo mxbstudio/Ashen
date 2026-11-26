@@ -36,7 +36,7 @@ func _ready() -> void:
 ## Fundstellen: die meisten gehören zu einer Zone (siehe zones/zone_defs.gd).
 func _make_resources() -> void:
 	for z in ZoneDefs.ZONES:
-		for p in z["wood"]:
+		for p in ZoneDefs.tree_spots(z):
 			_resource(p, "wood", z["id"])
 		for p in z["food"]:
 			_resource(p, "food", z["id"])
@@ -187,7 +187,7 @@ func _is_clearing(p: Vector3) -> bool:
 
 ## Der Weg schlängelt sich leicht.
 func _path_x(z: float) -> float:
-	return sin(z * 0.08) * 5.0 if z < -37.0 else 0.0
+	return ZoneDefs.path_x(z)
 
 
 func _make_obstacles() -> void:

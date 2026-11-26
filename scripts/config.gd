@@ -62,9 +62,10 @@ var tower_climb_range_per_level := 2.0  # m zusätzlich je Turmstufe über 1
 # --- Sammeln ----------------------------------------------------------------
 var gather_seconds := 1.2          # s pro Einheit, solange man neben der Fundstelle steht (v0.1: 0,6)
 var gather_range := 2.0            # m
-var wood_per_node := 5
+var tree_wood := 25                # Holz pro fällbarem Baum (v0.1: Holzhaufen mit 5)
+var tree_regrow := 360.0           # s, bis aus dem Stumpf wieder ein Baum gewachsen ist
 var food_per_node := 3
-var resource_regrow := 150.0       # s, bis eine leere Fundstelle nachwächst
+var resource_regrow := 150.0       # s, bis eine leere Pilzstelle nachwächst
 
 # --- Belagerung ------------------------------------------------------------
 var siege_interval := 480.0        # s (8 min)

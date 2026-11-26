@@ -27,6 +27,8 @@ const ENTRIES := [
 	["Arbeiter: Sekunden pro Einheit", "worker_gather_seconds", 1, 15, 0.5, ""],
 	["Arbeiter: Tempo m/s", "worker_speed", 1, 6, 0.2, ""],
 	["Hüter: Trage", "carry_capacity", 0, 30, 1, ""],
+	["Holz pro Baum", "tree_wood", 5, 100, 5, "neue Bäume"],
+	["Baum wächst nach … s", "tree_regrow", 60, 1200, 30, ""],
 	["Gebäude Stufe 2: Holz", "upgrade_cost_2", 2, 40, 1, ""],
 	["Gebäude Stufe 3: Holz", "upgrade_cost_3", 2, 60, 1, ""],
 	["Max. Gegner gleichzeitig", "max_enemies", 4, 30, 2, "Leistung!"],
