@@ -120,8 +120,12 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Sammeln des Hüters | 0,6 s pro Einheit | 1,2 s | v0.2: Sammeln übernehmen die Bewohner |
 | Bewohner am Start | 5 | 7 | Max: „bräuchte mehr Dorfbewohner“ |
 | Nahrung pro Bewohner | alle 60 s | alle 75 s | damit 7+ Bewohner satt werden |
-| Holz-Fundstellen | 10 Holzhaufen à 5 Holz | 33 fällbare Bäume à 25 Holz | Wunsch Max |
-| Pilzstellen | 6 | 13 | Wunsch Max |
+| Holz-Fundstellen | 10 Holzhaufen à 5 Holz | jeder Baum im Wald fällbar (~190) à 25 Holz | Wunsch Max |
+| Pilzstellen | 6 à 3 Nahrung, nachwachsen 150 s | 13 à 5 Nahrung, nachwachsen 120 s | Max: mehr Nahrung |
+| Pilzkeller | 1 Nahrung / 40 s | 1 Nahrung / 30 s | Max: mehr Nahrung |
+| Nahrung am Start | 15 | 25 | Max: mehr Nahrung |
+| Bewohner-Leben | 25 | 40 | auf dem dunklen Weg zur Zone starben zu viele |
+| Kriecher bemerken Bewohner ab | 10 m, Biss alle 2 s | 7 m, Biss alle 2,5 s | ebenso |
 
 ## Etappe 7 – fertig
 - **Belagerung** alle 8 min: 30 s vorher flackert das Feuer unruhig („Das Feuer flackert unruhig …“, kein Countdown). Dann läutet die Glocke (heller Blitz), Angreifer erscheinen in Gruppen vor dem Tor (12, jede weitere +4) und schlagen aufs Tor (Anzeige „BELAGERUNG“ mit Torleben und Angreifern). Normale Gegner erscheinen währenddessen nicht.
@@ -253,3 +257,15 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 - **6 Bäume um jede Zone** (im Fackellicht, 4,5–6,5 m von der Mitte), dazu 3 einzelne im Dunkeln für den Hüter.
 - **Mehr Pilze**: 13 statt 6 Pilzstellen – jede Zone 2–3, dazu 2 einzelne im Dunkeln.
 - Werte-Menü: Holz pro Baum, Baum wächst nach … s.
+
+### Nach Max' Test: der ganze Wald ist fällbar, mehr Nahrung
+- **Jeder Baum im Wald ist fällbar** (~190 Bäume, je 25 Holz). Gefällt → Stumpf, nach 6 min wächst er nach.
+  Technik: kein eigenes Objekt pro Baum – `scripts/forest.gd` merkt sich Ort und Holz in Listen und zeichnet
+  alle Stämme in einem Rutsch (wichtig für die Leistung im Browser).
+- Die **Holz-Anzeige** („Baum: 17 Holz“) erscheint nur über einem Baum, an dem gerade gehackt wird, und
+  verschwindet 3 s nach dem letzten Hieb.
+- Der **Hüter hackt nur, wenn er stehen bleibt** (sonst würde er beim Durchlaufen des Waldes ständig hacken).
+- **Holzfäller** nehmen nur Bäume, die sicher im Licht ihrer Zone stehen. Rund um jede Zone stehen weiterhin
+  6 extra gepflanzte Bäume.
+- **Mehr Nahrung**: Pilzstellen 5 statt 3 Nahrung und wachsen schneller nach, Pilzkeller schneller, 25 Nahrung am Start.
+- **Weniger Tote draußen**: Bewohner 40 Leben, Kriecher bemerken sie später und beißen seltener, Fliehende rennen schneller.

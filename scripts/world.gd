@@ -15,15 +15,14 @@ const BOSS_POS := Vector3(0, 0, -80)
 
 const ResourceScript := preload("res://scripts/resource_node.gd")
 const TorchScript := preload("res://scripts/zones/torch_post.gd")
+const ForestScript := preload("res://scripts/forest.gd")
 
 var _rock_mat := StandardMaterial3D.new()
-var _tree_mat := StandardMaterial3D.new()
 var _wall_mat := StandardMaterial3D.new()
 
 
 func _ready() -> void:
 	_rock_mat.albedo_color = Color(0.32, 0.3, 0.3)
-	_tree_mat.albedo_color = Color(0.22, 0.17, 0.13)
 	_wall_mat.albedo_color = Color(0.36, 0.33, 0.3)
 	_make_ground()
 	_make_bounds()
@@ -33,15 +32,12 @@ func _ready() -> void:
 	_make_obstacles()
 
 
-## Fundstellen: die meisten gehören zu einer Zone (siehe zones/zone_defs.gd).
+## Pilzstellen: die meisten gehören zu einer Zone (siehe zones/zone_defs.gd).
+## Holz kommt von den Bäumen des Waldes (forest.gd), nicht von einzelnen Fundstellen.
 func _make_resources() -> void:
 	for z in ZoneDefs.ZONES:
-		for p in ZoneDefs.tree_spots(z):
-			_resource(p, "wood", z["id"])
 		for p in z["food"]:
 			_resource(p, "food", z["id"])
-	for p in ZoneDefs.LOOSE_WOOD:
-		_resource(p, "wood", "")
 	for p in ZoneDefs.LOOSE_FOOD:
 		_resource(p, "food", "")
 
@@ -68,10 +64,19 @@ func _make_torches() -> void:
 		add_child(t)
 
 
+## Hier soll kein zufälliger Waldbaum stehen: Pilzstellen, Fackelplätze und die
+## extra gepflanzten Bäume rund um die Zonen brauchen etwas Platz.
 func _near_resource(p: Vector3) -> bool:
-	for s in ZoneDefs.all_spots():
-		if p.distance_to(s) < 3.5:
+	for s in ZoneDefs.LOOSE_FOOD:
+		if p.distance_to(s) < 2.5:
 			return true
+	for z in ZoneDefs.ZONES:
+		for s in z["food"]:
+			if p.distance_to(s) < 2.5:
+				return true
+		for s in ZoneDefs.tree_spots(z):
+			if p.distance_to(s) < 2.0:
+				return true
 	for s in ZoneDefs.torch_spots():
 		if p.distance_to(s) < 3.0:
 			return true
@@ -193,7 +198,7 @@ func _path_x(z: float) -> float:
 func _make_obstacles() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
-	var trees: Array[Transform3D] = []
+	var trees := []   # [Position, Höhe, Drehung]
 	var x := -28.0
 	while x <= 28.0:
 		var z := -14.0
@@ -205,63 +210,20 @@ func _make_obstacles() -> void:
 			if rng.randf() < 0.12:
 				_make_rock(p, rng.randf_range(0.6, 1.4))
 				continue
-			var h := rng.randf_range(2.5, 5.0)
-			var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(1, h / 3.0, 1)), p)
-			trees.append(t)
-			_tree_collision(p)
+			trees.append([p, rng.randf_range(2.5, 5.0), rng.randf() * TAU])
 		x += 3.3
-	_tree_multimesh(trees)
+	# zusätzlich gepflanzte Bäume rund um jede Zone (im Fackellicht)
+	for zd in ZoneDefs.ZONES:
+		for p in ZoneDefs.tree_spots(zd):
+			trees.append([p, rng.randf_range(3.0, 4.5), rng.randf() * TAU])
+	var forest := Node3D.new()
+	forest.set_script(ForestScript)
+	add_child(forest)
+	forest.setup(trees)
 	# Steinkreis um die Boss-Arena
 	for i in 14:
 		var a := TAU * i / 14.0
 		_make_rock(BOSS_POS + Vector3(cos(a), 0, sin(a)) * 12.0, rng.randf_range(0.7, 1.1))
-
-
-## Alle Baumstämme zusammen zeichnen (spart viel Leistung im Browser).
-func _tree_multimesh(trees: Array[Transform3D]) -> void:
-	var trunk := CylinderMesh.new()
-	trunk.top_radius = 0.06
-	trunk.bottom_radius = 0.3
-	trunk.height = 3.0
-	trunk.radial_segments = 5
-	trunk.rings = 1
-	trunk.material = _tree_mat
-	var branch := CylinderMesh.new()
-	branch.top_radius = 0.03
-	branch.bottom_radius = 0.1
-	branch.height = 1.4
-	branch.radial_segments = 4
-	branch.rings = 1
-	branch.material = _tree_mat
-	for part in 2:
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = trunk if part == 0 else branch
-		mm.instance_count = trees.size()
-		for i in trees.size():
-			var t: Transform3D = trees[i]
-			if part == 0:
-				mm.set_instance_transform(i, t.translated_local(Vector3(0, 1.5, 0)))
-			else:
-				var bt := t.translated_local(Vector3(0.3, 2.0, 0)).rotated_local(Vector3(0, 0, 1), -0.9)
-				mm.set_instance_transform(i, bt)
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(mmi)
-
-
-func _tree_collision(p: Vector3) -> void:
-	var body := StaticBody3D.new()
-	body.position = p
-	var shape := CollisionShape3D.new()
-	var cs := CylinderShape3D.new()
-	cs.radius = 0.35
-	cs.height = 2.0
-	shape.shape = cs
-	shape.position.y = 1.0
-	body.add_child(shape)
-	add_child(body)
 
 
 func _make_rock(pos: Vector3, r: float) -> void:

@@ -243,15 +243,26 @@ func carry_total() -> int:
 	return carry["wood"] + carry["food"]
 
 
-## Steht der Hüter neben einer Fundstelle, sammelt er automatisch.
+## Bleibt der Hüter neben einer Pilzstelle oder einem Baum stehen, sammelt bzw. hackt er automatisch.
+## Im Laufen nicht – sonst würde er beim Durchqueren des Waldes ständig nebenbei hacken.
+var _gather_key := ""
+
 func _gather(delta: float) -> void:
 	var node: Node3D = null
-	for r in get_tree().get_nodes_in_group("resources"):
-		if r.is_available() and _flat(r.global_position).distance_to(_flat(global_position)) < Config.gather_range:
-			node = r
-			break
-	if node == null:
+	var tree := -1
+	var forest := get_tree().get_first_node_in_group("forest")
+	if velocity.length() < 0.1:
+		for r in get_tree().get_nodes_in_group("resources"):
+			if r.is_available() and _flat(r.global_position).distance_to(_flat(global_position)) < Config.gather_range:
+				node = r
+				break
+		if node == null and forest:
+			tree = forest.nearest(global_position, Config.gather_range)
+	var key := str(node.get_instance_id()) if node else ("tree%d" % tree if tree >= 0 else "")
+	if key != _gather_key:
+		_gather_key = key
 		_gather_t = 0.0
+	if key == "":
 		_full_warned = false
 		return
 	if carry_total() >= Config.carry_capacity:
@@ -262,14 +273,16 @@ func _gather(delta: float) -> void:
 	_gather_t += delta
 	if _gather_t >= Config.gather_seconds:
 		_gather_t = 0.0
-		if node.take_one():
-			carry[node.kind] += 1
-			Sfx.play("pickup", -6.0)
-			var col := Color(1, 0.75, 0.45) if node.kind == "wood" else Color(0.5, 1, 0.85)
+		var kind: String = node.kind if node else "wood"
+		var ok: bool = node.take_one() if node else forest.take_one(tree)
+		if ok:
+			carry[kind] += 1
+			Sfx.play("pickup" if kind == "food" else "hit", -6.0)
+			var col := Color(1, 0.75, 0.45) if kind == "wood" else Color(0.5, 1, 0.85)
 			var num := Label3D.new()
 			num.set_script(preload("res://scripts/damage_number.gd"))
 			num.setup(1, col)
-			num.text = "+1 " + ("Holz" if node.kind == "wood" else "Nahrung")
+			num.text = "+1 " + ("Holz" if kind == "wood" else "Nahrung")
 			get_parent().add_child(num)
 			num.global_position = global_position + Vector3(0, 2.4, 0)
 

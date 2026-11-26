@@ -24,7 +24,8 @@ var _path: Array[Vector3] = []
 var _target := Vector3.ZERO
 var _wait := 0.0
 var _gather_t := 0.0
-var _node: Node3D = null           # Fundstelle, an der er gerade arbeitet
+var _node: Node3D = null           # Pilzstelle, an der er gerade sammelt (Sammler)
+var _tree := -1                    # Baum, an dem er gerade hackt (Holzfäller)
 var _fleeing := false
 var _flash := 0.0
 var _rng := RandomNumberGenerator.new()
@@ -115,6 +116,7 @@ func set_zone_job(id: String, kind: String) -> void:
 	zone_id = id
 	zone_kind = kind
 	_node = null
+	_tree = -1
 	if state != State.HOME:
 		_go_home()
 
@@ -155,7 +157,7 @@ func _process(delta: float) -> void:
 		State.WORK:
 			_work(delta)
 		State.BACK:
-			if _follow_path(delta, Config.worker_speed * (1.3 if _fleeing else 1.0)):
+			if _follow_path(delta, Config.worker_speed * (1.6 if _fleeing else 1.0)):
 				_arrive_home()
 
 
@@ -176,37 +178,51 @@ func _home(delta: float) -> void:
 		_pick_home_target()
 
 
-## In der Zone: Fundstelle suchen, hinlaufen, sammeln, mit voller Ladung heim.
+## In der Zone: Baum bzw. Pilzstelle suchen, hinlaufen, hacken/sammeln, mit voller Ladung heim.
 func _work(delta: float) -> void:
 	if not can_work():
 		_go_home()
 		return
-	if _node == null or not is_instance_valid(_node) or not _node.is_available():
-		_node = _find_node()
-		_gather_t = 0.0
-	if _node == null:
+	var forest := get_tree().get_first_node_in_group("forest")
+	var spot := Vector3.INF
+	if zone_kind == "wood":
+		if forest == null or not forest.has_wood(_tree):
+			# nur Bäume, die sicher im Licht der Zone stehen
+			_tree = forest.nearest(Zones.center(get_tree(), zone_id), Config.torch_light_radius - 1.5) if forest else -1
+			_gather_t = 0.0
+		if _tree >= 0:
+			spot = forest.tree_pos(_tree)
+	else:
+		if _node == null or not is_instance_valid(_node) or not _node.is_available():
+			_node = _find_node()
+			_gather_t = 0.0
+		if _node:
+			spot = _node.global_position
+	if spot == Vector3.INF:
 		# nichts mehr zu holen: mit dem, was er hat, heim – sonst am Licht warten
 		if cargo > 0:
 			_go_home()
 		else:
 			_step_towards(Zones.center(get_tree(), zone_id) + Vector3(1.5, 0, 1.5), Config.worker_speed, delta)
 		return
-	var to := _node.global_position - global_position
+	var to := spot - global_position
 	to.y = 0
-	if to.length() > 1.3:
-		_step_towards(_node.global_position, Config.worker_speed, delta)
+	if to.length() > 1.1:
+		_step_towards(spot, Config.worker_speed, delta)
 		return
 	_gather_t += delta
 	rotation.z = sin(_gather_t * 9.0) * 0.08   # kleine Arbeitsbewegung
 	if _gather_t >= Config.worker_gather_seconds:
 		_gather_t = 0.0
-		if _node.take_one():
+		var ok: bool = forest.take_one(_tree) if zone_kind == "wood" else _node.take_one()
+		if ok:
 			cargo += 1
 			_load_mat.albedo_color = Color(0.5, 0.32, 0.18) if zone_kind == "wood" else Color(0.45, 0.85, 0.75)
 		if cargo >= Config.worker_carry:
 			_go_home()
 
 
+## Nächste volle Pilzstelle in seiner Zone.
 func _find_node() -> Node3D:
 	var best: Node3D = null
 	var best_d := INF

@@ -30,14 +30,14 @@ var fire_wood_start := 20
 var fire_seconds_per_wood := 20.0
 var fire_light_radius := 10.0      # m Lichtkreis des Feuers
 var fire_refill_range := 3.5       # m – so nah ran, um die Laterne aufzufüllen
-var food_start := 15
+var food_start := 25               # (v0.1: 15)
 var food_seconds_per_person := 75.0 # (v0.1: 60)
 var residents_start := 7          # (v0.1: 5)
 var survivor_interval := 240.0     # s – so oft findet ein Überlebender das Licht (+1 Bewohner)
 var residents_max := 12            # mehr Bewohner kommen nicht dazu
 var survivor_min_food := 3         # nur wenn mindestens so viel Nahrung da ist
 var scrapyard_seconds_per_wood := 45.0   # Trümmerhof
-var mushroom_seconds_per_food := 40.0    # Pilzkeller
+var mushroom_seconds_per_food := 30.0  # Pilzkeller (v0.1: 40)
 var starve_seconds := 30.0         # ohne Nahrung stirbt alle 30 s ein Bewohner
 var wood_cap := 30                 # so viel Holz passt ohne Vorratslager ins Lager
 var food_cap := 25
@@ -62,10 +62,10 @@ var tower_climb_range_per_level := 2.0  # m zusätzlich je Turmstufe über 1
 # --- Sammeln ----------------------------------------------------------------
 var gather_seconds := 1.2          # s pro Einheit, solange man neben der Fundstelle steht (v0.1: 0,6)
 var gather_range := 2.0            # m
-var tree_wood := 25                # Holz pro fällbarem Baum (v0.1: Holzhaufen mit 5)
+var tree_wood := 25                # Holz pro Baum – jeder Baum im Wald ist fällbar (v0.1: Holzhaufen mit 5)
 var tree_regrow := 360.0           # s, bis aus dem Stumpf wieder ein Baum gewachsen ist
-var food_per_node := 3
-var resource_regrow := 150.0       # s, bis eine leere Pilzstelle nachwächst
+var food_per_node := 5            # Nahrung pro Pilzstelle (v0.1: 3)
+var resource_regrow := 120.0       # s, bis eine leere Pilzstelle nachwächst (v0.1: 150)
 
 # --- Belagerung ------------------------------------------------------------
 var siege_interval := 480.0        # s (8 min)
@@ -99,12 +99,12 @@ var torch_raid_interval := 45.0    # s – so oft schickt die Dunkelheit einen L
 var torch_use_range := 2.6         # m – so nah muss der Hüter ran zum Errichten/Nachlegen
 
 # --- Bewohner draußen (v0.2) ------------------------------------------------
-var resident_hp := 25.0            # Leben eines Bewohners (heilt am Feuer)
+var resident_hp := 40.0            # Leben eines Bewohners (heilt am Feuer; zuerst 25)
 var resident_heal_per_second := 3.0
 var worker_speed := 2.6            # m/s draußen (Holzfäller/Sammler)
 var worker_carry := 2              # so viel bringt ein Bewohner pro Gang mit
 var worker_gather_seconds := 4.0   # s pro Einheit an der Fundstelle
-var resident_hunt_range := 10.0    # m – so nah müssen Gegner sein, um einen Bewohner draußen anzugreifen
+var resident_hunt_range := 7.0     # m (zuerst 10) – so nah müssen Gegner sein, um einen Bewohner draußen anzugreifen
 
 # --- Boss -------------------------------------------------------------------
 var boss_speed := 1.6

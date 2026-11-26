@@ -22,7 +22,7 @@ func _build() -> void:
 	hunts_residents = true
 	hunt_damage = Config.crawler_damage
 	hunt_avoids_light = true
-	hunt_interval = 2.0
+	hunt_interval = 2.5
 	_angle = randf() * TAU
 	_orbit_dir = 1.0 if randf() < 0.5 else -1.0
 	_attack_cd = randf_range(Config.crawler_attack_pause.x, Config.crawler_attack_pause.y)
