@@ -6,6 +6,8 @@
 extends Node
 
 const PATH := "user://spielstand.json"
+const SmallTorch := preload("res://scripts/zones/small_torch.gd")
+const FirePit := preload("res://scripts/zones/fire_pit.gd")
 const VERSION := 1
 
 @export var player: Node3D
@@ -91,7 +93,8 @@ func _collect() -> Dictionary:
 			"slots": Array(bar.slots), "stash": Array(bar.stash), "levels": bar.levels,
 		},
 		"fort": {
-			"wood": fortress.wood, "food": fortress.food,
+			"wood": fortress.wood, "food": fortress.food, "stone": fortress.stone,
+			"bows": fortress.bows_total(), "armed": fortress.armed_target,
 			"burn": fortress._burn_acc, "eat": fortress._eat_acc, "starve": fortress._starve_acc,
 			"survivor": fortress._survivor_acc, "zone_jobs": fortress.zone_jobs,
 			"residents": fortress.residents.map(func(r): return r.hp),
@@ -101,6 +104,11 @@ func _collect() -> Dictionary:
 		"beacon": beacon.lit,
 		"forest": get_tree().get_first_node_in_group("forest").save_data(),
 		"food_spots": get_tree().get_nodes_in_group("resources").map(func(r): return [r.amount, r._regrow]),
+		"rocks": get_tree().get_nodes_in_group("rocks").map(func(r): return [r.amount, r._regrow]),
+		"fire_pits": get_tree().get_nodes_in_group("fire_pits").map(
+				func(t): return [t.global_position.x, t.global_position.z, t.fuel]),
+		"small_torches": get_tree().get_nodes_in_group("small_torches").map(
+				func(t): return [t.global_position.x, t.global_position.z, t.fuel]),
 		"siege": {"time": siege.time_to_bell, "count": siege.count, "final": siege.final_pending},
 		"boss_defeated": get_parent().boss_defeated,
 	}
@@ -162,6 +170,30 @@ func _apply_world(d: Dictionary) -> void:
 			t.fuel = float(torches[t.zone_id][1])
 			t._update_visuals()
 	get_tree().get_first_node_in_group("forest").load_data(d.get("forest", {}))
+	var rocks: Array = d.get("rocks", [])
+	var rock_nodes := get_tree().get_nodes_in_group("rocks")
+	if rocks.size() == rock_nodes.size():
+		for i in rock_nodes.size():
+			rock_nodes[i].amount = int(rocks[i][0])
+			rock_nodes[i]._regrow = float(rocks[i][1])
+			rock_nodes[i]._update()
+	var world := get_tree().get_first_node_in_group("world")
+	for e in d.get("fire_pits", []):
+		var pit := Node3D.new()
+		pit.set_script(FirePit)
+		world.add_child(pit)
+		pit.global_position = Vector3(float(e[0]), 0, float(e[1]))
+		pit.built = true
+		pit.fuel = float(e[2])
+		pit._update_visuals()
+	for e in d.get("small_torches", []):
+		var t := Node3D.new()
+		t.set_script(SmallTorch)
+		world.add_child(t)
+		t.global_position = Vector3(float(e[0]), 0, float(e[1]))
+		t.built = true
+		t.fuel = float(e[2])
+		t._update_visuals()
 	var spots: Array = d.get("food_spots", [])
 	var nodes := get_tree().get_nodes_in_group("resources")
 	if spots.size() == nodes.size():
@@ -174,6 +206,9 @@ func _apply_world(d: Dictionary) -> void:
 func _apply_fortress(f: Dictionary) -> void:
 	fortress.wood = float(f.get("wood", fortress.wood))
 	fortress.food = float(f.get("food", fortress.food))
+	fortress.stone = float(f.get("stone", 0.0))
+	fortress.bows = int(f.get("bows", 0))
+	fortress.armed_target = int(f.get("armed", 0))
 	fortress._burn_acc = float(f.get("burn", 0.0))
 	fortress._eat_acc = float(f.get("eat", 0.0))
 	fortress._starve_acc = float(f.get("starve", 0.0))
@@ -208,7 +243,8 @@ func _apply_player(p: Dictionary) -> void:
 	player.level = int(p.get("level", 1))
 	player.lantern.fuel = float(p.get("fuel", player.lantern.fuel))
 	var carry: Dictionary = p.get("carry", {})
-	player.carry = {"wood": int(carry.get("wood", 0)), "food": int(carry.get("food", 0))}
+	player.carry = {"wood": int(carry.get("wood", 0)), "food": int(carry.get("food", 0)),
+			"stone": int(carry.get("stone", 0))}
 	var bar: Node = player.skill_bar
 	bar.slots.assign(p.get("slots", bar.slots))
 	bar.stash.assign(p.get("stash", []))

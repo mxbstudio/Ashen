@@ -88,7 +88,7 @@ func _raid_step(delta: float) -> void:
 	if alive_count() >= Config.max_enemies:
 		return
 	var lit := []
-	for t in get_tree().get_nodes_in_group("torches"):
+	for t in get_tree().get_nodes_in_group("torches") + get_tree().get_nodes_in_group("fire_pits"):
 		if t.is_burning():
 			lit.append(t)
 	if lit.is_empty():

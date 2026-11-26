@@ -127,7 +127,8 @@ func _spawn_step(delta: float) -> void:
 
 ## Bewohner schießen von der Mauer auf Angreifer in Tornähe.
 func _defend(delta: float) -> void:
-	var n: int = fortress.residents.size()
+	# Bewohner mit Bogen zählen doppelt
+	var n: int = fortress.residents.size() + fortress.armed_count()
 	if n == 0:
 		return
 	_defense_t -= delta

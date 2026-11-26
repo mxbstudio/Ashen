@@ -121,7 +121,7 @@ func _process(_delta: float) -> void:
 	_error_lines = _error_lines.filter(func(e): return not e[2] or e[1] > 0.0)
 	_errors.visible = not _error_lines.is_empty()
 	# unterhalb der Festungsanzeige, damit nichts verdeckt wird
-	_errors.position.y = maxf(_info.position.y + _info.size.y + 4, 210.0)
+	_errors.position.y = maxf(_info.position.y + _info.size.y + 4, 245.0)
 	_errors.size.x = size.x * 0.6
 	var lines := []
 	for e in _error_lines:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3]
+[gd_scene load_steps=30 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -25,6 +25,7 @@
 [ext_resource type="Script" path="res://scripts/save_game.gd" id="23"]
 [ext_resource type="Script" path="res://scripts/ui/continue_panel.gd" id="24"]
 [ext_resource type="Script" path="res://scripts/fortress/gate_lamp.gd" id="25"]
+[ext_resource type="Script" path="res://scripts/ui/place_buttons.gd" id="26"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -78,6 +79,11 @@ kind = "scrapyard"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -5)
 script = ExtResource("6")
 kind = "mushroom"
+
+[node name="Workshop" type="Node3D" parent="Fortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8.5)
+script = ExtResource("6")
+kind = "workshop"
 
 [node name="Tower" type="Node3D" parent="Fortress"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -8)
@@ -146,6 +152,16 @@ fortress = NodePath("../../Fortress")
 [node name="ClimbButton" type="Button" parent="UI" node_paths=PackedStringArray("player")]
 script = ExtResource("22")
 player = NodePath("../../Player")
+
+[node name="PlaceButtons" type="Control" parent="UI" node_paths=PackedStringArray("player", "fortress")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("26")
+player = NodePath("../../Player")
+fortress = NodePath("../../Fortress")
 
 [node name="TravelButton" type="Button" parent="UI" node_paths=PackedStringArray("player", "beacon")]
 script = ExtResource("18")

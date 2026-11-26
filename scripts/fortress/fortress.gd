@@ -11,6 +11,10 @@ const ResidentScript := preload("res://scripts/fortress/resident.gd")
 
 var wood := 0.0                    # Holz im Feuer/Lager
 var food := 0.0
+var stone := 0.0                   # Stein (für Feuerstellen)
+var bows := 0                      # Bögen im Lager (nicht verteilt)
+var armed_target := 0              # so viele Bewohner sollen einen Bogen tragen (Einteilen-Menü)
+var _courier_t := 0.0
 var residents: Array[Node3D] = []
 var buildings: Array[Node3D] = []
 var zone_jobs := {}                # Zonen-Arbeit: "west:wood" -> Anzahl Bewohner (am Feuer eingeteilt)
@@ -27,6 +31,7 @@ func _ready() -> void:
 	add_to_group("fortress")
 	wood = Config.fire_wood_start
 	food = Config.food_start
+	stone = Config.stone_start
 	for c in get_children():
 		if c.is_in_group("buildings") or c.has_method("build"):
 			buildings.append(c)
@@ -47,6 +52,10 @@ func _add_resident(pos: Vector3) -> Node3D:
 
 func wood_cap() -> int:
 	return Config.wood_cap + Config.storehouse_bonus * _level_of("storehouse")
+
+
+func stone_cap() -> int:
+	return Config.stone_cap + Config.storehouse_bonus * _level_of("storehouse")
 
 
 func food_cap() -> int:
@@ -88,6 +97,15 @@ func advance(dt: float) -> void:
 		var out: Dictionary = b.advance(dt)
 		wood = minf(wood + out["wood"], wood_cap())
 		food = minf(food + out["food"], food_cap())
+		if out.get("bows", 0) > 0:
+			bows += out["bows"]
+			message.emit("Die Werkstatt hat einen Bogen gebaut")
+			_hand_out_bows()
+	# Feuerstellen: Bewohner bringen Holz, wenn eine bald leer ist
+	_courier_t += dt
+	if _courier_t >= 1.0:
+		_courier_t = 0.0
+		_send_couriers()
 	# Feuer verbrennt Holz
 	_burn_acc += dt
 	while _burn_acc >= Config.fire_seconds_per_wood:
@@ -138,10 +156,63 @@ func kill_resident(reason: String, victim: Node3D = null) -> void:
 	if key != "" and zone_jobs.get(key, 0) > 0:
 		zone_jobs[key] -= 1
 	residents.erase(victim)
-	victim.queue_free()
+	victim.queue_free()   # sein Bogen geht mit verloren
+	if armed_target > bows_total():
+		armed_target = bows_total()
 	_assign_jobs()
 	resident_died.emit(reason)
 	message.emit(reason)
+
+
+## Alle Bögen: im Lager + von Bewohnern getragen.
+func bows_total() -> int:
+	return bows + armed_count()
+
+
+func armed_count() -> int:
+	var n := 0
+	for r in residents:
+		if r.has_bow:
+			n += 1
+	return n
+
+
+## Wie viele Bewohner sollen einen Bogen tragen (aus dem Einteilen-Menü)?
+func change_armed(delta: int) -> void:
+	armed_target = clampi(armed_target + delta, 0, mini(bows_total(), residents.size()))
+	_hand_out_bows()
+
+
+## Bögen verteilen: wer draußen arbeitet, bekommt zuerst einen.
+func _hand_out_bows() -> void:
+	var total := bows_total()
+	var want := mini(mini(armed_target, total), residents.size())
+	var order := residents.duplicate()
+	order.sort_custom(func(a, b): return a.has_zone_job() and not b.has_zone_job())
+	for i in order.size():
+		order[i].has_bow = i < want
+	bows = total - want
+
+
+## Feuerstellen, die bald ausgehen: ein Bewohner aus der Festung bringt Holz.
+func _send_couriers() -> void:
+	if Zones.recalled(get_tree()):
+		return
+	for pit in get_tree().get_nodes_in_group("fire_pits"):
+		if not pit.needs_wood() or (pit.courier and is_instance_valid(pit.courier)):
+			continue
+		var n := mini(Config.firepit_courier_wood, pit.wood_space())
+		if n <= 0 or wood < n + 1:
+			continue
+		var best: Node3D = null
+		for r in residents:
+			if r.state == 0 and not r.has_zone_job() and r.hp >= Config.resident_hp * 0.6:
+				if best == null or (best.job != null and r.job == null):
+					best = r
+		if best == null:
+			return
+		wood -= n
+		best.start_delivery(pit, n)
 
 
 ## Wie viele Bewohner sind insgesamt für Zonen eingeteilt?
@@ -172,17 +243,21 @@ func residents_outside() -> int:
 	return n
 
 
-## Ladung der Trage abgeben. Was über die Lagergrenze geht, bleibt in der Trage.
+## Ladung (Trage des Hüters oder eines Bewohners) abgeben. Was über die Lagergrenze geht, bleibt in der Trage.
 func deposit(carry: Dictionary) -> Dictionary:
-	var gave := {"wood": 0, "food": 0}
-	var w := mini(carry["wood"], int(wood_cap() - wood))
-	var f := mini(carry["food"], int(food_cap() - food))
+	var gave := {"wood": 0, "food": 0, "stone": 0}
+	var w := mini(carry.get("wood", 0), int(wood_cap() - wood))
+	var f := mini(carry.get("food", 0), int(food_cap() - food))
+	var st := mini(carry.get("stone", 0), int(stone_cap() - stone))
 	wood += w
 	food += f
-	carry["wood"] -= w
-	carry["food"] -= f
+	stone += st
+	for k in ["wood", "food", "stone"]:
+		if carry.has(k):
+			carry[k] -= {"wood": w, "food": f, "stone": st}[k]
 	gave["wood"] = w
 	gave["food"] = f
+	gave["stone"] = st
 	return gave
 
 
@@ -236,7 +311,7 @@ func _assign_jobs() -> void:
 	# Reihenfolge: Pilzkeller, Trümmerhof, Wachturm. Wer schon im Gebäude arbeitet, bleibt;
 	# freie Plätze bekommen zuerst Bewohner ohne Arbeit, dann irgendein noch nicht verteilter.
 	var taken := {}
-	for kind in ["mushroom", "scrapyard", "tower"]:
+	for kind in ["mushroom", "scrapyard", "workshop", "tower"]:
 		for b in buildings:
 			if b.kind != kind:
 				continue
@@ -257,3 +332,4 @@ func _assign_jobs() -> void:
 			if b.workers.has(r):
 				j = b
 		r.assign(j)
+	_hand_out_bows()

@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 – Etappe 1–5 am Handy getestet, Etappe 6 (Werte einstellen) läuft.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 – Etappe 1–5 am Handy getestet, Etappe 6 (Werte einstellen) läuft, Etappe 7 (Stein, Bögen, kleine Fackeln, Feuerstellen) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -177,6 +177,7 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 | 4 | Begehbarer Wachturm | mittel | fertig, am Handy getestet |
 | 5 | Speicherstand im Browser | mittel | fertig, am Handy getestet |
 | 6 | Werte einstellen mit Max | klein | läuft |
+| 7 | Wunsch Max: Stein, Bögen für Bewohner, kleine Fackeln, Feuerstellen | groß | zum Testen |
 
 ## Etappe 1 – Gebiete erhellen
 - **5 Zonen** draußen (Daten in `scripts/zones/zone_defs.gd`): Westsenke, Osthain, Leuchtfeuer, Pilzmoor, Nordwald.
@@ -301,3 +302,25 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
   - Danach ging das Feuer trotzdem aus: Lichtfresser fraßen die Fackel ständig leer. → Raubzug seltener und schwächer,
     Arbeiter tragen 3 statt 2.
   - Ergebnis jetzt: keine Toten, Holzlager nach 3 min voll, Nahrung stabil, Überlebende kommen dazu.
+
+## Etappe 7 – Stein, Bögen, kleine Fackeln, Feuerstellen (Wunsch Max)
+- **Stein** (neuer Rohstoff): Die Felsen draußen sind abbaubar (je 10 Stein, schrumpfen, nach 10 min wieder da;
+  Anzeige nur beim Abbauen). Um jede Zone liegen 2 extra Felsen (`ZoneDefs.rock_spots`). Der Hüter baut im Stehen ab,
+  Bewohner als **Steinbrecher** (neue Zeile im Einteilen-Menü). Lager: 40 Stein (+30 je Vorratslager-Stufe).
+  HUD: neue Zeile „Stein: x Bögen: y“. Skript: `scripts/rock_node.gd`.
+- **Werkstatt** (neuer Bauplatz unten in der Festung, 8 Holz, 3 Stufen = 1/2/3 Arbeitsplätze): baut Bögen
+  (60 s pro Bogen und Arbeiter, 4 Holz pro Bogen). Hört auf, wenn jeder Bewohner einen Bogen haben könnte.
+- **Bögen verteilen**: im Einteilen-Menü „Bewohner mit Bogen“ − / +. Wer draußen arbeitet, bekommt zuerst einen
+  (Bogen auf dem Rücken sichtbar). Bewaffnete schießen draußen auf Gegner im Umkreis von 10 m (5 Schaden alle 1,8 s)
+  und zählen bei der Belagerungs-Verteidigung doppelt. Stirbt ein Bewaffneter, ist sein Bogen weg.
+- **Kleine Fackel** (Knopf rechts über der Leiste, nur draußen, 1 Holz): steckt vor dem Hüter in den Boden,
+  4,5 m Licht (Kriecher meiden es), brennt 2 min und verschwindet dann. Höchstens 6. Skript: `scripts/zones/small_torch.gd`.
+- **Feuerstelle** (Knopf darüber, nur draußen, 5 Stein + 1 Holz): 9 m Licht, fasst 6 Holz à 90 s, Holz nachlegen
+  wie bei der Fackel, **die Laterne füllt sich dort auf**. Höchstens 4, mind. 4 m Abstand zu anderen Feuern.
+  Lichtfresser-Raubzüge gehen auch auf Feuerstellen. Skript: `scripts/zones/fire_pit.gd`.
+- **Bewohner bringen Holz**: Hat eine Feuerstelle weniger als 35 %, schickt die Festung einen freien Bewohner mit
+  3 Holz aus dem Lager hin. Holzfäller, die mit voller Ladung in der Nähe (15 m) sind, bringen ihr Holz direkt hin
+  und arbeiten danach weiter. Bei Belagerung oder Verletzung brechen sie ab (das Holz geht zurück ins Lager).
+- Bezahlt wird immer zuerst aus der Trage, dann aus dem Lager.
+- Alles wird im Speicherstand gemerkt (Stein, Bögen, Bewaffnete, Feuerstellen, kleine Fackeln, Felsen).
+- Werte-Menü: neue Regler für kleine Fackel, Feuerstelle, Stein pro Felsen, Werkstatt, Bogen-Holz, Bewohner-Bogen-Schaden.

@@ -59,7 +59,7 @@ func drain(seconds: float) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	var source := Lights.refill_source_at(global_position)
+	var source := Lights.lantern_refill_at(global_position)   # Feuer, Leuchtfeuer, Feuerstelle
 	var now_refilling := source != null and fuel < Config.lantern_burn_time
 	if source != null:
 		fuel = minf(fuel + Config.lantern_burn_time / Config.lantern_refill_seconds * delta,

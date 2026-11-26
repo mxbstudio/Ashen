@@ -16,12 +16,14 @@ const BOSS_POS := Vector3(0, 0, -80)
 const ResourceScript := preload("res://scripts/resource_node.gd")
 const TorchScript := preload("res://scripts/zones/torch_post.gd")
 const ForestScript := preload("res://scripts/forest.gd")
+const RockScript := preload("res://scripts/rock_node.gd")
 
 var _rock_mat := StandardMaterial3D.new()
 var _wall_mat := StandardMaterial3D.new()
 
 
 func _ready() -> void:
+	add_to_group("world")
 	_rock_mat.albedo_color = Color(0.32, 0.3, 0.3)
 	_wall_mat.albedo_color = Color(0.36, 0.33, 0.3)
 	_make_ground()
@@ -76,6 +78,9 @@ func _near_resource(p: Vector3) -> bool:
 				return true
 		for s in ZoneDefs.tree_spots(z):
 			if p.distance_to(s) < 2.0:
+				return true
+		for s in ZoneDefs.rock_spots(z):
+			if p.distance_to(s) < 2.5:
 				return true
 	for s in ZoneDefs.torch_spots():
 		if p.distance_to(s) < 3.0:
@@ -208,7 +213,7 @@ func _make_obstacles() -> void:
 			if _is_clearing(p) or rng.randf() < 0.25:
 				continue
 			if rng.randf() < 0.12:
-				_make_rock(p, rng.randf_range(0.6, 1.4))
+				_mineable_rock(p, rng.randf_range(0.6, 1.4), "")
 				continue
 			trees.append([p, rng.randf_range(2.5, 5.0), rng.randf() * TAU])
 		x += 3.3
@@ -216,6 +221,10 @@ func _make_obstacles() -> void:
 	for zd in ZoneDefs.ZONES:
 		for p in ZoneDefs.tree_spots(zd):
 			trees.append([p, rng.randf_range(3.0, 4.5), rng.randf() * TAU])
+	# extra Felsen rund um jede Zone (Stein für Steinbrecher)
+	for zd in ZoneDefs.ZONES:
+		for p in ZoneDefs.rock_spots(zd):
+			_mineable_rock(p, 0.9, zd["id"])
 	var forest := Node3D.new()
 	forest.set_script(ForestScript)
 	add_child(forest)
@@ -226,6 +235,17 @@ func _make_obstacles() -> void:
 		_make_rock(BOSS_POS + Vector3(cos(a), 0, sin(a)) * 12.0, rng.randf_range(0.7, 1.1))
 
 
+## Abbaubarer Felsen (Stein), siehe rock_node.gd.
+func _mineable_rock(pos: Vector3, r: float, zone_id: String) -> void:
+	var rock := Node3D.new()
+	rock.set_script(RockScript)
+	rock.radius = r
+	rock.zone_id = zone_id
+	rock.position = pos
+	add_child(rock)
+
+
+## Fester Felsen (nur Deko, z. B. der Steinkreis der Boss-Arena).
 func _make_rock(pos: Vector3, r: float) -> void:
 	var body := StaticBody3D.new()
 	body.position = pos

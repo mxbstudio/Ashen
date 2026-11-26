@@ -35,7 +35,7 @@ func _process(_delta: float) -> void:
 	_target = null
 	if player.is_alive() and not get_tree().paused:
 		var p := Vector2(player.global_position.x, player.global_position.z)
-		for t in get_tree().get_nodes_in_group("torches"):
+		for t in get_tree().get_nodes_in_group("torches") + get_tree().get_nodes_in_group("fire_pits"):
 			if p.distance_to(Vector2(t.global_position.x, t.global_position.z)) < Config.torch_use_range:
 				_target = t
 				break
@@ -50,11 +50,11 @@ func _process(_delta: float) -> void:
 			_cost = 1
 			var s := int(_target.fuel)
 			if _target.wood_space() <= 0:
-				text = "Fackel ist voll  (%d:%02d)" % [s / 60, s % 60]
+				text = "%s ist voll  (%d:%02d)" % [_target.title(), s / 60, s % 60]
 			elif _target.is_burning():
-				text = "Holz nachlegen (1 Holz)\n+%d s · jetzt %d:%02d" % [int(Config.torch_seconds_per_wood), s / 60, s % 60]
+				text = "Holz nachlegen (1 Holz)\n+%d s · jetzt %d:%02d" % [int(_target.seconds_per_wood()), s / 60, s % 60]
 			else:
-				text = "Fackel entzünden (1 Holz)"
+				text = "%s entzünden (1 Holz)" % _target.title()
 			if have < _cost:
 				text += "\nNicht genug Holz (Trage + Lager)"
 		disabled = have < _cost or (_target.built and _target.wood_space() <= 0)

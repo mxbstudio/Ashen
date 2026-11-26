@@ -40,6 +40,17 @@ func refill_source_at(pos: Vector3) -> Node3D:
 	return null
 
 
+## Lichtquelle, an der sich die Laterne auffüllt: Feuer, Leuchtfeuer und Feuerstellen.
+func lantern_refill_at(pos: Vector3) -> Node3D:
+	var src := refill_source_at(pos)
+	if src:
+		return src
+	for s in _sources:
+		if s.has_method("refills_lantern_at") and s.refills_lantern_at(pos):
+			return s
+	return null
+
+
 ## Feste Lichtquelle (Feuer, Leuchtfeuer), in deren Kreis die Stelle liegt – sonst null.
 ## margin vergrößert den Kreis (z. B. damit Kriecher Abstand halten).
 func fixed_source_at(pos: Vector3, margin := 0.0) -> Node3D:

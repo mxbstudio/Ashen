@@ -97,7 +97,11 @@ func _draw() -> void:
 	y += 34.0
 	var load_txt := "Trage %d/%d" % [player.carry_total(), Config.carry_capacity]
 	if player.carry_total() > 0:
-		load_txt += ": %d Holz, %d Nahr." % [player.carry["wood"], player.carry["food"]]
+		var parts := []
+		for k in [["wood", "Holz"], ["food", "Nahr."], ["stone", "Stein"]]:
+			if player.carry[k[0]] > 0:
+				parts.append("%d %s" % [player.carry[k[0]], k[1]])
+		load_txt += ": " + ", ".join(parts)
 	draw_string(font, Vector2(x - 40, y + 22), load_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20,
 			Color(1, 0.85, 0.6, 0.9) if player.carry_total() < Config.carry_capacity else Color(1, 0.5, 0.3))
 	if not player.skill_bar.stash.is_empty():
@@ -241,7 +245,7 @@ func _draw_fortress(font: Font) -> void:
 		return
 	var x := MARGIN
 	var y := 40.0
-	draw_rect(Rect2(x - 6, y - 4, 300, 152), Color(0, 0, 0, 0.4))
+	draw_rect(Rect2(x - 6, y - 4, 330, 188), Color(0, 0, 0, 0.4))
 	var secs := int(fortress.wood_seconds_left())
 	var low_wood: bool = fortress.wood < 5
 	var blink := 0.5 + 0.5 * sin(_t * 8.0)
@@ -273,6 +277,8 @@ func _draw_fortress(font: Font) -> void:
 	var torch_col := Color(1, 0.8, 0.5) if not attacked else Color(1, 0.25, 0.15).lerp(Color(1, 0.8, 0.5), blink)
 	draw_string(font, Vector2(x, y + 132), "Fackeln: %d / %d brennen%s" % [burning, total, "  !" if attacked else ""],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, torch_col)
+	draw_string(font, Vector2(x, y + 168), "Stein: %d   Bögen: %d" % [int(fortress.stone), fortress.bows_total()],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.82, 0.82, 0.92))
 
 
 func _draw_toasts(font: Font) -> void:

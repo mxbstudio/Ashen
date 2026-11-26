@@ -8,7 +8,7 @@ extends Node3D
 const ArrowScript := preload("res://scripts/arrow.gd")
 const MAX_LEVEL := 3
 
-@export var kind := "storehouse"   # storehouse, scrapyard, mushroom, tower
+@export var kind := "storehouse"   # storehouse, scrapyard, mushroom, tower, workshop
 
 var level := 0                     # 0 = noch nicht gebaut
 var built := false                 # = level >= 1
@@ -20,7 +20,7 @@ var _plot: MeshInstance3D
 var _flags: Array[MeshInstance3D] = []
 
 const NAMES := {"storehouse": "Vorratslager", "scrapyard": "Trümmerhof",
-		"mushroom": "Pilzkeller", "tower": "Wachturm"}
+		"mushroom": "Pilzkeller", "tower": "Wachturm", "workshop": "Werkstatt"}
 
 
 func display_name() -> String:
@@ -34,6 +34,7 @@ func cost() -> int:
 		"scrapyard": return Config.cost_scrapyard
 		"mushroom": return Config.cost_mushroom
 		"tower": return Config.cost_tower
+		"workshop": return Config.cost_workshop
 	return 0
 
 
@@ -80,6 +81,8 @@ func description(l := 1) -> String:
 		"storehouse": return "+%d Lagerplatz für Holz und Nahrung" % (Config.storehouse_bonus * l)
 		"scrapyard": return "%s, je +1 Holz alle %d s" % [_places(l), int(Config.scrapyard_seconds_per_wood)]
 		"mushroom": return "%s, je +1 Nahrung alle %d s" % [_places(l), int(Config.mushroom_seconds_per_food)]
+		"workshop": return "%s, je 1 Bogen alle %d s (%d Holz pro Bogen)" % [_places(l),
+				int(Config.bow_craft_seconds), Config.bow_wood_cost]
 		"tower": return "Schaden %d · Reichweite %d m · alle %.1f s (braucht Bewohner)" % [
 				roundi(tower_damage(l)), roundi(tower_range(l)), tower_interval(l)]
 	return ""
@@ -231,7 +234,7 @@ func set_workers(list: Array[Node3D]) -> void:
 ## Läuft pro Sekunde in der Festung (auch beim "Zeitsprung" nach dem Tod).
 ## Jeder Bewohner hier arbeitet für sich. Gibt zurück, was produziert wurde: {"wood": n, "food": n}
 func advance(dt: float) -> Dictionary:
-	var out := {"wood": 0, "food": 0}
+	var out := {"wood": 0, "food": 0, "bows": 0}
 	if not built or workers.is_empty():
 		return out
 	match kind:
@@ -245,6 +248,18 @@ func advance(dt: float) -> Dictionary:
 			while _timer >= Config.mushroom_seconds_per_food:
 				_timer -= Config.mushroom_seconds_per_food
 				out["food"] += 1
+		"workshop":
+			# Bögen bauen: kostet Holz; hört auf, wenn jeder Bewohner einen Bogen haben könnte
+			var fort := get_parent()
+			_timer += dt * workers.size()
+			while _timer >= Config.bow_craft_seconds:
+				if fort.bows_total() + out["bows"] >= fort.residents.size() \
+						or fort.wood + out["wood"] < Config.bow_wood_cost + 1:
+					_timer = Config.bow_craft_seconds   # wartet auf Holz bzw. Bedarf
+					break
+				_timer -= Config.bow_craft_seconds
+				out["wood"] -= Config.bow_wood_cost
+				out["bows"] += 1
 	return out
 
 

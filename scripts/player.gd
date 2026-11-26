@@ -26,7 +26,7 @@ var level := 1
 var hurt_flash := 0.0              # für die rote Anzeige am Bildschirmrand
 var dead_timer := 0.0              # > 0 solange er tot ist
 var protect_timer := 0.0           # > 0: unverwundbar (nach dem Wiedererscheinen)
-var carry := {"wood": 0, "food": 0}   # Inhalt der Trage
+var carry := {"wood": 0, "food": 0, "stone": 0}   # Inhalt der Trage
 var _gather_t := 0.0
 var _full_warned := false
 var on_tower: Node3D = null        # Wachturm, auf dem er gerade steht (oder null)
@@ -240,7 +240,7 @@ func face_nearest_enemy() -> void:
 
 
 func carry_total() -> int:
-	return carry["wood"] + carry["food"]
+	return carry["wood"] + carry["food"] + carry["stone"]
 
 
 ## Bleibt der Hüter neben einer Pilzstelle oder einem Baum stehen, sammelt bzw. hackt er automatisch.
@@ -256,6 +256,11 @@ func _gather(delta: float) -> void:
 			if r.is_available() and _flat(r.global_position).distance_to(_flat(global_position)) < Config.gather_range:
 				node = r
 				break
+		if node == null:
+			for r in get_tree().get_nodes_in_group("rocks"):
+				if r.is_available() and _flat(r.global_position).distance_to(_flat(global_position)) < r.reach():
+					node = r
+					break
 		if node == null and forest:
 			tree = forest.nearest(global_position, Config.gather_range)
 	var key := str(node.get_instance_id()) if node else ("tree%d" % tree if tree >= 0 else "")
@@ -273,16 +278,16 @@ func _gather(delta: float) -> void:
 	_gather_t += delta
 	if _gather_t >= Config.gather_seconds:
 		_gather_t = 0.0
-		var kind: String = node.kind if node else "wood"
+		var kind: String = ("stone" if node.is_in_group("rocks") else node.kind) if node else "wood"
 		var ok: bool = node.take_one() if node else forest.take_one(tree)
 		if ok:
 			carry[kind] += 1
 			Sfx.play("pickup" if kind == "food" else "hit", -6.0)
-			var col := Color(1, 0.75, 0.45) if kind == "wood" else Color(0.5, 1, 0.85)
+			var col: Color = {"wood": Color(1, 0.75, 0.45), "food": Color(0.5, 1, 0.85), "stone": Color(0.8, 0.8, 0.9)}[kind]
 			var num := Label3D.new()
 			num.set_script(preload("res://scripts/damage_number.gd"))
 			num.setup(1, col)
-			num.text = "+1 " + ("Holz" if kind == "wood" else "Nahrung")
+			num.text = "+1 " + {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[kind]
 			get_parent().add_child(num)
 			num.global_position = global_position + Vector3(0, 2.4, 0)
 
@@ -300,6 +305,8 @@ func _unload() -> void:
 		parts.append("+%d Holz" % gave["wood"])
 	if gave["food"] > 0:
 		parts.append("+%d Nahrung" % gave["food"])
+	if gave["stone"] > 0:
+		parts.append("+%d Stein" % gave["stone"])
 	if not parts.is_empty():
 		get_tree().call_group("hud", "toast", "Abgeladen: " + ", ".join(parts))
 	elif carry_total() > 0 and not _full_warned:

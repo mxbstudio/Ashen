@@ -37,20 +37,43 @@ func is_burning() -> bool:
 	return built and fuel > 0.0
 
 
+# --- Werte je Art (Feuerstelle und kleine Fackel überschreiben sie) ---------------
+func seconds_per_wood() -> float:
+	return Config.torch_seconds_per_wood
+
+
+func max_wood() -> int:
+	return Config.torch_max_wood
+
+
+func light_radius_full() -> float:
+	return Config.torch_light_radius
+
+
+## Größe der Flamme (Feuerstelle größer, kleine Fackel kleiner).
+func flame_size() -> float:
+	return 1.0
+
+
+## Name in Meldungen, z. B. "Fackel Westsenke".
+func title() -> String:
+	return "Fackel " + zone_name
+
+
 func max_fuel() -> float:
-	return Config.torch_seconds_per_wood * Config.torch_max_wood
+	return seconds_per_wood() * max_wood()
 
 
 ## Wie viel Holz passt gerade hinein (nur ganze Scheite)?
 func wood_space() -> int:
-	return int(floor((max_fuel() - fuel) / Config.torch_seconds_per_wood + 0.001))
+	return int(floor((max_fuel() - fuel) / seconds_per_wood() + 0.001))
 
 
 ## Lichtradius: schrumpft in den letzten 30 Sekunden.
 func get_light_radius() -> float:
 	if not is_burning():
 		return 0.0
-	return Config.torch_light_radius * lerpf(0.6, 1.0, clampf(fuel / 30.0, 0.0, 1.0))
+	return light_radius_full() * lerpf(0.6, 1.0, clampf(fuel / 30.0, 0.0, 1.0))
 
 
 ## Feste Lichtquelle, füllt aber die Laterne nicht auf (das kann nur Feuer/Leuchtfeuer).
@@ -68,18 +91,18 @@ func build() -> void:
 	fuel = max_fuel()
 	_warned_low = false
 	Sfx.play("ignite", 0.0, 0.0)
-	_toast("Fackel %s brennt – die Zone ist hell" % zone_name)
+	_toast("%s brennt – die Zone ist hell" % title())
 	_update_visuals()
 
 
 ## Holz nachlegen (auch zum Wieder-Entzünden, wenn sie erloschen ist).
 func add_wood(n: int) -> void:
 	var was_out := not is_burning()
-	fuel = minf(fuel + n * Config.torch_seconds_per_wood, max_fuel())
+	fuel = minf(fuel + n * seconds_per_wood(), max_fuel())
 	_warned_low = false
 	Sfx.play("ignite" if was_out else "pickup", 0.0, 0.0)
 	if was_out:
-		_toast("Fackel %s brennt wieder" % zone_name)
+		_toast("%s brennt wieder" % title())
 	_update_visuals()
 
 
@@ -90,7 +113,7 @@ func drain(seconds: float) -> void:
 	_attacked_t = 0.5
 	if _warn_cd <= 0.0:
 		_warn_cd = 12.0
-		_toast("Ein Lichtfresser frisst an der Fackel %s!" % zone_name)
+		_toast("Ein Lichtfresser frisst an: %s!" % title())
 	_burn(seconds)
 
 
@@ -103,12 +126,12 @@ func advance(dt: float) -> void:
 func _burn(seconds: float) -> void:
 	fuel = maxf(fuel - seconds, 0.0)
 	if fuel <= 0.0:
-		_toast("Fackel %s ist erloschen – die Zone ist dunkel" % zone_name)
+		_toast("%s ist erloschen" % title())
 		Sfx.play("death", -8.0)
 		_update_visuals()
 	elif fuel < 30.0 and not _warned_low:
 		_warned_low = true
-		_toast("Fackel %s brennt bald aus" % zone_name)
+		_toast("%s brennt bald aus" % title())
 
 
 func _toast(text: String) -> void:
@@ -127,7 +150,7 @@ func _process(delta: float) -> void:
 		var r := get_light_radius()
 		_light.omni_range = r * 1.25 * (1.0 + f * 0.3)
 		_light.light_energy = 1.7 * (1.0 + f)
-		_flame.scale = Vector3(1, 1.0 + f * 2.0, 1) * (r / Config.torch_light_radius)
+		_flame.scale = Vector3(1, 1.0 + f * 2.0, 1) * (r / light_radius_full()) * flame_size()
 		_ring.scale = Vector3(r, 1, r)
 	# Beschriftung nur 2× pro Sekunde erneuern (spart Leistung)
 	_label_t -= delta
@@ -151,10 +174,10 @@ func _update_label() -> void:
 		_label.modulate = Color(1, 0.8, 0.5, 0.75)
 	elif is_burning():
 		var s := int(fuel)
-		_label.text = "%s\nFackel %d:%02d" % [zone_name, s / 60, s % 60]
+		_label.text = "%s\n%d:%02d" % [title(), s / 60, s % 60]
 		_label.modulate = Color(1, 0.4, 0.3, 0.95) if under_attack() or fuel < 30.0 else Color(1, 0.85, 0.55, 0.85)
 	else:
-		_label.text = "%s\nFackel erloschen" % zone_name
+		_label.text = "%s\nerloschen" % title()
 		_label.modulate = Color(0.7, 0.7, 0.8, 0.8)
 
 

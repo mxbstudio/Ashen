@@ -3,21 +3,27 @@
 ## Mit Zonen-Arbeit (Holzfäller/Sammler): läuft durchs Tor in die Zone, sammelt ein paar Einheiten,
 ## bringt sie zum Feuer und läuft wieder los. Arbeitet nur, solange die Zone hell ist und keine
 ## Belagerung droht. Draußen können Gegner ihn angreifen – verletzt flieht er heim.
+## Steinbrecher holen Stein von den Felsen der Zone.
+## Mit Bogen (aus der Werkstatt) schießt er draußen selbst auf Gegner in der Nähe.
+## Geht eine Feuerstelle bald aus, bringt er Holz hin (Holzfäller in der Nähe direkt aus ihrer Ladung).
 extends Node3D
 
 const HpBar := preload("res://scripts/hp_bar.gd")
 const DamageNumber := preload("res://scripts/damage_number.gd")
+const ArrowScript := preload("res://scripts/arrow.gd")
 
-enum State { HOME, OUT, WORK, BACK }
+enum State { HOME, OUT, WORK, BACK, DELIVER }
 
 const GATE_IN := Vector3(0, 0, -9.5)     # innen vor dem Tor
 const GATE_OUT := Vector3(0, 0, -15.0)   # draußen vor dem Tor
 
 var job: Node3D = null             # Gebäude, in dem er arbeitet (oder null)
 var zone_id := ""                  # Zonen-Arbeit: in welcher Zone ("" = keine)
-var zone_kind := ""                # "wood" (Holzfäller) oder "food" (Sammler)
+var zone_kind := ""                # "wood" (Holzfäller), "food" (Sammler) oder "stone" (Steinbrecher)
 var hp := 0.0
 var cargo := 0                      # getragene Einheiten
+var cargo_kind := "wood"            # was er gerade trägt
+var has_bow := false                # trägt einen Bogen (verteilt von der Festung)
 var state := State.HOME
 
 var _path: Array[Vector3] = []
@@ -33,6 +39,11 @@ var _mat := StandardMaterial3D.new()
 var _hp_bar: Node3D
 var _load_mesh: MeshInstance3D
 var _load_mat := StandardMaterial3D.new()
+var _bow_mesh: MeshInstance3D
+var _shoot_cd := 0.0
+var _delivery: Node3D = null        # Feuerstelle, zu der er Holz bringt
+var _delivery_wood := 0
+var _work_after_delivery := false  # Holzfäller: nach dem Abliefern weiterarbeiten
 
 
 func _ready() -> void:
@@ -69,6 +80,18 @@ func _ready() -> void:
 	_load_mesh.position = Vector3(0, 1.0, -0.3)
 	_load_mesh.visible = false
 	add_child(_load_mesh)
+	# Bogen auf dem Rücken (nur sichtbar, wenn er einen trägt)
+	_bow_mesh = MeshInstance3D.new()
+	var bow := BoxMesh.new()
+	bow.size = Vector3(0.06, 1.1, 0.06)
+	_bow_mesh.mesh = bow
+	var bow_mat := StandardMaterial3D.new()
+	bow_mat.albedo_color = Color(0.55, 0.35, 0.18)
+	_bow_mesh.material_override = bow_mat
+	_bow_mesh.position = Vector3(0.22, 1.0, -0.22)
+	_bow_mesh.rotation.z = 0.35
+	_bow_mesh.visible = false
+	add_child(_bow_mesh)
 	_hp_bar = Node3D.new()
 	_hp_bar.set_script(HpBar)
 	add_child(_hp_bar)
@@ -117,7 +140,8 @@ func set_zone_job(id: String, kind: String) -> void:
 	zone_kind = kind
 	_node = null
 	_tree = -1
-	if state != State.HOME:
+	_work_after_delivery = false
+	if state != State.HOME and state != State.DELIVER:
 		_go_home()
 
 
@@ -136,7 +160,11 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 			fort.kill_resident("Ein Bewohner wurde draußen getötet.", self)
 		return
 	# verletzt: Ladung bleibt, aber sofort zurück in die Festung
-	if state != State.HOME and not _fleeing:
+	if state == State.DELIVER:
+		_work_after_delivery = false
+		_abort_delivery()
+		_fleeing = true
+	elif state != State.HOME and not _fleeing:
 		_fleeing = true
 		_go_home()
 
@@ -144,7 +172,10 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 func _process(delta: float) -> void:
 	_flash -= delta
 	_mat.albedo_color = Color(1, 0.75, 0.7) if _flash > 0.0 else Color(0.5, 0.45, 0.38)
-	_load_mesh.visible = cargo > 0
+	_load_mesh.visible = cargo > 0 or state == State.DELIVER
+	_bow_mesh.visible = has_bow
+	if has_bow and is_exposed():
+		_defend(delta)
 	match state:
 		State.HOME:
 			_home(delta)
@@ -159,6 +190,11 @@ func _process(delta: float) -> void:
 		State.BACK:
 			if _follow_path(delta, Config.worker_speed * (1.6 if _fleeing else 1.0)):
 				_arrive_home()
+		State.DELIVER:
+			if Zones.recalled(get_tree()) or not is_instance_valid(_delivery) or _delivery.wood_space() <= 0:
+				_abort_delivery()
+			elif _follow_path(delta, Config.worker_speed):
+				_finish_delivery()
 
 
 ## Drinnen: heilen, ums Feuer bummeln bzw. am Gebäude arbeiten; mit Zonen-Arbeit wieder losgehen.
@@ -207,7 +243,8 @@ func _work(delta: float) -> void:
 		return
 	var to := spot - global_position
 	to.y = 0
-	if to.length() > 1.1:
+	var reach: float = _node.reach() if zone_kind == "stone" and _node else 1.1
+	if to.length() > reach:
 		_step_towards(spot, Config.worker_speed, delta)
 		return
 	_gather_t += delta
@@ -217,17 +254,28 @@ func _work(delta: float) -> void:
 		var ok: bool = forest.take_one(_tree) if zone_kind == "wood" else _node.take_one()
 		if ok:
 			cargo += 1
-			_load_mat.albedo_color = Color(0.5, 0.32, 0.18) if zone_kind == "wood" else Color(0.45, 0.85, 0.75)
+			cargo_kind = zone_kind
+			_load_mat.albedo_color = {"wood": Color(0.5, 0.32, 0.18), "food": Color(0.45, 0.85, 0.75),
+					"stone": Color(0.6, 0.6, 0.65)}[zone_kind]
 		if cargo >= Config.worker_carry:
-			_go_home()
+			# Holzfäller sieht eine Feuerstelle in der Nähe, die bald ausgeht? Dann bringt er das Holz dorthin.
+			var pit := _low_fire_pit_near() if zone_kind == "wood" else null
+			if pit:
+				_delivery_wood = cargo
+				cargo = 0
+				_work_after_delivery = true
+				_head_to_pit(pit)
+			else:
+				_go_home()
 
 
-## Nächste volle Pilzstelle in seiner Zone.
+## Nächste volle Pilzstelle bzw. Fels (Steinbrecher) in seiner Zone.
 func _find_node() -> Node3D:
 	var best: Node3D = null
 	var best_d := INF
-	for r in get_tree().get_nodes_in_group("resources"):
-		if r.zone_id == zone_id and r.kind == zone_kind and r.is_available():
+	var group := "rocks" if zone_kind == "stone" else "resources"
+	for r in get_tree().get_nodes_in_group(group):
+		if r.zone_id == zone_id and (zone_kind == "stone" or r.kind == zone_kind) and r.is_available():
 			var d := global_position.distance_to(r.global_position)
 			if d < best_d:
 				best_d = d
@@ -264,14 +312,110 @@ func _arrive_home() -> void:
 	if cargo > 0:
 		var fort := get_tree().get_first_node_in_group("fortress")
 		if fort:
-			var carry := {"wood": cargo if zone_kind == "wood" else 0, "food": cargo if zone_kind == "food" else 0}
-			var gave: Dictionary = fort.deposit(carry)
-			var n: int = gave["wood"] + gave["food"]
+			var gave: Dictionary = fort.deposit({cargo_kind: cargo})
+			var n: int = gave[cargo_kind]
 			if n > 0:
-				_number("+%d %s" % [n, "Holz" if gave["wood"] > 0 else "Nahrung"],
-						Color(1, 0.75, 0.45) if gave["wood"] > 0 else Color(0.5, 1, 0.85))
+				_number("+%d %s" % [n, {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[cargo_kind]],
+						{"wood": Color(1, 0.75, 0.45), "food": Color(0.5, 1, 0.85), "stone": Color(0.8, 0.8, 0.9)}[cargo_kind])
 		cargo = 0
 	_pick_home_target()
+
+
+# --- Feuerstellen mit Holz versorgen ------------------------------------------------
+
+## Von der Festung losgeschickt: n Holz (schon aus dem Lager genommen) zur Feuerstelle bringen.
+func start_delivery(pit: Node3D, n: int) -> void:
+	_delivery_wood = n
+	_work_after_delivery = false
+	_head_to_pit(pit)
+	_number("bringt Holz", Color(1, 0.8, 0.5))
+
+
+func _head_to_pit(pit: Node3D) -> void:
+	_delivery = pit
+	pit.courier = self
+	state = State.DELIVER
+	_fleeing = false
+	_load_mat.albedo_color = Color(0.5, 0.32, 0.18)
+	_path.clear()
+	if not is_exposed() and pit.global_position.z < -12.0:
+		_path.append(GATE_IN)
+		_path.append(GATE_OUT)
+	_path.append(pit.global_position + (global_position - pit.global_position).normalized() * 1.3)
+
+
+func _finish_delivery() -> void:
+	var n := mini(_delivery_wood, _delivery.wood_space())
+	if n > 0:
+		_delivery.add_wood(n)
+		_number("+%d Holz ins Feuer" % n, Color(1, 0.75, 0.45))
+	_delivery_wood -= n
+	_delivery.courier = null
+	_delivery = null
+	_after_delivery()
+
+
+## Abbruch (Belagerung, Feuerstelle weg oder voll): Holz geht zurück ins Lager.
+func _abort_delivery() -> void:
+	if is_instance_valid(_delivery):
+		_delivery.courier = null
+	_delivery = null
+	_after_delivery()
+
+
+func _after_delivery() -> void:
+	if _delivery_wood > 0:
+		cargo = _delivery_wood
+		cargo_kind = "wood"
+	_delivery_wood = 0
+	if _work_after_delivery and can_work() and cargo == 0:
+		_work_after_delivery = false
+		state = State.WORK
+		_tree = -1
+	else:
+		_work_after_delivery = false
+		_go_home()
+
+
+## Feuerstelle im Umkreis von 15 m, die bald ausgeht und zu der noch keiner unterwegs ist.
+func _low_fire_pit_near() -> Node3D:
+	for pit in get_tree().get_nodes_in_group("fire_pits"):
+		if pit.needs_wood() and (pit.courier == null or not is_instance_valid(pit.courier)) \
+				and global_position.distance_to(pit.global_position) < 15.0:
+			return pit
+	return null
+
+
+# --- Bogen ------------------------------------------------------------------------
+
+## Mit Bogen: auf den nächsten Gegner in Reichweite schießen.
+func _defend(delta: float) -> void:
+	_shoot_cd -= delta
+	if _shoot_cd > 0.0:
+		return
+	var best: Node3D = null
+	var best_d := Config.resident_bow_range
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e.is_alive():
+			var d := global_position.distance_to(e.global_position)
+			if d < best_d:
+				best_d = d
+				best = e
+	if best == null:
+		return
+	_shoot_cd = Config.resident_bow_interval
+	var arrow := Node3D.new()
+	arrow.set_script(ArrowScript)
+	get_parent().add_child(arrow)
+	arrow.global_position = global_position + Vector3(0, 1.2, 0)
+	arrow.launch(best, Config.resident_bow_damage, {}, self)
+	Sfx.play("shoot", -10.0)
+
+
+## Wird vom Pfeil aufgerufen.
+func hit(target: Node3D, amount: float, _heal: Dictionary) -> void:
+	if is_instance_valid(target) and target.is_alive():
+		target.take_damage(amount, self)
 
 
 ## Läuft die Wegpunkte ab. Gibt true zurück, wenn das Ende erreicht ist.

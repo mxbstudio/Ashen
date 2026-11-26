@@ -84,7 +84,8 @@ func _rebuild() -> void:
 			24, Color(1, 0.9, 0.7)))
 	_box.add_child(UiStyle.label("Einteilen geht in jeder Zone – arbeiten können sie aber nur, solange die Zone hell ist "
 			+ "(Fackel brennt bzw. Leuchtfeuer entzündet). Sonst warten sie am Feuer. Draußen im Dunkeln greifen "
-			+ "Kriecher sie an. Bei Belagerung kommen alle heim. Die übrigen Bewohner besetzen die Gebäude.", 20, Color(1, 1, 1, 0.6)))
+			+ "Kriecher sie an – mit Bogen wehren sie sich. Bei Belagerung kommen alle heim. Die übrigen Bewohner besetzen die Gebäude.", 20, Color(1, 1, 1, 0.6)))
+	_box.add_child(_bow_row())
 	var tree := get_tree()
 	for z in ZoneDefs.ZONES:
 		var lit := Zones.is_lit(tree, z["id"])
@@ -96,6 +97,8 @@ func _rebuild() -> void:
 			_box.add_child(_row(z["id"], "wood", "Holzfäller", lit))
 		if not z["food"].is_empty():
 			_box.add_child(_row(z["id"], "food", "Sammler", lit))
+		if z.get("rocks", 0) > 0:
+			_box.add_child(_row(z["id"], "stone", "Steinbrecher", lit))
 	_box.add_child(UiStyle.label(_building_text(), 22, Color(0.9, 0.85, 0.8)))
 
 
@@ -124,6 +127,42 @@ func _row(zone_id: String, kind: String, title: String, lit: bool) -> Control:
 func _change(zone_id: String, kind: String, delta: int) -> void:
 	fortress.change_zone_job(zone_id, kind, delta)
 	_rebuild()
+
+
+## Bögen verteilen: wie viele Bewohner tragen einen (wer draußen arbeitet, zuerst)?
+func _bow_row() -> Control:
+	var col := VBoxContainer.new()
+	var total: int = fortress.bows_total()
+	var head := UiStyle.label("Bögen: %d gebaut – %s" % [total,
+			"Werkstatt baut weitere" if _has_workshop() else "Werkstatt bauen, um Bögen herzustellen"], 24, Color(0.9, 0.8, 1.0))
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	col.add_child(head)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var name := UiStyle.label("   Bewohner mit Bogen", 24)
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name)
+	var minus := UiStyle.button("−", Color(1, 0.6, 0.4), 34, Vector2(80, 70))
+	minus.disabled = fortress.armed_target <= 0
+	minus.pressed.connect(func(): fortress.change_armed(-1); _rebuild())
+	row.add_child(minus)
+	var val := UiStyle.label(str(fortress.armed_count()), 28, Color(1, 0.9, 0.6))
+	val.custom_minimum_size = Vector2(70, 0)
+	row.add_child(val)
+	var plus := UiStyle.button("+", Color(0.5, 0.9, 0.5), 34, Vector2(80, 70))
+	plus.disabled = fortress.armed_target >= mini(total, fortress.residents.size())
+	plus.pressed.connect(func(): fortress.change_armed(1); _rebuild())
+	row.add_child(plus)
+	col.add_child(row)
+	return col
+
+
+func _has_workshop() -> bool:
+	for b in fortress.buildings:
+		if b.kind == "workshop" and b.built:
+			return true
+	return false
 
 
 ## Welche Gebäude sind besetzt?
