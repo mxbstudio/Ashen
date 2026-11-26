@@ -335,3 +335,13 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
   geht er kurz hin, legt 1 Holz nach (aus seiner Ladung, sonst aus dem Lager) und macht dann weiter, wo er war.
   Pro Fackel immer nur einer gleichzeitig, derselbe Bewohner frühestens nach 15 s wieder.
 - Neue Werte: `tend_below` (0,5), `tend_cooldown` (15 s).
+
+### Schlaue Bewohner (Wunsch Max)
+- **Gebäude ruhen**, wenn sie nicht gebraucht werden: Werkstatt bei genug Bögen für alle, Trümmerhof bei vollem
+  Holzlager, Pilzkeller bei vollem Nahrungslager (wieder an unter 85 %). Ihr Platz bleibt eingeteilt; die Arbeiter
+  sind solange frei. Schild und Menü zeigen „ruht – Holzlager voll“ usw.
+- **Freie Bewohner helfen selbstständig**: alle 5 s schauen sie, was das Lager braucht (Holz dringend, wenn das Feuer
+  < 3 min reicht; Nahrung dringend unter 2 pro Bewohner; Stein weniger wichtig) und arbeiten in einer hellen Zone,
+  in der es das gibt. Sie verteilen sich (jeder Helfer senkt den Bedarf). Ist alles fast voll, bleiben sie am Feuer.
+  Sie zählen weiter als **frei** – Max kann sie jederzeit einteilen. Menü: „davon helfen selbstständig: 2 Holz, 1 Stein“.
+- Neue Werte: `smart_interval` (5 s), `smart_min_need` (0,15), `smart_need_per_helper` (0,25).

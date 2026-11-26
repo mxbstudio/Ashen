@@ -15,6 +15,7 @@ var stone := 0.0                   # Stein (für Feuerstellen)
 var bows := 0                      # Bögen im Lager (nicht verteilt)
 var armed_target := 0              # so viele Bewohner sollen einen Bogen tragen (Einteilen-Menü)
 var _courier_t := 0.0
+var _smart_t := 0.0
 var residents: Array[Node3D] = []
 var buildings: Array[Node3D] = []
 var zone_jobs := {}                # Zonen-Arbeit: "west:wood" -> Anzahl Bewohner (am Feuer eingeteilt)
@@ -106,6 +107,17 @@ func advance(dt: float) -> void:
 	if _courier_t >= 1.0:
 		_courier_t = 0.0
 		_send_couriers()
+	# schlaue Bewohner: ruhende Gebäude, freie Bewohner helfen, wo das Lager etwas braucht
+	_smart_t += dt
+	if _smart_t >= Config.smart_interval:
+		_smart_t = 0.0
+		var changed := false
+		for b in buildings:
+			if b.built and b.update_need(self):
+				changed = true
+		if changed:
+			_assign_jobs()
+		_auto_jobs()
 	# Feuer verbrennt Holz
 	_burn_acc += dt
 	while _burn_acc >= Config.fire_seconds_per_wood:
@@ -210,7 +222,7 @@ func _send_couriers() -> void:
 		# nur freie Bewohner (ohne Gebäude und ohne Zone) springen ein
 		var best: Node3D = null
 		for r in residents:
-			if r.state == 0 and not r.has_zone_job() and r.job == null and r.hp >= Config.resident_hp * 0.6:
+			if r.state == 0 and r.is_free() and r.hp >= Config.resident_hp * 0.6:
 				best = r
 				break
 		if best == null:
@@ -300,25 +312,30 @@ func _assign_jobs() -> void:
 		seen[k] = seen.get(k, 0) + 1
 		if seen[k] > zone_jobs.get(k, 0):
 			r.set_zone_job("", "")
-	# 1b. Gebäude: Tote und Überzählige raus
+	# 1b. Gebäude: Tote und Überzählige raus; ruhende Gebäude lassen ihre Arbeiter frei
 	for b in buildings:
 		var list: Array[Node3D] = []
 		for w in b.workers:
-			if residents.has(w) and not w.has_zone_job() and list.size() < b.wanted_workers():
+			if residents.has(w) and not b.resting and not w.has_zone_job() and list.size() < b.wanted_workers():
 				list.append(w)
 		b.set_workers(list)
-	# 2. freie Bewohner auf offene Plätze
+	# 2. freie Bewohner auf offene Plätze (wer gerade in der Festung ist, zuerst)
 	var free: Array[Node3D] = []
 	for r in residents:
-		if not r.has_zone_job() and not _in_building(r):
+		if r.is_free() and not _in_building(r):
 			free.append(r)
+	free.sort_custom(func(a, b): return (a.state == 0 and not a.auto_job) and not (b.state == 0 and not b.auto_job))
 	for kind in ["mushroom", "scrapyard", "workshop", "tower"]:
 		for b in buildings:
 			if b.kind != kind:
 				continue
+			if b.resting:
+				continue
 			var list: Array[Node3D] = b.workers.duplicate()
 			while list.size() < b.wanted_workers() and not free.is_empty():
-				list.append(free.pop_front())
+				var w: Node3D = free.pop_front()
+				w.set_zone_job("", "")   # selbstständiger Helfer kommt zurück
+				list.append(w)
 			b.set_workers(list)
 	var keys := zone_jobs.keys()
 	keys.sort()
@@ -352,14 +369,85 @@ func _in_building(r: Node3D) -> bool:
 func free_count() -> int:
 	var n := 0
 	for r in residents:
-		if not r.has_zone_job() and not _in_building(r):
+		if r.is_free():
 			n += 1
 	return n
 
 
+## Freie Bewohner, die gerade selbstständig helfen – {Art: Anzahl}.
+func helpers() -> Dictionary:
+	var out := {}
+	for r in residents:
+		if r.auto_job:
+			out[r.zone_kind] = out.get(r.zone_kind, 0) + 1
+	return out
+
+
+## Wie dringend braucht das Lager gerade Holz, Nahrung, Stein? (0 = gar nicht, >1 = dringend)
+func needs() -> Dictionary:
+	var w := 2.0 if wood_seconds_left() < 180.0 else 1.0 - wood / wood_cap()
+	var f := 2.0 if food < residents.size() * 2 else 1.0 - food / food_cap()
+	var st := 0.6 * (1.0 - stone / stone_cap())
+	return {"wood": w, "food": f, "stone": st}
+
+
+## Eine helle Zone, in der es gerade etwas von dieser Art zu holen gibt ("" = keine).
+func _zone_with(kind: String) -> String:
+	var forest := get_tree().get_first_node_in_group("forest")
+	for z in ZoneDefs.ZONES:
+		var id: String = z["id"]
+		if not Zones.is_lit(get_tree(), id):
+			continue
+		match kind:
+			"wood":
+				if forest and forest.nearest(Zones.center(get_tree(), id), Config.torch_light_radius - 1.5) >= 0:
+					return id
+			"food":
+				for r in get_tree().get_nodes_in_group("resources"):
+					if r.zone_id == id and r.is_available():
+						return id
+			"stone":
+				for r in get_tree().get_nodes_in_group("rocks"):
+					if r.zone_id == id and r.is_available():
+						return id
+	return ""
+
+
+## Freie Bewohner verteilen sich selbst auf das, was das Lager am dringendsten braucht.
+## Wer schon unterwegs ist, wird nicht unterbrochen, solange seine Arbeit noch gebraucht wird.
+func _auto_jobs() -> void:
+	if Zones.recalled(get_tree()):
+		return
+	var need := needs()
+	var zone_for := {}
+	for k in need:
+		zone_for[k] = _zone_with(k)
+	var free := residents.filter(func(r): return r.is_free() and r.state != 4 and r.hp >= Config.resident_hp * 0.6)
+	# wer schon hilft, zuerst (damit er bleiben kann)
+	free.sort_custom(func(a, b): return a.auto_job and not b.auto_job)
+	for r in free:
+		var keep: bool = r.auto_job and need.get(r.zone_kind, 0.0) > Config.smart_min_need \
+				and zone_for.get(r.zone_kind, "") != ""
+		if keep:
+			need[r.zone_kind] -= Config.smart_need_per_helper
+			continue
+		var best := ""
+		var best_v := Config.smart_min_need
+		for k in need:
+			if need[k] > best_v and zone_for[k] != "":
+				best_v = need[k]
+				best = k
+		if best == "":
+			if r.auto_job:
+				r.set_zone_job("", "")   # nichts zu tun: zurück ans Feuer
+			continue
+		r.set_zone_job(zone_for[best], best, true)
+		need[best] -= Config.smart_need_per_helper
+
+
 ## Gebäude-Arbeiter ändern (aus dem Einteilen-Menü). "+" geht nur mit einem freien Bewohner.
 func change_building_workers(b: Node3D, delta: int) -> bool:
-	var n: int = b.workers.size() + delta   # vom tatsächlich besetzten Stand aus
+	var n: int = (b.wanted_workers() if b.resting else b.workers.size()) + delta   # vom tatsächlich besetzten Stand aus
 	if n < 0 or n > b.capacity() or (delta > 0 and free_count() <= 0):
 		return false
 	b.wanted = n

@@ -26,6 +26,7 @@ var hp := 0.0
 var cargo := 0                      # getragene Einheiten
 var cargo_kind := "wood"            # was er gerade trägt
 var has_bow := false                # trägt einen Bogen (verteilt von der Festung)
+var auto_job := false               # Zonen-Arbeit selbst gewählt (zählt weiter als "frei")
 var state := State.HOME
 
 var _path: Array[Vector3] = []
@@ -111,8 +112,14 @@ func has_zone_job() -> bool:
 	return zone_id != ""
 
 
+## Schlüssel der von Max eingeteilten Zonen-Arbeit ("" = keine oder nur selbst gewählt).
 func zone_key() -> String:
-	return "%s:%s" % [zone_id, zone_kind] if has_zone_job() else ""
+	return "%s:%s" % [zone_id, zone_kind] if has_zone_job() and not auto_job else ""
+
+
+## Frei = von Max weder in ein Gebäude noch in eine Zone eingeteilt (selbstständige Helfer zählen als frei).
+func is_free() -> bool:
+	return job == null and (not has_zone_job() or auto_job)
 
 
 ## Steht er draußen vor der Mauer (dort können Gegner ihn erreichen)?
@@ -139,7 +146,8 @@ func assign(building: Node3D) -> void:
 
 
 ## Zonen-Arbeit zuteilen ("" = keine).
-func set_zone_job(id: String, kind: String) -> void:
+func set_zone_job(id: String, kind: String, auto := false) -> void:
+	auto_job = auto and id != ""
 	if id == zone_id and kind == zone_kind:
 		return
 	zone_id = id

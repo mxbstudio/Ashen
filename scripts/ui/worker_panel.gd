@@ -82,10 +82,17 @@ func _rebuild() -> void:
 	_box.add_child(UiStyle.label("Bewohner einteilen", 40, Color(0.7, 1, 0.8)))
 	_box.add_child(UiStyle.label("Bewohner: %d · frei: %d" % [total, free], 28,
 			Color(0.6, 1, 0.6) if free > 0 else Color(1, 0.9, 0.7)))
+	var h: Dictionary = fortress.helpers()
+	if not h.is_empty():
+		var parts := []
+		for k in h:
+			parts.append("%d %s" % [h[k], {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[k]])
+		_box.add_child(UiStyle.label("davon helfen selbstständig: " + ", ".join(parts), 22, Color(0.7, 0.95, 0.7)))
 	_box.add_child(UiStyle.label("Einteilen geht nur mit freien Bewohnern – mit „−“ machst du jemanden frei. "
 			+ "Freie Bewohner besetzen neue Gebäudeplätze von selbst. Zonen: Arbeit nur, solange die Zone hell ist, "
 			+ "sonst warten sie am Feuer. Draußen im Dunkeln greifen Kriecher an – mit Bogen wehren sie sich. "
-			+ "Bei Belagerung kommen alle heim.", 20, Color(1, 1, 1, 0.6)))
+			+ "Bei Belagerung kommen alle heim. Freie Bewohner helfen selbstständig, wo das Lager etwas braucht; "
+			+ "Gebäude ruhen, solange ihr Lager voll ist (ihre Arbeiter helfen dann woanders).", 20, Color(1, 1, 1, 0.6)))
 	_box.add_child(_bow_row())
 	_box.add_child(_section("Gebäude"))
 	var any := false
@@ -149,19 +156,23 @@ func _building_row(b: Node3D, free: int) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	var places := "1 Platz" if b.capacity() == 1 else "%d Plätze" % b.capacity()
-	var name := UiStyle.label("   %s (%s)" % [b.display_name(), places], 24)
+	var title := "   %s (%s)" % [b.display_name(), places]
+	if b.resting:
+		title += "\n   ruht – %s" % b.rest_reason()
+	var name := UiStyle.label(title, 24)
 	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name)
 	var minus := UiStyle.button("−", Color(1, 0.6, 0.4), 34, Vector2(80, 70))
-	minus.disabled = b.workers.is_empty()
+	var count: int = b.wanted_workers() if b.resting else b.workers.size()
+	minus.disabled = count <= 0
 	minus.pressed.connect(func(): fortress.change_building_workers(b, -1); _rebuild())
 	row.add_child(minus)
-	var val := UiStyle.label(str(b.workers.size()), 28, Color(1, 0.9, 0.6))
+	var val := UiStyle.label(str(count), 28, Color(1, 0.9, 0.6) if not b.resting else Color(0.6, 0.6, 0.7))
 	val.custom_minimum_size = Vector2(70, 0)
 	row.add_child(val)
 	var plus := UiStyle.button("+", Color(0.5, 0.9, 0.5), 34, Vector2(80, 70))
-	plus.disabled = free <= 0 or b.workers.size() >= b.capacity()
+	plus.disabled = free <= 0 or count >= b.capacity()
 	plus.pressed.connect(func(): fortress.change_building_workers(b, 1); _rebuild())
 	row.add_child(plus)
 	return row

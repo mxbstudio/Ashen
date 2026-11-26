@@ -14,6 +14,7 @@ var level := 0                     # 0 = noch nicht gebaut
 var built := false                 # = level >= 1
 var workers: Array[Node3D] = []    # zugeteilte Bewohner
 var wanted := 0                    # so viele sollen hier arbeiten (Einteilen-Menü; beim Bauen = alle Plätze)
+var resting := false               # wird gerade nicht gebraucht (Lager voll / genug Bögen) -> Arbeiter helfen woanders
 var _timer := 0.0
 var _label: Label3D
 var _house: Node3D
@@ -56,6 +57,33 @@ func needs_worker() -> bool:
 
 
 ## Wie viele Bewohner können hier arbeiten?
+## Wird das Gebäude gerade gebraucht? (mit etwas Abstand, damit es nicht ständig hin und her springt)
+## Gibt true zurück, wenn sich etwas geändert hat.
+func update_need(fort: Node) -> bool:
+	var was := resting
+	match kind:
+		"scrapyard":
+			resting = fort.wood >= fort.wood_cap() - 1 if not resting else fort.wood >= fort.wood_cap() * 0.85
+		"mushroom":
+			resting = fort.food >= fort.food_cap() - 1 if not resting else fort.food >= fort.food_cap() * 0.85
+		"workshop":
+			resting = fort.bows_total() >= fort.residents.size()
+		_:
+			resting = false
+	if resting != was:
+		_update_label()
+	return resting != was
+
+
+## Warum ruht es? (für Menü und Schild)
+func rest_reason() -> String:
+	match kind:
+		"workshop": return "genug Bögen"
+		"scrapyard": return "Holzlager voll"
+		"mushroom": return "Nahrungslager voll"
+	return ""
+
+
 func wanted_workers() -> int:
 	return mini(wanted, capacity())
 
@@ -132,7 +160,9 @@ func _update_label() -> void:
 		_label.text = "%s\nBauen: %d Holz" % [display_name(), cost()]
 		return
 	var t := display_name() + (" (St. %d)" % level if level > 1 else "")
-	if needs_worker():
+	if needs_worker() and resting:
+		t += "\n(ruht – %s)" % rest_reason()
+	elif needs_worker():
 		if workers.is_empty():
 			t += "\n(kein Bewohner)"
 		elif capacity() > 1:
