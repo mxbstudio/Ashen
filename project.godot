@@ -1,0 +1,38 @@
+; Aschen – Godot-Projektdatei
+; Wird von Godot selbst gelesen. Wichtig: Renderer "Compatibility" (nötig für den Web-Export).
+
+config_version=5
+
+[application]
+
+config/name="Aschen"
+config/description="Version v0.2 (in Arbeit) – düsteres isometrisches Action-RPG mit Festungsaufbau"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/show_image=false
+
+[autoload]
+
+Config="*res://scripts/config.gd"
+Lights="*res://scripts/light_system.gd"
+DebugOverlay="*res://scripts/debug_overlay.gd"
+Sfx="*res://scripts/sfx.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

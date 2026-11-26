@@ -1,0 +1,76 @@
+# Baut bei jedem Push automatisch die Web-Version von Aschen
+# und veröffentlicht sie auf GitHub Pages (Branch "gh-pages").
+name: Web-Export
+
+on:
+  push:
+    branches-ignore: [gh-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: web-export
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot aus dem Zwischenspeicher holen
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/godot-cache
+          key: godot-${{ env.GODOT_VERSION }}-web-v1
+
+      - name: Godot herunterladen (nur beim ersten Mal)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          V=${GODOT_VERSION}-stable
+          mkdir -p ~/godot-cache && cd ~/godot-cache
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/$V/Godot_v${V}_linux.x86_64.zip"
+          unzip -q godot.zip && rm godot.zip
+          mv Godot_v${V}_linux.x86_64 godot
+          curl -fsSL -o tpl.tpz "https://github.com/godotengine/godot/releases/download/$V/Godot_v${V}_export_templates.tpz"
+          unzip -q tpl.tpz 'templates/web_nothreads_*' && rm tpl.tpz
+
+      - name: Godot einrichten
+        run: |
+          T=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p "$T"
+          cp ~/godot-cache/templates/* "$T/"
+          chmod +x ~/godot-cache/godot
+
+      - name: Build-Nummer eintragen
+        run: echo "#${{ github.run_number }} ($(git rev-parse --short HEAD))" > build_info.txt
+
+      - name: Web-Export
+        run: |
+          set -e
+          mkdir -p build/web
+          ~/godot-cache/godot --headless --path . --import || true
+          ~/godot-cache/godot --headless --path . --export-release "Web" build/web/index.html
+          test -f build/web/index.wasm
+          # Spieldaten bekommen bei jedem Build einen neuen Namen,
+          # damit der Handy-Browser nie eine alte Version aus dem Zwischenspeicher lädt.
+          N=${{ github.run_number }}
+          mv build/web/index.pck build/web/index-$N.pck
+          sed -i "s/GODOT_CONFIG = {/GODOT_CONFIG = {\"mainPack\":\"index-$N.pck\",/" build/web/index.html
+          touch build/web/.nojekyll
+
+      - name: Auf GitHub Pages veröffentlichen
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "Web-Build #${{ github.run_number }}"

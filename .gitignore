@@ -1,0 +1,4 @@
+# Godot-Zwischendateien
+.godot/
+/build/
+*.tmp
