@@ -113,12 +113,14 @@ func _process(delta: float) -> void:
 		_label.text = "Leuchtfeuer\n(daneben stehen zum Entzünden)"
 
 
-func _light_up() -> void:
+func _light_up(quiet := false) -> void:
 	lit = true
-	Sfx.play("ignite", 0.0, 0.0)
 	_flame.visible = true
 	_light.visible = true
 	_label.text = "Leuchtfeuer"
+	if quiet:
+		return   # beim Laden eines Spielstands: ohne Ton und Meldungen
+	Sfx.play("ignite", 0.0, 0.0)
 	get_tree().call_group("hud", "toast", "Leuchtfeuer entzündet – Schnellreise zum Tor möglich")
 	get_tree().call_group("hud", "toast", "Weiter im Norden wartet der Hauptmann …")
 	lit_up.emit()

@@ -201,6 +201,11 @@ var joystick_analog := false       # false = sofort volle Geschwindigkeit
 var button_radius := 80.0
 
 
+# --- Speicherstand ------------------------------------------------------------
+var autosave_interval := 20.0      # s zwischen zwei automatischen Speicherungen
+
+
+const SETTINGS_PATH := "user://einstellungen.json"
 var _defaults := {}                # Werte, auf die "Neu starten" zurücksetzt
 var _originals := {}               # Werte genau wie in dieser Datei
 
@@ -212,6 +217,43 @@ func _ready() -> void:
 			_defaults[prop["name"]] = get(prop["name"])
 			_originals[prop["name"]] = get(prop["name"])
 	_setup_input()
+	_load_settings()
+
+
+## Im Werte-Menü verstellte Werte im Browser merken (bleiben auch nach dem Schließen erhalten).
+func save_settings(extra := {}) -> void:
+	var changed := extra.duplicate()
+	for k in _originals:
+		if get(k) != _originals[k]:
+			changed[k] = get(k)
+	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(changed))
+		f.close()
+
+
+## Gemerkte Werte laden (beim Start). Gibt alle gelesenen Einträge zurück (z. B. "sfx" für die Lautstärke).
+func _load_settings() -> Dictionary:
+	if not FileAccess.file_exists(SETTINGS_PATH):
+		return {}
+	var f := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
+	if f == null:
+		return {}
+	var d = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(d) != TYPE_DICTIONARY:
+		return {}
+	for k in d:
+		if _originals.has(k):
+			var old = _originals[k]
+			set(k, int(d[k]) if typeof(old) == TYPE_INT else d[k])
+			keep_as_default(k)
+	return d
+
+
+## Gemerkter Wert, der nicht in Config steht (z. B. Lautstärke).
+func saved_setting(key: String, fallback):
+	return _load_settings().get(key, fallback)
 
 
 ## Im Werte-Menü verstellter Wert soll auch nach "Neu starten" gelten.

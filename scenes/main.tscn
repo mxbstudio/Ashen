@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=28 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -22,6 +22,8 @@
 [ext_resource type="Script" path="res://scripts/ui/torch_button.gd" id="20"]
 [ext_resource type="Script" path="res://scripts/ui/worker_panel.gd" id="21"]
 [ext_resource type="Script" path="res://scripts/ui/climb_button.gd" id="22"]
+[ext_resource type="Script" path="res://scripts/save_game.gd" id="23"]
+[ext_resource type="Script" path="res://scripts/ui/continue_panel.gd" id="24"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -93,6 +95,13 @@ fire = NodePath("../Fire")
 gate = NodePath("../Fortress/Gate")
 spawner = NodePath("../Enemies")
 player = NodePath("../Player")
+
+[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("player", "fortress", "siege", "beacon")]
+script = ExtResource("23")
+player = NodePath("../Player")
+fortress = NodePath("../Fortress")
+siege = NodePath("../Siege")
+beacon = NodePath("../Beacon")
 
 [node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("target")]
 script = ExtResource("9")
@@ -180,4 +189,13 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("15")
+touch_controls = NodePath("../TouchControls")
+
+[node name="Continue" type="Control" parent="UI" node_paths=PackedStringArray("save_game", "touch_controls")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("24")
+save_game = NodePath("../../SaveGame")
 touch_controls = NodePath("../TouchControls")

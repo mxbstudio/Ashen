@@ -15,6 +15,7 @@ var _next := 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	volume_db = float(Config.saved_setting("sfx", volume_db))   # im Werte-Menü gemerkte Lautstärke
 	for i in VOICES:
 		var p := AudioStreamPlayer.new()
 		add_child(p)

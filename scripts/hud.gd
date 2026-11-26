@@ -37,6 +37,12 @@ func bell() -> void:
 	_bell_flash = 1.0
 
 
+## Spielstand wurde gespeichert: kurz "gespeichert" einblenden.
+var _saved_t := 0.0
+func saved_flash() -> void:
+	_saved_t = 1.5
+
+
 ## Kurze Meldung in der Bildschirmmitte (z. B. "Abgeladen: +5 Holz").
 func toast(text: String, duration := 2.5) -> void:
 	_toasts.append([text, duration])
@@ -52,6 +58,7 @@ func _on_skill_fired(id: String, slot: int) -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	_bell_flash = maxf(_bell_flash - delta * 1.5, 0.0)
+	_saved_t = maxf(_saved_t - delta, 0.0)
 	for k in _slot_flash.keys():
 		_slot_flash[k] -= delta
 		if _slot_flash[k] <= 0.0:
@@ -102,6 +109,11 @@ func _draw() -> void:
 	_draw_siege(font)
 	_draw_boss(font)
 	_draw_toasts(font)
+	if _saved_t > 0.0:
+		var st := "gespeichert"
+		var sw := font.get_string_size(st, HORIZONTAL_ALIGNMENT_CENTER, -1, 18).x
+		draw_string(font, Vector2((size.x - sw) / 2.0 + 10.0, 80), st, HORIZONTAL_ALIGNMENT_LEFT, -1, 18,
+				Color(0.7, 1, 0.7, clampf(_saved_t, 0.0, 1.0) * 0.8))
 	_draw_skill_bar(font, player.skill_bar)
 	_draw_hurt(player.hurt_flash)
 	if not player.is_alive():

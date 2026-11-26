@@ -194,3 +194,23 @@ func _collision(p: Vector3) -> void:
 	shape.position.y = 1.0
 	body.add_child(shape)
 	add_child(body)
+
+
+# --- Speicherstand -----------------------------------------------------------------
+
+func save_data() -> Dictionary:
+	return {"wood": Array(_wood), "regrow": Array(_regrow)}
+
+
+func load_data(d: Dictionary) -> void:
+	var w: Array = d.get("wood", [])
+	var r: Array = d.get("regrow", [])
+	if w.size() != _wood.size():
+		return   # anderer Wald (nach einem Update) -> Bäume bleiben voll
+	_stumps.clear()
+	for i in w.size():
+		_wood[i] = int(w[i])
+		_regrow[i] = float(r[i]) if i < r.size() else 0.0
+		if _wood[i] <= 0:
+			_stumps.append(i)
+		_set_visual(i)

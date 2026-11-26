@@ -37,6 +37,7 @@ func show_end(title: String, text: String) -> void:
 	if visible:
 		return
 	touch_controls.reset()
+	get_tree().call_group("save", "game_finished")   # Spielstand löschen
 	_title.text = title
 	_text.text = text
 	visible = true
@@ -44,6 +45,7 @@ func show_end(title: String, text: String) -> void:
 
 
 func _restart() -> void:
+	get_tree().call_group("save", "delete_save")
 	Config.reset()
 	get_tree().paused = false
 	get_tree().reload_current_scene()

@@ -166,6 +166,7 @@ func open() -> void:
 func close() -> void:
 	visible = false
 	get_tree().paused = false
+	Config.save_settings({"sfx": Sfx.volume_db})   # Werte im Browser merken
 
 
 ## Alles auflisten, was vom ursprünglichen Standard abweicht.
@@ -192,3 +193,4 @@ func _reset_all() -> void:
 			Config.keep_as_default(e[1])
 		_value_labels[e[1]].text = _fmt(_read_value(e[1]))
 	_changes_label.text = "Auf Standard zurückgesetzt."
+	Config.save_settings()

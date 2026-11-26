@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 in Arbeit – Etappe 3 getestet („ganz nice“), mehr Bewohner, Etappe 4 (begehbarer Wachturm) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 in Arbeit – Etappe 1–4 getestet, Etappe 5 (Speicherstand) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -171,8 +171,8 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
 | 1 | Gebiete erhellen: Zonen, Fackelpfähle, Brennstoff, Lichtfresser löschen | mittel | fertig, am Handy getestet (Build #17) |
 | 2 | Bewohner als Holzfäller / Sammler in helle Zonen schicken | groß | fertig, am Handy getestet |
 | 3 | Gebäude-Upgrades (3 Stufen) | mittel | fertig, am Handy getestet |
-| 4 | Begehbarer Wachturm | mittel | zum Testen |
-| 5 | Speicherstand im Browser | mittel | offen |
+| 4 | Begehbarer Wachturm | mittel | fertig, am Handy getestet |
+| 5 | Speicherstand im Browser | mittel | zum Testen |
 | 6 | Werte einstellen mit Max | klein | offen |
 
 ## Etappe 1 – Gebiete erhellen
@@ -269,3 +269,18 @@ Ziel: Der Hüter macht draußen Gebiete hell; in erhellten Gebieten arbeiten Bew
   6 extra gepflanzte Bäume.
 - **Mehr Nahrung**: Pilzstellen 5 statt 3 Nahrung und wachsen schneller nach, Pilzkeller schneller, 25 Nahrung am Start.
 - **Weniger Tote draußen**: Bewohner 40 Leben, Kriecher bemerken sie später und beißen seltener, Fliehende rennen schneller.
+
+## Etappe 5 – Speicherstand
+- **Automatisch speichern** alle 20 s und beim Verlassen des Browser-Tabs (`scripts/save_game.gd`).
+  Kurz erscheint oben „gespeichert“. Nicht während einer Belagerung, nicht während der Hüter tot ist.
+- **Startfenster** (`scripts/ui/continue_panel.gd`): Gibt es einen Stand → „Weiterspielen“ (mit Spielzeit, Stufe,
+  Bewohnern, Holz) oder „Neues Spiel“ (löscht den Stand). Ohne Stand startet das Spiel direkt.
+- **Gespeichert wird**: Hüter (Ort, Leben, Tränke, Stufe/EP, Trage, Laterne, Leiste, Vorrat, Skill-Stufen),
+  Festung (Holz, Nahrung, Bewohner mit Leben, Zonen-Einteilung, Gebäudestufen), Fackeln (gebaut, Brennstoff),
+  Leuchtfeuer, jeder Baum im Wald, Pilzstellen, Zeit bis zur Belagerung, Anzahl Belagerungen, Boss besiegt, Spielzeit.
+- **Nicht gespeichert**: Gegner (erscheinen neu). Stand auf dem Turm → man steht danach davor.
+  Belagerung kommt nach dem Laden frühestens nach 45 s (Vorzeichen bleibt erhalten).
+- **Niederlage oder Sieg** löschen den Stand; „Neu starten“ ebenso.
+- **Werte-Menü-Einstellungen** (auch Lautstärke) werden jetzt im Browser gemerkt und gelten auch nach dem Schließen
+  (`user://einstellungen.json`). „Alles auf Standard“ setzt sie zurück.
+- Neuer Wert: `autosave_interval` (20 s) in `scripts/config.gd`.

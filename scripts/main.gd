@@ -8,6 +8,8 @@ const BossScript := preload("res://scripts/enemies/boss.gd")
 @onready var siege: Node = $Siege
 @onready var game_over: Control = $UI/GameOver
 
+var boss_defeated := false         # für den Speicherstand
+
 
 func _ready() -> void:
 	player.died.connect(_on_player_died)
@@ -57,6 +59,7 @@ func _on_player_died() -> void:
 
 
 func _on_boss_defeated() -> void:
+	boss_defeated = true
 	get_tree().call_group("hud", "toast", "Der Hauptmann ist gefallen …")
 	get_tree().call_group("hud", "toast", "Die Dunkelheit sammelt sich zum letzten Sturm!")
 	siege.boss_defeated()
