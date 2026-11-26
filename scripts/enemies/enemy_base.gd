@@ -8,6 +8,7 @@ signal died(enemy: EnemyBase)
 
 const DamageNumber := preload("res://scripts/damage_number.gd")
 const HpBar := preload("res://scripts/hp_bar.gd")
+const SightScript := preload("res://scripts/enemies/enemy_sight.gd")
 
 var player: Node3D                 # wird vom Spawner gesetzt
 var max_hp := 10.0
@@ -37,6 +38,7 @@ var _dying := -1.0
 var _mats: Array[StandardMaterial3D] = []
 var _base_colors: Array[Color] = []
 var _eye_mats: Array[StandardMaterial3D] = []
+var _eye_nodes: Array[Node3D] = []     # Augen bleiben im Dunkeln sichtbar (siehe enemy_sight.gd)
 var _hp_bar: Node3D
 var _burn_time := 0.0
 var _burn_dps := 0.0
@@ -57,6 +59,9 @@ func _ready() -> void:
 	add_child(_hp_bar)
 	_hp_bar.setup(clampf(hit_radius * 1.6, 0.7, 2.0))
 	_hp_bar.position.y = _bar_height()
+	var sight := Node.new()
+	sight.set_script(SightScript)
+	add_child(sight)
 
 
 ## Von Unterklassen überschrieben: Aussehen bauen (Meshes in `model`, Kollisionsform).
@@ -218,7 +223,7 @@ func add_eyes(height: float, forward: float, spread: float, size: float) -> void
 	s.radial_segments = 6
 	s.rings = 3
 	for side in [-1, 1]:
-		add_mesh(s, m, Vector3(side * spread, height, forward))
+		_eye_nodes.append(add_mesh(s, m, Vector3(side * spread, height, forward)))
 
 
 func add_collision(radius: float, height: float) -> void:

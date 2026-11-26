@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 – Etappe 1–5 am Handy getestet, Etappe 6 (Werte einstellen) läuft, Etappe 7 (Stein, Bögen, kleine Fackeln, Feuerstellen) zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.2 fertig bis auf Werte-Feinschliff (PR #2 nach `main`). v0.3 begonnen: Sicht zum Testen.** Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -162,6 +162,24 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - **Gebiete erhellen statt selbst sammeln**: Draußen Gebiete hell machen (z. B. per Leuchtfeuer), dann Bewohner als Holzfäller und Jäger/Sammler dorthin schicken.
 - **Gebäude-Upgrades.**
 - **Begehbarer Wachturm**: erhöht stehen und von dort schießen.
+
+---
+
+# Version v0.3 – (in Arbeit)
+
+Max: „Fang damit an, was du am sinnvollsten hältst.“ Reihenfolge-Vorschlag: Sicht → Ausrüstung → Wahnsinn →
+echte Grafik → Meta-Fortschritt/Herkünfte/Story.
+
+## Sicht (zum Testen)
+- Jeder Gegner bekommt `scripts/enemies/enemy_sight.gd` (prüft ~7× pro Sekunde, versetzt):
+  - **voll sichtbar**: freie Sicht vom Hüter und der Gegner steht im Licht (Laterne, Feuer …) oder ist näher als 3,5 m –
+    oder er steht im Licht eines Feuers/einer Fackel/Feuerstelle/des Torfeuers (dort wachen die Bewohner; so sieht man
+    die Belagerung auch von drinnen).
+  - **nur Augen**: freie Sicht, aber im Dunkeln → nur die roten Augen leuchten (doppelt so groß).
+  - **unsichtbar**: Baum, Fels oder Mauer im Weg, oder weiter als 24 m.
+- Lebensbalken nur bei voll sichtbaren Gegnern. Warnkreise (Verlorener, Boss) bleiben immer sichtbar.
+- Werte-Menü, Gruppe „Sicht“: Sicht an/aus (zum Vergleichen), „Im Dunkeln ganz sichtbar bis m“.
+- Neue Werte: `sight_enabled`, `sight_near` (3,5 m), `sight_range` (24 m).
 
 ---
 

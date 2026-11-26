@@ -219,6 +219,11 @@ var mend_heal_per_level := 4.0     # Labung
 var echo_cast_per_level := 0.15    # Echo: Cast-Verlängerung sinkt je Stufe
 var sacrifice_per_level := 0.5     # Opferlicht: +0,5 Multiplikator je Stufe
 
+# --- Sicht (v0.3) -----------------------------------------------------------
+var sight_enabled := true          # false = alle Gegner immer sichtbar (wie v0.2)
+var sight_near := 3.5              # m – so nah sieht man einen Gegner auch im Dunkeln ganz
+var sight_range := 24.0            # m – weiter weg sieht man nichts (auch keine Augen)
+
 # --- Kamera ----------------------------------------------------------------
 var camera_width := 14.0           # wie viele Meter waagerecht ins Bild passen (Hochformat)
 var camera_follow := 0.0           # 0 = Kamera klebt direkt am Hüter; >0 = weiches Folgen

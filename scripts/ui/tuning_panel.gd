@@ -65,6 +65,9 @@ const ENTRIES := [
 	["Bogenschuss-Schaden", "bow_damage", 3, 30, 1, ""],
 	["EP für Stufe 2", "xp_first_level", 2, 40, 1, ""],
 	["EP mehr pro Stufe", "xp_level_step", 0, 30, 1, ""],
+	["Sicht"],
+	["Sicht an (1) / aus (0)", "sight_enabled", 0, 1, 1, "0 = alle Gegner sichtbar"],
+	["Im Dunkeln ganz sichtbar bis m", "sight_near", 0, 10, 0.5, ""],
 	["Hüter & Technik"],
 	["Laterne: Brenndauer s", "lantern_burn_time", 60, 480, 20, ""],
 	["Laufgeschwindigkeit", "player_speed", 3.0, 10.0, 0.5, ""],
@@ -172,7 +175,10 @@ func _write_value(key: String, v: float) -> void:
 		Sfx.play("pickup", 0.0, 0.0)
 		return
 	var old = Config.get(key)
-	Config.set(key, int(v) if typeof(old) == TYPE_INT else v)
+	if typeof(old) == TYPE_BOOL:
+		Config.set(key, v > 0.5)
+	else:
+		Config.set(key, int(v) if typeof(old) == TYPE_INT else v)
 	Config.keep_as_default(key)
 
 
