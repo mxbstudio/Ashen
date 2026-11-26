@@ -129,6 +129,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 | Schaden an Bewohnern | voll | ×0,5 | Probelauf: Kriecher-Rudel vor dem Tor |
 | Lichtfresser-Raubzug | alle 45 s, 8 s/s | alle 90 s, 5 s/s | Probelauf: Fackel-Nachlegen fraß mehr Holz als gehackt wurde |
 | Arbeiter pro Gang | 2 | 3 | Probelauf: zu viel Lauferei |
+| Wahnsinn sinkt am Feuer | 8/s | 1,5/s | Max: „zu einfach“ |
+| Wahnsinn sinkt in Fackellicht/Festung | 3/s | 0,5/s | Max: „zu einfach“ |
 
 ## Etappe 7 – fertig
 - **Belagerung** alle 8 min: 30 s vorher flackert das Feuer unruhig („Das Feuer flackert unruhig …“, kein Countdown). Dann läutet die Glocke (heller Blitz), Angreifer erscheinen in Gruppen vor dem Tor (12, jede weitere +4) und schlagen aufs Tor (Anzeige „BELAGERUNG“ mit Torleben und Angreifern). Normale Gegner erscheinen währenddessen nicht.
@@ -195,8 +197,8 @@ echte Grafik → Meta-Fortschritt/Herkünfte/Story.
 ## Wahnsinn (zum Testen)
 - Wert 0–100 (`scripts/madness.gd`), lila Balken oben rechts unter der Laterne (erscheint, sobald er steigt).
 - **Steigt** draußen außerhalb fester Lichter: 0,35/s bei voller Laterne, bis ×3 bei schwacher, 3/s bei leerer Laterne.
-- **Sinkt** im Licht einer Fackel/Feuerstelle, auf dem Turm und in der Festung (3/s), am Feuer/Leuchtfeuer/an
-  Feuerstellen schnell (8/s). Nach dem Tod 0. Wird gespeichert.
+- **Sinkt** im Licht einer Fackel, auf dem Turm und in der Festung (0,5/s), am Feuer/Leuchtfeuer/an
+  Feuerstellen (1,5/s; zuerst 3 bzw. 8 – Max: zu einfach). Nach dem Tod 0. Wird gespeichert.
 - **Ab 30**: dunkel-violetter Bildschirmrand (pulsiert, unter der Anzeige), Flüstern (neuer Platzhalter-Klang).
 - **Ab 50**: Trugbilder (`scripts/phantom.gd`): rote Augen im Dunkeln, die blinzeln und verschwinden; ab und zu ein
   Schatten-Kriecher, der heranstürzt und kurz vor dem Hüter verpufft. Kein Schaden, keine Ziele für die Skill-Leiste.

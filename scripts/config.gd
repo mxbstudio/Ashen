@@ -232,8 +232,8 @@ var equip_stone := [4, 10, 18]       # Stein für Stufe 1 / 2 / 3
 var madness_enabled := true
 var madness_rise := 0.35           # pro Sekunde draußen im Dunkeln bei voller Laterne (schwache Laterne: bis ×3)
 var madness_rise_no_lantern := 3.0 # pro Sekunde, wenn die Laterne aus ist
-var madness_heal_light := 3.0      # sinkt pro Sekunde im Licht einer Fackel/Feuerstelle, auf dem Turm, in der Festung
-var madness_heal_fire := 8.0       # sinkt pro Sekunde am Feuer, Leuchtfeuer, an einer Feuerstelle
+var madness_heal_light := 0.5      # sinkt pro Sekunde im Licht einer Fackel, auf dem Turm, in der Festung (zuerst 3)
+var madness_heal_fire := 1.5       # sinkt pro Sekunde am Feuer, Leuchtfeuer, an einer Feuerstelle (zuerst 8)
 var madness_damage := 3.0          # Schaden pro Sekunde bei 100 Wahnsinn
 
 # --- Sicht (v0.3) -----------------------------------------------------------
