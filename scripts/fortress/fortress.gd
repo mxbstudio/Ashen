@@ -527,26 +527,51 @@ func needs() -> Dictionary:
 	return {"wood": w, "food": f, "stone": st}
 
 
+## Gibt es in dieser Zone gerade etwas von dieser Art zu holen (und ist sie hell)?
+func zone_has(id: String, kind: String) -> bool:
+	if id == "" or not Zones.is_lit(get_tree(), id):
+		return false
+	match kind:
+		"wood":
+			var forest := get_tree().get_first_node_in_group("forest")
+			return forest != null and forest.nearest(Zones.center(get_tree(), id), Config.torch_light_radius - 1.5) >= 0
+		"food":
+			for r in get_tree().get_nodes_in_group("resources"):
+				if r.zone_id == id and r.is_available():
+					return true
+		"stone":
+			for r in get_tree().get_nodes_in_group("rocks"):
+				if r.zone_id == id and r.is_available():
+					return true
+	return false
+
+
 ## Eine helle Zone, in der es gerade etwas von dieser Art zu holen gibt ("" = keine).
 func _zone_with(kind: String) -> String:
-	var forest := get_tree().get_first_node_in_group("forest")
 	for z in ZoneDefs.ZONES:
-		var id: String = z["id"]
-		if not Zones.is_lit(get_tree(), id):
-			continue
-		match kind:
-			"wood":
-				if forest and forest.nearest(Zones.center(get_tree(), id), Config.torch_light_radius - 1.5) >= 0:
-					return id
-			"food":
-				for r in get_tree().get_nodes_in_group("resources"):
-					if r.zone_id == id and r.is_available():
-						return id
-			"stone":
-				for r in get_tree().get_nodes_in_group("rocks"):
-					if r.zone_id == id and r.is_available():
-						return id
+		if zone_has(z["id"], kind):
+			return z["id"]
 	return ""
+
+
+## Ausweich-Arbeit für einen Bewohner, dessen Zone leer ist: das Dringendste, was das Lager braucht –
+## zuerst in seiner eigenen Zone, sonst in der nächsten hellen Zone. [] = nichts Sinnvolles zu tun.
+func fallback_for(r: Node3D) -> Array:
+	var need := needs()
+	var kinds := ["wood", "food", "stone"]
+	kinds.sort_custom(func(a, b): return need[a] > need[b])
+	var zones: Array = []
+	for z in ZoneDefs.ZONES:
+		zones.append(z["id"])
+	zones.sort_custom(func(a, b): return Zones.center(get_tree(), a).distance_to(r.global_position) \
+			< Zones.center(get_tree(), b).distance_to(r.global_position))
+	for k in kinds:
+		if need[k] <= Config.smart_min_need:
+			continue
+		for z in zones:
+			if zone_has(z, k):
+				return [z, k]
+	return []
 
 
 ## Freie Bewohner verteilen sich selbst auf das, was das Lager am dringendsten braucht.
@@ -563,7 +588,7 @@ func _auto_jobs() -> void:
 	free.sort_custom(func(a, b): return a.auto_job and not b.auto_job)
 	for r in free:
 		var keep: bool = r.auto_job and need.get(r.zone_kind, 0.0) > Config.smart_min_need \
-				and zone_for.get(r.zone_kind, "") != ""
+				and zone_has(r.zone_id, r.zone_kind)   # nur bleiben, wenn es in SEINER Zone noch etwas gibt
 		if keep:
 			need[r.zone_kind] -= Config.smart_need_per_helper
 			continue

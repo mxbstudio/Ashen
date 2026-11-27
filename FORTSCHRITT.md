@@ -376,6 +376,18 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   - ein Angreifer, der 5 s nicht näher ans Tor kommt (Baum, Fels), springt auf den Platz vor dem Tor,
   - bei höchstens 3 übrigen Angreifern zeigen rote Wegweiser „Angreifer“ zu ihnen (auch von drinnen).
 
+### Bewohner stehen nicht mehr untätig an der Fackel (Max)
+- **Ursache**: War im Fackellicht ihrer Zone nichts mehr zu holen (Bäume gefällt – wachsen erst nach 6 min nach –,
+  Pilze leer), blieben Holzfäller/Sammler/Steinbrecher einfach an der Fackel stehen. Selbstständige Helfer blieben
+  sogar, solange es *irgendwo anders* noch etwas gab.
+- **Jetzt: Ausweich-Arbeit.** Ist die eigene Zone leer, fragt der Bewohner, was das Lager am dringendsten braucht
+  (Holz, Nahrung, Stein – nur, was nicht schon fast voll ist), und arbeitet dort: zuerst in der eigenen Zone, sonst
+  in der nächsten hellen Zone („hilft bei: Holz“). Alle 10 s schaut er, ob es in seiner Zone wieder etwas gibt, und
+  kehrt dann zurück („zurück zur eigenen Arbeit“). Wird die Ausweich-Zone dunkel, gilt wieder die eigene.
+  Gibt es nirgends etwas Sinnvolles, geht er heim ans Feuer und ruht ~25 s („nichts zu tun – ruht am Feuer“).
+  Im Menü bleibt er weiter seiner Zone zugeteilt.
+- Probelauf (Westsenke abgeholzt, 3 Holzfäller): sie holen Holz in Osthain und bringen es heim, statt zu warten.
+
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

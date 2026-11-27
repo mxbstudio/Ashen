@@ -25,6 +25,9 @@ const GATE_OUT := Vector3(0, 0, -15.0)   # draußen vor dem Tor
 var job: Node3D = null             # Gebäude, in dem er arbeitet (oder null)
 var zone_id := ""                  # Zonen-Arbeit: in welcher Zone ("" = keine)
 var zone_kind := ""                # "wood" (Holzfäller), "food" (Sammler) oder "stone" (Steinbrecher)
+var _alt_zone := ""                # Ausweich-Arbeit: in der eigenen Zone ist nichts mehr zu holen -> hilft hier
+var _alt_kind := ""
+var _alt_check := 0.0
 var hp := 0.0
 var cargo := 0                      # getragene Einheiten
 var cargo_kind := "wood"            # was er gerade trägt
@@ -228,7 +231,10 @@ func is_alive() -> bool:
 
 ## Darf er gerade in seiner Zone arbeiten?
 func can_work() -> bool:
-	return has_zone_job() and Zones.is_lit(get_tree(), zone_id) and not Zones.recalled(get_tree()) and not refuses()
+	if _alt_zone != "" and not Zones.is_lit(get_tree(), _alt_zone):
+		_alt_zone = ""   # Ausweich-Zone ist dunkel geworden: wieder die eigene Arbeit
+		_alt_kind = ""
+	return has_zone_job() and Zones.is_lit(get_tree(), wz()) and not Zones.recalled(get_tree()) and not refuses()
 
 
 ## Gebäude-Arbeit zuteilen (von der Festung).
@@ -247,6 +253,8 @@ func set_zone_job(id: String, kind: String, auto := false) -> void:
 		return
 	zone_id = id
 	zone_kind = kind
+	_alt_zone = ""
+	_alt_kind = ""
 	_node = null
 	_tree = -1
 	_work_after_delivery = false
@@ -360,10 +368,12 @@ func _work(delta: float) -> void:
 		return
 	var forest := get_tree().get_first_node_in_group("forest")
 	var spot := Vector3.INF
-	if zone_kind == "wood":
-		if forest == null or not forest.has_wood(_tree):
+	if wk() == "wood":
+		var c := Zones.center(get_tree(), wz())
+		if forest == null or not forest.has_wood(_tree) \
+				or forest.tree_pos(_tree).distance_to(c) > Config.torch_light_radius - 1.0:   # Baum muss in SEINER Zone stehen
 			# nur Bäume, die sicher im Licht der Zone stehen
-			_tree = forest.nearest(Zones.center(get_tree(), zone_id), Config.torch_light_radius - 1.5) if forest else -1
+			_tree = forest.nearest(Zones.center(get_tree(), wz()), Config.torch_light_radius - 1.5) if forest else -1
 			_gather_t = 0.0
 		if _tree >= 0:
 			spot = forest.tree_pos(_tree)
@@ -374,32 +384,46 @@ func _work(delta: float) -> void:
 		if _node:
 			spot = _node.global_position
 	if spot == Vector3.INF:
-		# nichts mehr zu holen: mit dem, was er hat, heim – sonst am Licht warten
+		# nichts mehr zu holen: mit dem, was er hat, abladen – dann überlegen, was sonst gebraucht wird
 		if cargo > 0:
 			_unload_or_home()
 		else:
-			_step_towards(Zones.center(get_tree(), zone_id) + Vector3(1.5, 0, 1.5), _speed(), delta)
+			_find_other_work()
 		return
+	# Ausweich-Arbeit: ab und zu schauen, ob es in der eigentlichen Zone wieder etwas gibt
+	if _alt_kind != "":
+		_alt_check -= delta
+		if _alt_check <= 0.0:
+			_alt_check = 10.0
+			var f := get_tree().get_first_node_in_group("fortress")
+			if f and f.zone_has(zone_id, zone_kind) and cargo == 0:
+				_alt_zone = ""
+				_alt_kind = ""
+				_number("zurück zur eigenen Arbeit", Color(0.8, 0.9, 1.0))
+				_node = null
+				_tree = -1
+				_go_out()
+				return
 	var to := spot - global_position
 	to.y = 0
-	var reach: float = _node.reach() if zone_kind == "stone" and _node else 1.1
+	var reach: float = _node.reach() if wk() == "stone" and _node else 1.1
 	if to.length() > reach:
 		_step_towards(spot, _speed(), delta)
 		return
 	_gather_t += delta
 	rotation.z = sin(_gather_t * 9.0) * 0.08   # kleine Arbeitsbewegung
 	var fort := get_tree().get_first_node_in_group("fortress")
-	if _gather_t >= Config.worker_gather_seconds / efficiency() * (fort.tool_factor(zone_kind) if fort else 1.0):
+	if _gather_t >= Config.worker_gather_seconds / efficiency() * (fort.tool_factor(wk()) if fort else 1.0):
 		_gather_t = 0.0
-		var ok: bool = forest.take_one(_tree) if zone_kind == "wood" else _node.take_one()
+		var ok: bool = forest.take_one(_tree) if wk() == "wood" else _node.take_one()
 		if ok:
 			cargo += 1
-			cargo_kind = zone_kind
+			cargo_kind = wk()
 			_load_mat.albedo_color = {"wood": Color(0.5, 0.32, 0.18), "food": Color(0.45, 0.85, 0.75),
-					"stone": Color(0.6, 0.6, 0.65)}[zone_kind]
+					"stone": Color(0.6, 0.6, 0.65)}[wk()]
 		if cargo >= carry_cap():
 			# Holzfäller sieht eine Feuerstelle in der Nähe, die bald ausgeht? Dann bringt er das Holz dorthin.
-			var pit := _low_fire_pit_near() if zone_kind == "wood" else null
+			var pit := _low_fire_pit_near() if wk() == "wood" else null
 			if pit:
 				_delivery_wood = cargo
 				cargo = 0
@@ -413,9 +437,9 @@ func _work(delta: float) -> void:
 func _find_node() -> Node3D:
 	var best: Node3D = null
 	var best_d := INF
-	var group := "rocks" if zone_kind == "stone" else "resources"
+	var group := "rocks" if wk() == "stone" else "resources"
 	for r in get_tree().get_nodes_in_group(group):
-		if r.zone_id == zone_id and (zone_kind == "stone" or r.kind == zone_kind) and r.is_available():
+		if r.zone_id == wz() and (wk() == "stone" or r.kind == wk()) and r.is_available():
 			var d := global_position.distance_to(r.global_position)
 			if d < best_d:
 				best_d = d
@@ -430,7 +454,7 @@ func _go_out() -> void:
 	if not is_exposed():
 		_path.append(GATE_IN)
 		_path.append(GATE_OUT)
-	_path.append(Zones.center(get_tree(), zone_id) + Vector3(_rng.randf_range(-1.5, 1.5), 0, _rng.randf_range(1.0, 2.0)))
+	_path.append(Zones.center(get_tree(), wz()) + Vector3(_rng.randf_range(-1.5, 1.5), 0, _rng.randf_range(1.0, 2.0)))
 
 
 func _go_home() -> void:
@@ -722,7 +746,7 @@ func _cart_total() -> int:
 ## Volle Ladung: gibt es Karren, an der Fackel ablegen und weiterarbeiten – sonst wie früher heim.
 func _unload_or_home() -> void:
 	var fort := get_tree().get_first_node_in_group("fortress")
-	var d: Node3D = fort.depot_of(zone_id) if fort and fort.has_carts() else null
+	var d: Node3D = fort.depot_of(wz()) if fort and fort.has_carts() else null
 	if d == null or d.space(cargo_kind) <= 0:
 		_go_home()
 		return
@@ -868,3 +892,42 @@ func _defend_step(delta: float) -> void:
 		return
 	global_position = _post
 	rotation.y = PI   # nach Norden, zum Tor hin
+
+
+
+# --- Ausweich-Arbeit --------------------------------------------------------------
+
+## Zone und Art, in der er gerade wirklich arbeitet (eigene Zuteilung oder Ausweich-Arbeit).
+func wz() -> String:
+	return _alt_zone if _alt_zone != "" else zone_id
+
+
+func wk() -> String:
+	return _alt_kind if _alt_kind != "" else zone_kind
+
+
+## In der Zone ist nichts mehr zu holen: das Lager fragen, was sonst gebraucht wird, und dort helfen.
+## Gibt es nirgends etwas Sinnvolles, geht er heim ans Feuer und ruht etwas, statt draußen herumzustehen.
+func _find_other_work() -> void:
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var alt: Array = fort.fallback_for(self) if fort else []
+	if alt.is_empty():
+		_alt_zone = ""
+		_alt_kind = ""
+		_go_home()
+		_wait = 25.0   # erst später wieder hinaus
+		_number("nichts zu tun – ruht am Feuer", Color(0.8, 0.8, 0.8))
+		return
+	var z: String = alt[0]
+	var k: String = alt[1]
+	if z == zone_id and k == zone_kind:
+		_alt_zone = ""
+		_alt_kind = ""
+	else:
+		_alt_zone = z
+		_alt_kind = k
+		_alt_check = 10.0
+		_number("hilft bei: %s" % {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[k], Color(0.8, 0.9, 1.0))
+	_node = null
+	_tree = -1
+	_go_out()
