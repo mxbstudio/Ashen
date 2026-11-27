@@ -1,7 +1,8 @@
 ## Wahnsinn des Hüters (v0.3). Hängt als Kind am Hüter ("Madness").
 ## - Steigt draußen in der Dunkelheit (außerhalb von Feuer, Fackeln, Feuerstellen, Leuchtfeuer),
 ##   schneller bei schwacher oder leerer Laterne – und durch dunkle Skills.
-## - Sinkt nur langsam am Feuer (Ruhe kostet Zeit), etwas durch den Tod und manche Ereignisse.
+## - Sinkt nur langsam am Feuer (Ruhe kostet Zeit), etwas durch den Tod, manche Ereignisse und Licht-Skills.
+##   Talismane: Herdstein (am Feuer ×3), Glutamulett (auch an Fackeln, Feuerstellen, Leuchtfeuer).
 ## - Stufen: 25 unruhig · 50 gezeichnet · 75 verloren. Jede Stufe +10 % Schaden.
 ##   Ab 25: Flüstern, dunkle Skills im Stufenaufstieg. Ab 50: Trugbilder (falsche Augen im Dunkeln),
 ##   die Anzeige lügt manchmal, die Bewohner fürchten dich. Ab 75: Trugbilder springen dich an.
@@ -106,7 +107,12 @@ func _update_value(delta: float) -> void:
 			var fort := get_tree().get_first_node_in_group("fortress")
 			if fort:
 				preachers = fort.trait_count("prediger")
-			add(-(Config.madness_fire_recover + 0.15 * preachers) * delta)
+			var rate := Config.madness_fire_recover + 0.15 * preachers
+			if player.has_talisman("hearthstone"):
+				rate *= 3.0   # Herdstein
+			add(-rate * delta)
+		elif player.has_talisman("embercharm"):
+			add(-Config.madness_fire_recover * delta)   # Glutamulett: auch an kleineren Feuern
 		return
 	if pos.z > -12.0:
 		return   # in der Festung, aber nicht am Feuer: nichts

@@ -97,7 +97,7 @@ func _card(id: String) -> Button:
 		col = Color(0.6, 0.9, 0.6)
 	elif id.begins_with("new:"):
 		var sid := id.substr(4)
-		text = ("DUNKEL: " if SkillData.is_dark(sid) else "NEU: ") + UiStyle.skill_text(sid)
+		text = ("DUNKEL: " if SkillData.is_dark(sid) else ("LICHT: " if SkillData.is_light(sid) else "NEU: ")) + UiStyle.skill_text(sid)
 		col = SkillData.color(sid)
 	else:
 		var sid := id.substr(3)

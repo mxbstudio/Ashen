@@ -34,6 +34,13 @@ const DEFS := {
 			"desc": "Löst das Feld davor (links) noch einmal aus – Angriff schwächer, Modifikator ganz"},
 	"oath": {"name": "Schwur", "short": "Schwur", "type": MODIFIER, "elem": "Licht",
 			"desc": "Im LETZTEN Feld: ganze nächste Runde stärker. Sonst nur der nächste Angriff etwas"},
+	# --- Licht-Skills: senken den Wahnsinn, stärker mit klarem Geist ---
+	"purge": {"name": "Läuterung", "short": "Läutern", "type": ATTACK, "elem": "Licht", "light": true,
+			"desc": "Lichtwelle rundum. Senkt den Wahnsinn. Stärker, je klarer dein Geist ist"},
+	"lance": {"name": "Lichtlanze", "short": "Lanze", "type": ATTACK, "elem": "Licht", "light": true,
+			"desc": "Lichtstrahl auf den nächsten Gegner. Senkt den Wahnsinn. Stärker mit klarem Geist"},
+	"vigil": {"name": "Andacht", "short": "Andacht", "type": MODIFIER, "elem": "Licht", "light": true,
+			"desc": "Nächster Angriff senkt den Wahnsinn um 3"},
 	# --- dunkle Skills (nur bei Wahnsinn ab 25 im Angebot) ---
 	"rift": {"name": "Schattenriss", "short": "Riss", "type": ATTACK, "elem": "Schatten", "dark": true,
 			"desc": "Schattenklinge trifft alles in einer Linie. Stärker mit Wahnsinn, nährt den Wahn"},
@@ -65,6 +72,12 @@ const BRANCHES := {
 			"b": ["Dunkler Spiegel", "Kopiert Modifikatoren doppelt, Angriffe gar nicht"]},
 	"oath": {"a": ["Ewiger Schwur", "Wirkt in jedem Feld als Runden-Bonus, aber nur +15 %"],
 			"b": ["Blutschwur", "Im letzten Feld +50 %, kostet 3 Leben pro Runde"]},
+	"purge": {"a": ["Heilige Flamme", "Getroffene brennen"],
+			"b": ["Reinigung", "Senkt den Wahnsinn doppelt, halber Schaden"]},
+	"lance": {"a": ["Durchbohren", "Trifft alle Gegner auf der Linie"],
+			"b": ["Blenden", "Ziel ist 2 s erschüttert (Sichel zerschmettert)"]},
+	"vigil": {"a": ["Tiefe Andacht", "Senkt den Wahnsinn doppelt"],
+			"b": ["Lichtsegen", "Nächster Angriff zusätzlich +20 % Schaden"]},
 	"rift": {"a": ["Schlund", "Linie doppelt so lang"],
 			"b": ["Blutriss", "Heilt um 20 % des Schadens"]},
 	"scream": {"a": ["Grauen", "Furcht doppelt so lange"],
@@ -86,6 +99,10 @@ static func is_dark(id: String) -> bool:
 	return DEFS.has(id) and DEFS[id].get("dark", false)
 
 
+static func is_light(id: String) -> bool:
+	return DEFS.has(id) and DEFS[id].get("light", false)
+
+
 static func short_name(id: String) -> String:
 	return DEFS[id]["short"] if DEFS.has(id) else ""
 
@@ -105,6 +122,8 @@ static func cast_time(id: String) -> float:
 		"bell": return Config.cast_bell
 		"rift": return Config.cast_rift
 		"scream": return Config.cast_scream
+		"purge": return Config.cast_purge
+		"lance": return Config.cast_lance
 	if is_modifier(id):
 		return Config.cast_modifier
 	return 0.0
@@ -113,6 +132,8 @@ static func cast_time(id: String) -> float:
 static func color(id: String) -> Color:
 	if is_dark(id):
 		return Color(0.7, 0.35, 0.95)
+	if is_light(id):
+		return Color(1.0, 0.9, 0.45)
 	if is_attack(id):
 		return Color(0.95, 0.5, 0.25)
 	if is_modifier(id):
@@ -135,7 +156,8 @@ static func upgrade_text(id: String) -> String:
 	var dmg := "+%d %% Schaden" % int(Config.skill_damage_per_level * 100)
 	match id:
 		"sickle": return "%s, +%.1f m Reichweite" % [dmg, Config.sickle_range_per_level]
-		"bow", "rift", "scream": return dmg
+		"bow", "rift", "scream", "purge", "lance": return dmg
+		"vigil": return "senkt den Wahnsinn um 1 mehr"
 		"ember": return "%s, +%.1f Brand/s" % [dmg, Config.ember_burn_per_level]
 		"bell": return "%s, +%.1f m Radius" % [dmg, Config.bell_radius_per_level]
 		"mend": return "+%d Heilung" % int(Config.mend_heal_per_level)

@@ -156,6 +156,12 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - **Ziel-Hinweis** beim Start (3 Zeilen, 6 s).
 - HUD-Übersicht: oben links Festung (Feuer/Holz mit Restzeit bzw. „Feuer flackert …“ als Vorzeichen, Nahrung, Bewohner); oben rechts Leben, Laterne, Tränke, Stufe/EP, Trage, Vorrat; oben Mitte Belagerung/Boss; Mitte kurze Meldungen; unten Skill-Leiste mit Marker über Joystick/Dash/Trank.
 
+## Für eine spätere Etappe gemerkt (Max)
+- **Bewohner mit eigenständigem Leben**: Jeder hat Hunger und andere Bedürfnisse, die er sich selbst erfüllt.
+  **Arbeitszeiten**, in denen fürs Lager gearbeitet wird; in der **Freizeit** z. B. selbst Holz hacken und ein
+  **eigenes Haus bauen**, Nahrung für zu Hause sammeln, **sich paaren und Kinder bekommen**, **für den Kampf trainieren** usw.
+  (Noch nicht umgesetzt – eigene Etappe.)
+
 ## Ideen für später (v0.2) – von Max beim Testen
 - ~~**Wald** außerhalb der Festung~~ → in Etappe 7 umgesetzt.
 - **Sicht nur, was der Hüter wirklich sieht** (Gegner hinter Bäumen/Mauern unsichtbar). Schießen nur mit freier Sicht gibt es schon.
@@ -298,6 +304,28 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   Knöpfe zeigen dann „Nicht genug Holz – 5 bleiben fürs Feuer“.
 - Neue Werte: `vital_reserve` (5), `cost_carts` (10), `cart_capacity` (15), `cart_speed` (2,2), `cart_min_load` (4),
   `depot_cap` (20 je Rohstoff).
+
+### Wahn-Entscheidungen, Talismane und Licht gegen den Wahn, Angriffe nur in Reichweite (Wunsch Max)
+- **Entscheidungen des Wahns**: Ab Wahnsinn 75 („verloren“) gibt es nur noch diese Ereignisse – und öfter (×0,6 Abstand).
+  Violetter Titel „Der Wahn spricht“, zwei rote Knöpfe, **beide Antworten schlecht**:
+  *Der Dieb* (sofort töten / vor allen hinrichten), *Der Blick* (in die Dunkelheit jagen / ohne Laterne Holz holen
+  schicken), *Gift* (halbes Holz / halbe Nahrung wegwerfen), *Das Opfer* (einen Bewohner opfern, −20 Wahnsinn /
+  eigenes Blut: −15 maximales Leben für immer), *Verschwörung* (zwei einsperren ohne Essen / einen töten).
+  Wert: `madness_event_threshold` (75).
+- **Talismane gegen den Wahn**: *Herdstein* – am Feuer der Festung sinkt der Wahnsinn dreimal so schnell;
+  *Glutamulett* – der Wahnsinn sinkt auch an Fackeln, Feuerstellen und am Leuchtfeuer.
+- **Licht-Skills** (gelb, im Stufenaufstieg „LICHT:“, immer im Angebot): senken den Wahnsinn und sind stärker, je klarer
+  der Geist ist (×1,3 bei Wahn 0 bis ×0,7 bei Wahn 100) – das Gegenstück zu den dunklen Skills.
+  - *Läuterung* (Angriff, 1,0 s): Lichtwelle rundum 4 m, 8 Schaden, −1,5 Wahnsinn.
+    Abzweigung: *Heilige Flamme* (Getroffene brennen) oder *Reinigung* (doppelt Wahn weg, halber Schaden).
+  - *Lichtlanze* (Angriff, 0,9 s): Strahl auf den nächsten Gegner, 12 Schaden, −0,8 Wahnsinn.
+    Abzweigung: *Durchbohren* (alle auf der Linie) oder *Blenden* (2 s erschüttert → Sichel zerschmettert).
+  - *Andacht* (Modifikator): nächster Angriff senkt den Wahnsinn um 3.
+    Abzweigung: *Tiefe Andacht* (doppelt) oder *Lichtsegen* (+20 % Schaden).
+- **Angriffe laden erst in Reichweite**: Steht im aktuellen Feld ein Angriff und ist kein Gegner in *seiner* Reichweite
+  (Sichel 2,8 m, Glocke 4,5 m, Bogen/Glut/Lanze 14 m …), lädt das Feld nicht und die Leiste wartet dort
+  (Anzeige „Sichel wartet – Gegner zu weit weg“). Modifikatoren laden immer. Die Reihenfolge in der Leiste wird damit
+  wichtiger: Sichel vorn hält die Leiste an, bis jemand nah genug ist.
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

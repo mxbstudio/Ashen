@@ -270,6 +270,9 @@ func _draw_skill_bar(font: Font, bar: Node) -> void:
 	elif not running:
 		draw_string(font, Vector2(x0, y0 + slot_h + 34), "Leiste ruht – kein Gegner in der Nähe",
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.4))
+	if running and bar.waiting:
+		draw_string(font, Vector2(x0, y0 + slot_h + 58), "%s wartet – Gegner zu weit weg" % SkillData.short_name(bar.slots[bar.index]),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.8, 0.5, 0.7))
 
 
 ## Zeichnet einen beschrifteten Balken.

@@ -25,6 +25,10 @@ const DEFS := {
 			"desc": "Bogen, Glut und Riss treffen einen Gegner mehr"},
 	"deathbell": {"name": "Totenglocke",
 			"desc": "Jeder getötete Gegner lädt den laufenden Cast um 30 % auf"},
+	"hearthstone": {"name": "Herdstein",
+			"desc": "Am Feuer der Festung sinkt der Wahnsinn dreimal so schnell"},
+	"embercharm": {"name": "Glutamulett",
+			"desc": "Auch an Fackeln, Feuerstellen und am Leuchtfeuer sinkt der Wahnsinn"},
 	"madstone": {"name": "Wahnstein",
 			"desc": "Dunkle Skills +50 % Schaden, aber der Wahn steigt doppelt so schnell"},
 }

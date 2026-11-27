@@ -262,6 +262,7 @@ var madness_death_relief := 25.0   # der Tod klärt den Geist etwas
 var madness_damage_per_stage := 0.1 # +10 % Schaden je Wahn-Stufe (25 / 50 / 75)
 var madness_dark_offer := 25.0     # ab so viel Wahnsinn bietet der Stufenaufstieg dunkle Skills an
 var madness_full_drain := 2.0      # Leben pro s bei 100 Wahnsinn
+var madness_event_threshold := 75.0 # ab so viel Wahnsinn („komplett wahnsinnig“) gibt es nur noch die Entscheidungen des Wahns
 var cast_rift := 0.7               # Schattenriss
 var rift_damage := 14.0
 var rift_length := 7.0             # m Linie vor dem Hüter
@@ -272,6 +273,15 @@ var scream_radius := 5.0
 var scream_fear := 2.5             # s fliehen die Gegner
 var scream_madness := 1.0
 var pact_madness := 1.5            # Schattenpakt
+# Licht-Skills (v0.3): arbeiten gegen den Wahn – je klarer der Geist, desto stärker
+var cast_purge := 1.0              # Läuterung
+var purge_damage := 8.0
+var purge_radius := 4.0
+var purge_madness := 1.5           # so viel Wahnsinn senkt ein Einsatz
+var cast_lance := 0.9              # Lichtlanze
+var lance_damage := 12.0
+var lance_madness := 0.8
+var vigil_madness := 3.0           # Andacht (Modifikator)
 
 # --- Bewohner mit Eigenleben (v0.3) ----------------------------------------------
 var mood_start := 60.0             # Stimmung 0–100

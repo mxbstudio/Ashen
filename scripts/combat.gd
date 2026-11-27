@@ -55,6 +55,22 @@ func has_line_of_sight(e: Node3D) -> bool:
 	return space.intersect_ray(q).is_empty()
 
 
+## Reichweite eines Angriffs (m) – erst wenn ein Gegner so nah ist, lädt das Feld.
+func skill_range(id: String) -> float:
+	match id:
+		"sickle": return Config.sickle_range + Config.sickle_range_per_level * (_lvl("sickle") - 1) + 0.6
+		"bow", "ember", "lance": return Config.bow_range + player.range_bonus()
+		"bell": return Config.bell_radius + Config.bell_radius_per_level * (_lvl("bell") - 1) + 0.5
+		"rift": return Config.rift_length * (2.0 if _br("rift", "a") else 1.0)
+		"scream": return Config.scream_radius + 0.5
+		"purge": return Config.purge_radius + 0.5
+	return Config.combat_range + player.range_bonus()
+
+
+func in_range(id: String) -> bool:
+	return nearest_enemy(skill_range(id)) != null
+
+
 func enemy_near() -> bool:
 	return nearest_enemy(Config.combat_range + player.range_bonus()) != null
 
@@ -100,6 +116,18 @@ func perform(id: String, mods: Array, mult := 1.0, extra := 0) -> void:
 	dmg_mult *= 1.0 + player.madness.damage_bonus()
 	if _tal("ashheart") and player.lantern.fraction() < 0.3:
 		dmg_mult *= 1.4
+	if SkillData.is_light(id):
+		dmg_mult *= 1.3 - 0.6 * player.madness.value / 100.0   # klarer Geist: stärker
+		var calm := Config.purge_madness if id == "purge" else Config.lance_madness
+		if id == "purge" and _br("purge", "b"):
+			calm *= 2.0
+			dmg_mult *= 0.5
+		player.madness.add(-calm)
+	for i in mods.count("vigil"):
+		var v := Config.vigil_madness + (_lvl("vigil") - 1)
+		player.madness.add(-v * (2.0 if _br("vigil", "a") else 1.0))
+		if _br("vigil", "b"):
+			dmg_mult *= 1.2
 	if SkillData.is_dark(id):
 		if _tal("madstone"):
 			dmg_mult *= 1.5
@@ -115,6 +143,8 @@ func perform(id: String, mods: Array, mult := 1.0, extra := 0) -> void:
 			burn_time *= 3.0
 	if _tal("crown"):
 		burn_dps = maxf(burn_dps, 2.0)
+	if id == "purge" and _br("purge", "a"):
+		burn_dps = maxf(burn_dps, 3.0)   # Heilige Flamme
 	for r in repeats:
 		if r > 0:
 			await get_tree().create_timer(0.18).timeout
@@ -127,7 +157,7 @@ func perform(id: String, mods: Array, mult := 1.0, extra := 0) -> void:
 		var mend_amount := Config.mend_heal + Config.mend_heal_per_level * (_lvl("mend") - 1)
 		var ctx := {"heal": mend_amount * mods.count("mend"), "skill": id,
 				"burn": burn_dps, "burn_time": burn_time}
-		Sfx.play("swing" if id in ["sickle", "bell", "rift"] else "shoot")
+		Sfx.play("swing" if id in ["sickle", "bell", "rift", "purge"] else "shoot")
 		match id:
 			"sickle": _sickle(rep_mult, ctx)
 			"bow": _bow(rep_mult, ctx)
@@ -135,6 +165,8 @@ func perform(id: String, mods: Array, mult := 1.0, extra := 0) -> void:
 			"bell": _bell(rep_mult, ctx)
 			"rift": _rift(rep_mult, ctx)
 			"scream": _scream(rep_mult, ctx)
+			"purge": _purge(rep_mult, ctx)
+			"lance": _lance(rep_mult, ctx)
 
 
 ## Treffer austeilen. ctx["heal"] ist ein gemeinsamer "Heil-Gutschein" (Labung):
@@ -366,6 +398,68 @@ func _rift(mult: float, ctx: Dictionary) -> void:
 	fx.rotation.y = atan2(fwd.x, fwd.z)
 	var tw := fx.create_tween()
 	tw.tween_property(mat, "albedo_color:a", 0.0, 0.35)
+	tw.tween_callback(fx.queue_free)
+
+
+## Läuterung: Lichtwelle rundum.
+func _purge(mult: float, ctx: Dictionary) -> void:
+	for e in enemies():
+		if _flat_dist(e.global_position, player.global_position) > Config.purge_radius + e.hit_radius:
+			continue
+		if has_line_of_sight(e):
+			hit(e, Config.purge_damage * mult, ctx)
+	Sfx.play("ignite", -4.0, 0.2)
+	var fx := MeshInstance3D.new()
+	fx.set_script(WaveScript)
+	player.get_parent().add_child(fx)
+	fx.global_position = player.global_position + Vector3(0, 0.3, 0)
+	fx.setup(Config.purge_radius, false)
+
+
+## Lichtlanze: Strahl auf den nächsten Gegner (mit „Durchbohren“ auf alle in der Linie).
+func _lance(mult: float, ctx: Dictionary) -> void:
+	var target := nearest_enemy(skill_range("lance"))
+	if target == null:
+		return
+	var dir: Vector3 = target.global_position - player.global_position
+	dir.y = 0
+	var length := dir.length()
+	dir = dir.normalized()
+	player.facing = dir
+	var victims := [target]
+	if _br("lance", "a"):
+		length = skill_range("lance")
+		for e in enemies():
+			if e == target:
+				continue
+			var to: Vector3 = e.global_position - player.global_position
+			to.y = 0
+			var along := to.dot(dir)
+			if along > 0.0 and along < length and (to - dir * along).length() < 0.9 + e.hit_radius:
+				victims.append(e)
+	for e in victims:
+		hit(e, Config.lance_damage * mult, ctx)
+		if _br("lance", "b") and is_instance_valid(e) and e.is_alive():
+			e.stagger(2.0)
+	_beam(player.global_position, dir, length, Color(1, 0.95, 0.6, 0.85), 0.5)
+
+
+## Lichtstrahl / Schattenstreifen (verblasst schnell).
+func _beam(from: Vector3, dir: Vector3, length: float, col: Color, width: float) -> void:
+	var fx := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(width, 0.08, length)
+	fx.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = col
+	fx.material_override = mat
+	player.get_parent().add_child(fx)
+	fx.global_position = from + dir * (length / 2.0) + Vector3(0, 1.0, 0)
+	fx.rotation.y = atan2(dir.x, dir.z)
+	var tw := fx.create_tween()
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.3)
 	tw.tween_callback(fx.queue_free)
 
 

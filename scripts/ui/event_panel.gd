@@ -49,6 +49,8 @@ func _process(delta: float) -> void:
 	if time_left > 0.0:
 		return
 	time_left = Config.event_interval * _rng.randf_range(0.8, 1.25)
+	if player.madness.value >= Config.madness_event_threshold:
+		time_left *= 0.6   # der Wahn drängt öfter zu Entscheidungen
 	var ev := _pick()
 	if not ev.is_empty():
 		_show(ev)
@@ -57,7 +59,10 @@ func _process(delta: float) -> void:
 ## Ein passendes Ereignis würfeln (nicht zweimal dasselbe hintereinander).
 func _pick() -> Dictionary:
 	var list := []
-	for id in ["stranger", "kin", "hunger", "quarrel", "relic", "heretic", "prayer"]:
+	var ids := ["stranger", "kin", "hunger", "quarrel", "relic", "heretic", "prayer"]
+	if player.madness.value >= Config.madness_event_threshold:
+		ids = MAD_EVENTS   # komplett wahnsinnig: nur noch die Entscheidungen des Wahns
+	for id in ids:
 		if id == _last:
 			continue
 		var ev := _build(id)
@@ -81,6 +86,8 @@ func _any(arr: Array) -> Node3D:
 ## Ereignis zusammenbauen: Titel, Text, zwei Antworten [Knopf, Hinweis, Folge].
 func _build(id: String) -> Dictionary:
 	var home := _home_residents()
+	if id in MAD_EVENTS:
+		return _build_mad(id)
 	match id:
 		"stranger":
 			if fortress.residents.size() >= Config.residents_max:
@@ -145,14 +152,19 @@ func _show(ev: Dictionary) -> void:
 	touch_controls.reset()
 	get_tree().paused = true
 	visible = true
+	var mad: bool = ev.get("mad", false)
 	for c in _box.get_children():
 		c.queue_free()
-	_box.add_child(UiStyle.label(ev["title"], 44, Color(1, 0.75, 0.45)))
+	if mad:
+		_box.add_child(UiStyle.label("Der Wahn spricht", 26, Color(0.8, 0.5, 1.0, 0.8)))
+	_box.add_child(UiStyle.label(ev["title"], 44, Color(0.85, 0.45, 1.0) if mad else Color(1, 0.75, 0.45)))
 	_box.add_child(UiStyle.label(ev["text"], 28, Color(1, 1, 1, 0.9)))
 	for k in ["a", "b"]:
 		var opt: Array = ev[k]
-		var btn := UiStyle.button("%s\n%s" % [opt[0], opt[1]], Color(0.9, 0.7, 0.45) if k == "a" else Color(0.6, 0.7, 0.9),
-				26, Vector2(0, 170))
+		var col := Color(0.9, 0.7, 0.45) if k == "a" else Color(0.6, 0.7, 0.9)
+		if mad:
+			col = Color(0.85, 0.2, 0.25) if k == "a" else Color(0.6, 0.15, 0.45)
+		var btn := UiStyle.button("%s\n%s" % [opt[0], opt[1]], col, 26, Vector2(0, 170))
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		btn.pressed.connect(_answer.bind(opt[2]))
 		_box.add_child(btn)
@@ -260,3 +272,113 @@ func _pray() -> void:
 
 func _refuse_prayer() -> void:
 	fortress.mood_shock(-5.0)
+
+
+
+# --- Entscheidungen des Wahns (ab Config.madness_event_threshold) ---------------------
+# Nur zwei Antworten – und beide sind schlecht. Das ist der Wahn des Hüters.
+
+const MAD_EVENTS := ["mad_theft", "mad_stare", "mad_poison", "mad_sacrifice", "mad_whisper"]
+
+
+func _build_mad(id: String) -> Dictionary:
+	var r := _any(fortress.residents)
+	if r == null:
+		return {}
+	match id:
+		"mad_theft":
+			return {"id": id, "mad": true, "title": "Der Dieb",
+				"text": "%s hat Holz vom Feuer genommen. Du hast es gesehen. Ganz sicher." % r.res_name,
+				"a": ["%s sofort töten" % r.res_name, "Still und schnell. Die anderen finden die Leiche am Morgen", _mad_kill.bind(r, false)],
+				"b": ["Vor allen hinrichten", "Damit es jeder sieht. Die Angst sitzt tief", _mad_kill.bind(r, true)]}
+		"mad_stare":
+			return {"id": id, "mad": true, "title": "Der Blick",
+				"text": "%s starrt dich an. %s weiß es. Weiß alles." % [r.res_name, r.res_name],
+				"a": ["%s in die Dunkelheit jagen" % r.res_name, "Ohne Licht. Niemand kommt von dort zurück", _mad_banish.bind(r)],
+				"b": ["Ohne Laterne Holz holen schicken", "Vielleicht kommt %s zurück. Vielleicht nicht" % r.res_name, _mad_errand.bind(r)]}
+		"mad_poison":
+			return {"id": id, "mad": true, "title": "Gift",
+				"text": "Die Stimmen sagen: Etwas im Lager ist vergiftet. Du riechst es.",
+				"a": ["Das Holz ins Dunkel werfen", "Die Hälfte des Holzes ist fort", _mad_poison.bind("wood")],
+				"b": ["Die Nahrung verbrennen", "Die Hälfte der Nahrung ist fort", _mad_poison.bind("food")]}
+		"mad_sacrifice":
+			return {"id": id, "mad": true, "title": "Das Opfer",
+				"text": "Die Dunkelheit verlangt Blut. Sie wird nicht schweigen, bis sie es bekommt.",
+				"a": ["%s opfern" % r.res_name, "Ein Leben – dafür wird es kurz still in dir (−20 Wahnsinn)", _mad_sacrifice_res.bind(r)],
+				"b": ["Dein eigenes Blut geben", "−15 maximales Leben, für immer", _mad_sacrifice_self]}
+		"mad_whisper":
+			var list: Array = fortress.residents.duplicate()
+			if list.size() < 2:
+				return {}
+			list.shuffle()
+			var a: Node3D = list[0]
+			var b: Node3D = list[1]
+			return {"id": id, "mad": true, "title": "Verschwörung",
+				"text": "%s und %s flüstern miteinander. Über dich. Über das Feuer." % [a.res_name, b.res_name],
+				"a": ["Beide einsperren, ohne Essen", "Sie werden es nicht vergessen – keiner wird es vergessen", _mad_lockup.bind(a, b)],
+				"b": ["Einen von beiden töten", "Der andere wird schweigen. Für immer", _mad_kill.bind(a, true)]}
+	return {}
+
+
+func _mad_kill(r: Node3D, public: bool) -> void:
+	if not is_instance_valid(r) or not fortress.residents.has(r):
+		return
+	if public:
+		fortress.kill_resident("%s wurde vor allen hingerichtet.", r)
+		fortress.mood_shock(-15.0)
+	else:
+		fortress.kill_resident("%s wurde im Schlaf getötet.", r)
+		fortress.mood_shock(-6.0)
+	_toast("Das Feuer knistert. Niemand sagt ein Wort.")
+
+
+func _mad_banish(r: Node3D) -> void:
+	if is_instance_valid(r) and fortress.residents.has(r):
+		fortress.graves.append([r.res_name, "%s wurde in die Dunkelheit gejagt." % r.res_name])
+		fortress.update_graves()
+		fortress.remove_resident(r, "%s wurde in die Dunkelheit gejagt." % r.res_name, true)
+
+
+func _mad_errand(r: Node3D) -> void:
+	if is_instance_valid(r) and fortress.residents.has(r):
+		r.mood = maxf(r.mood - 30.0, 0.0)
+		if _rng.randf() < 0.6:
+			fortress.graves.append([r.res_name, "%s kam ohne Laterne nicht zurück." % r.res_name])
+			fortress.update_graves()
+			fortress.remove_resident(r, "%s ist ohne Laterne in den Wald gegangen – und nicht zurückgekehrt." % r.res_name, true)
+		else:
+			r.hp = 1.0
+			_toast("%s kommt zurück. Blutend. Mit leeren Händen." % r.res_name)
+
+
+func _mad_poison(kind: String) -> void:
+	if kind == "wood":
+		fortress.wood = maxf(1.0, floorf(fortress.wood / 2.0))
+		_toast("Das Holz verschwindet in der Dunkelheit.")
+	else:
+		fortress.food = floorf(fortress.food / 2.0)
+		_toast("Der Gestank verbrannter Pilze hängt über der Festung.")
+	fortress.mood_shock(-8.0)
+
+
+func _mad_sacrifice_res(r: Node3D) -> void:
+	if is_instance_valid(r) and fortress.residents.has(r):
+		fortress.kill_resident("%s wurde der Dunkelheit geopfert.", r)
+		fortress.mood_shock(-12.0)
+		player.madness.add(-20.0)
+
+
+func _mad_sacrifice_self() -> void:
+	Config.player_max_health = maxf(Config.player_max_health - 15.0, 30.0)
+	player.health = minf(player.health, Config.player_max_health)
+	player.hurt_flash = 0.35
+	_toast("Du schneidest tief. Die Stimmen trinken.")
+
+
+func _mad_lockup(a: Node3D, b: Node3D) -> void:
+	for r in [a, b]:
+		if is_instance_valid(r):
+			r.mood = 0.0
+			r.hp = maxf(r.hp * 0.4, 1.0)
+	fortress.mood_shock(-10.0)
+	_toast("Hinter der Tür wird es irgendwann still.")
