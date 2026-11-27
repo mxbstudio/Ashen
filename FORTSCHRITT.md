@@ -2,6 +2,11 @@
 
 **Stand: v0.4 „Bewohner mit eigenem Leben“ zum Testen. Davor v0.3 „Tiefe“: Leiste als Puzzle (Kombos, Abzweigungen, Talismane), Bewohner mit Eigenleben, Wahnsinn.** v0.2 fertig bis auf Werte-Feinschliff. Prototyp v0.1 war fertig mit Build #14.
 
+## Nächster Chat
+**Geplant: Tag und Nacht sichtbar machen** (Max hat sich dafür entschieden). Bisher läuft nur die Uhr
+(Arbeitszeit – Freizeit – Nachtruhe, siehe v0.4). Idee: nachts dunkler (Mond/Umgebungslicht), Gegner nachts
+gefährlicher/zahlreicher, tagsüber etwas Luft; passend zum Licht-Thema des Spiels. Mit Max abstimmen, wie stark.
+
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
 
@@ -157,11 +162,13 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - HUD-Übersicht: oben links Festung (Feuer/Holz mit Restzeit bzw. „Feuer flackert …“ als Vorzeichen, Nahrung, Bewohner); oben rechts Leben, Laterne, Tränke, Stufe/EP, Trage, Vorrat; oben Mitte Belagerung/Boss; Mitte kurze Meldungen; unten Skill-Leiste mit Marker über Joystick/Dash/Trank.
 
 ## Für eine spätere Etappe gemerkt (Max)
-- ~~**Bewohner mit eigenständigem Leben**~~ → in v0.4 umgesetzt (siehe oben).
-- (alt) **Bewohner mit eigenständigem Leben**: Jeder hat Hunger und andere Bedürfnisse, die er sich selbst erfüllt.
-  **Arbeitszeiten**, in denen fürs Lager gearbeitet wird; in der **Freizeit** z. B. selbst Holz hacken und ein
-  **eigenes Haus bauen**, Nahrung für zu Hause sammeln, **sich paaren und Kinder bekommen**, **für den Kampf trainieren** usw.
-  (Noch nicht umgesetzt – eigene Etappe.)
+- ~~**Bewohner mit eigenständigem Leben**~~ → in v0.4 umgesetzt.
+- **Mehr Gegner und abwechslungsreichere Belagerungen** (Max: „noch nicht“, später): Gegner, die gezielt Systeme
+  angreifen (Lagerplätze/Karren plündern, unter der Mauer durchgraben, Turm-Schützen jagen), Angriffe von mehreren
+  Seiten, Fallen, die man vorher baut.
+- **Jede Partie anders**: zufällige Karte, klares Ziel („Überlebe 10 Nächte“), Fortschritt zwischen Partien
+  (Herkünfte, „Asche“ zum Freischalten).
+- **Echte Grafik und Klang** – zum Schluss.
 
 ## Ideen für später (v0.2) – von Max beim Testen
 - ~~**Wald** außerhalb der Festung~~ → in Etappe 7 umgesetzt.
