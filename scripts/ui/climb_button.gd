@@ -37,6 +37,7 @@ func _process(_delta: float) -> void:
 						text = "Turm besteigen (+%d m Reichweite)" % int(b.climb_range_bonus())
 						show = true
 	if show:
+		text += UiStyle.key_hint("F")
 		var vp := get_viewport_rect().size
 		size = custom_minimum_size
 		position = Vector2((vp.x - size.x) / 2.0, vp.y - 680.0)

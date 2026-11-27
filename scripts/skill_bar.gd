@@ -7,7 +7,8 @@
 ##   nächsten Angriff (auch über das Ende der Leiste hinweg auf das erste Feld).
 ## - Lage zählt (v0.3): Spiegel kopiert das Feld davor, Schwur im letzten Feld stärkt die ganze nächste Runde.
 ## - Ohne Angriff in der Leiste passiert nichts.
-## - Die Leiste läuft nur, wenn sie eingeschaltet ist (Knopf „Leiste: AN/AUS“, Taste E) – ohne Reichweiten-Prüfung.
+## - Die Leiste läuft, sobald ein Angriff der Leiste einen Gegner in Reichweite hat (+2 m). Mit dem Knopf
+##   „Leiste: AN/AUS“ (Taste R) lässt sie sich ganz abschalten.
 ## - Ein Dash unterbricht den aktuellen Cast (Fortschritt geht verloren).
 extends Node
 
@@ -18,8 +19,8 @@ var index := 0                     # aktueller Slot
 var progress := 0.0                # Sekunden, die der aktuelle Cast schon läuft
 var pending_mods: Array[String] = []   # vorgemerkte Modifikatoren
 var running := false
-var waiting := false               # (alt) – die Leiste wird jetzt per Knopf gestartet/gestoppt
-var active := false                # eingeschaltet? (Knopf „Leiste: AN/AUS“)
+var waiting := false               # kein Angriff der Leiste hat einen Gegner in Reichweite -> nichts lädt
+var active := true                 # eingeschaltet? (Knopf „Leiste: AN/AUS“, Taste R) – standardmäßig an
 var stash: Array[String] = []          # Vorrat: besessene Skills, die nicht in der Leiste sind
 var levels := {"sickle": 1, "bow": 1}  # jeder Skill nur einmal – dafür mit Stufe
 var branches := {}                     # gewählte Abzweigung je Skill: "a" oder "b" (ab Stufe 3)
@@ -101,7 +102,7 @@ func on_kill() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	running = active and has_attack() and player.is_alive()
+	running = active and has_attack() and player.is_alive() and player.combat.enemy_near()
 	if not running:
 		progress = 0.0
 		waiting = false
@@ -113,6 +114,10 @@ func _physics_process(delta: float) -> void:
 		while slots[index] == "" and guard < slots.size():
 			_advance_index()
 			guard += 1
+	# Die Leiste lädt, sobald irgendein Angriff der Leiste einen Gegner in Reichweite hat (+ etwas Puffer).
+	waiting = not player.combat.bar_in_range()
+	if waiting:
+		return
 	progress += delta
 	if progress >= current_cast_time():
 		progress = 0.0
@@ -238,23 +243,16 @@ func needs_branch(id: String) -> bool:
 	return level_of(id) + 1 >= Config.branch_level and not branches.has(id) and SkillData.BRANCHES.has(id)
 
 
-## Ein weiteres Feld rechts anhängen; ein Skill aus dem Vorrat rückt direkt nach.
+## Ein weiteres Feld rechts anhängen – es bleibt leer, man füllt es selbst (Menü „Leiste“).
 func add_slot() -> void:
 	slots.append("")
-	if not stash.is_empty():
-		slots[slots.size() - 1] = stash.pop_front()
 	_reset_cycle()
 
 
-## Neuen Skill bekommen: in ein freies Feld, sonst in den Vorrat.
-## Gibt true zurück, wenn er direkt in der Leiste gelandet ist.
+## Neuen Skill bekommen: kommt in den Vorrat – einsetzen kann man ihn selbst (Menü „Leiste“).
+## Gibt false zurück (er liegt nie direkt in der Leiste).
 func add_skill(id: String) -> bool:
 	levels[id] = 1
-	var empty := slots.find("")
-	if empty != -1:
-		slots[empty] = id
-		_reset_cycle()
-		return true
 	stash.append(id)
 	return false
 

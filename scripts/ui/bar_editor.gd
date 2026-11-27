@@ -28,6 +28,7 @@ func _ready() -> void:
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.offset_left = 30
 	scroll.offset_right = -30
+	UiStyle.keep_in_column(scroll, 30)
 	scroll.offset_top = 110
 	scroll.offset_bottom = -30
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -37,7 +38,7 @@ func _ready() -> void:
 	_box.add_theme_constant_override("separation", 18)
 	scroll.add_child(_box)
 	# Knopf "Leiste" oben links unter der Festungsanzeige – überall erreichbar
-	_open_button = UiStyle.button("Leiste", Color(1, 0.7, 0.3), 22, Vector2(130, 58))
+	_open_button = UiStyle.button("Leiste" + UiStyle.key_hint("L"), Color(1, 0.7, 0.3), 22, Vector2(130, 58))
 	_open_button.add_to_group("touch_blockers")
 	_open_button.pressed.connect(open)
 	_open_button.visible = false
@@ -49,7 +50,7 @@ func _process(_delta: float) -> void:
 	var show: bool = player.is_alive() and not visible and not get_tree().paused
 	if _open_button.visible != show:
 		_open_button.visible = show
-	_open_button.position = Vector2(10, 236)
+	_open_button.position = Vector2(UiStyle.column(get_viewport_rect().size).position.x + 10, 236)
 
 
 func open() -> void:

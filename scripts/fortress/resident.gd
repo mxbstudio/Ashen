@@ -17,7 +17,7 @@ const HpBar := preload("res://scripts/hp_bar.gd")
 const DamageNumber := preload("res://scripts/damage_number.gd")
 const ArrowScript := preload("res://scripts/arrow.gd")
 
-enum State { HOME, OUT, WORK, BACK, DELIVER, TEND, CART_OUT, DROP }
+enum State { HOME, OUT, WORK, BACK, DELIVER, TEND, CART_OUT, DROP, DEFEND }
 
 const GATE_IN := Vector3(0, 0, -9.5)     # innen vor dem Tor
 const GATE_OUT := Vector3(0, 0, -15.0)   # draußen vor dem Tor
@@ -250,7 +250,7 @@ func set_zone_job(id: String, kind: String, auto := false) -> void:
 	_node = null
 	_tree = -1
 	_work_after_delivery = false
-	if state != State.HOME and state != State.DELIVER:
+	if state != State.HOME and state != State.DELIVER and state != State.DEFEND:
 		_go_home()
 
 
@@ -320,6 +320,8 @@ func _process(delta: float) -> void:
 				_finish_delivery()
 		State.CART_OUT:
 			_cart_out(delta)
+		State.DEFEND:
+			_defend_step(delta)
 		State.DROP:
 			if not can_work() or not is_instance_valid(_depot):
 				_go_home()
@@ -823,3 +825,46 @@ func _build_cart() -> void:
 	_cart_load_mesh.position.y = 0.75
 	_cart.add_child(_cart_load_mesh)
 	_cart.visible = false
+
+
+
+# --- Belagerung: vom Wachturm aus verteidigen (v0.3) --------------------------------
+
+var _post := Vector3.ZERO           # Platz oben auf dem Turm
+var _post_tower: Node3D = null
+var on_post := false                # steht oben und schießt
+
+
+## Zum Wachturm gehen und hinaufsteigen.
+func defend(tower: Node3D, post: Vector3) -> void:
+	_post_tower = tower
+	_post = post
+	on_post = false
+	state = State.DEFEND
+	_path.clear()
+	_path.append(tower.work_spot())
+
+
+func stop_defend() -> void:
+	if state != State.DEFEND:
+		return
+	if on_post and is_instance_valid(_post_tower):
+		global_position = _post_tower.work_spot()   # wieder herunter
+	on_post = false
+	_post_tower = null
+	state = State.HOME
+	_wait = 1.0
+	_pick_home_target()
+
+
+func _defend_step(delta: float) -> void:
+	if not is_instance_valid(_post_tower):
+		stop_defend()
+		return
+	if not on_post:
+		if _follow_path(delta, _speed() * 1.3):
+			global_position = _post
+			on_post = true
+		return
+	global_position = _post
+	rotation.y = PI   # nach Norden, zum Tor hin

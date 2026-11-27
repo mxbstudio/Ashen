@@ -389,7 +389,11 @@ func _setup_input() -> void:
 	_bind("move_down", [KEY_S, KEY_DOWN])
 	_bind("dash", [KEY_SPACE])
 	_bind("potion", [KEY_Q])
-	_bind("bar_toggle", [KEY_E])
+	_bind("bar_toggle", [KEY_R])      # Leiste an/aus
+	_bind("interact", [KEY_E])        # Bauen / Verbessern / Fackel
+	_bind("interact2", [KEY_F])       # Turm besteigen / Schnellreise
+	_bind("menu_bar", [KEY_L])        # Menü „Leiste“
+	_bind("menu_people", [KEY_B])     # Menü „Bewohner"
 
 
 func _bind(action: String, keys: Array) -> void:

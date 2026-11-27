@@ -794,3 +794,45 @@ func cart_order() -> Array:
 	var order := ["wood", "food", "stone"]
 	order.sort_custom(func(a, b): return n[a] > n[b])
 	return order
+
+
+
+# --- Belagerung: Bewohner auf den Wachturm ---------------------------------------------
+
+## Plätze oben auf dem Wachturm: Stufe 1: 4, Stufe 2: 6, Stufe 3: 8. Ohne Turm schießt niemand.
+func tower_posts() -> Array:
+	var out := []
+	for b in buildings:
+		if b.kind == "tower" and b.built:
+			var top: Vector3 = b.top_position()
+			var offs := [Vector3(-0.8, 0, -0.8), Vector3(0.8, 0, -0.8), Vector3(-0.8, 0, 0.8), Vector3(0.8, 0, 0.8),
+					Vector3(0, 0, -0.9), Vector3(0, 0, 0.9), Vector3(-0.9, 0, 0), Vector3(0.9, 0, 0)]
+			for i in mini(2 + 2 * b.level, offs.size()):
+				out.append([b, top + offs[i]])
+	return out
+
+
+## Wer gerade in der Festung ist (und nicht schwer verletzt), steigt auf einen freien Platz.
+func update_defense() -> void:
+	var posts := tower_posts()
+	var taken := 0
+	for r in residents:
+		if r.state == 8:
+			taken += 1
+	for r in residents:
+		if taken >= posts.size():
+			return
+		if r.state == 0 and r.hp >= r.max_hp() * 0.4:
+			var p: Array = posts[taken]
+			r.defend(p[0], p[1])
+			taken += 1
+
+
+func end_defense() -> void:
+	for r in residents:
+		r.stop_defend()
+
+
+## Bewohner, die oben auf dem Turm stehen.
+func defenders() -> Array:
+	return residents.filter(func(r): return r.state == 8 and r.on_post)

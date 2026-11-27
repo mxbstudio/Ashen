@@ -6,7 +6,7 @@ extends RefCounted
 
 const DEFS := {
 	"pendulum": {"name": "Pendel",
-			"desc": "Die Leiste pendelt: links → rechts → zurück. Mittlere Felder laufen doppelt so oft"},
+			"desc": "Die Leiste pendelt: links → rechts → zurück"},
 	"chalice": {"name": "Leerer Kelch",
 			"desc": "Leere Felder werden nicht übersprungen: kurze Pause, +3 s Laternenlicht"},
 	"bellrope": {"name": "Glockenseil",

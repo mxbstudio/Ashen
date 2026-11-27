@@ -32,6 +32,7 @@ func _ready() -> void:
 	_box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_box.offset_left = 36
 	_box.offset_right = -36
+	UiStyle.keep_in_column(_box, 36)
 	_box.offset_top = 200
 	_box.offset_bottom = -60
 	_box.add_theme_constant_override("separation", 26)

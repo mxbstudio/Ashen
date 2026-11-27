@@ -60,8 +60,9 @@ func _process(_delta: float) -> void:
 	var vp := get_viewport_rect().size
 	_torch_btn.size = _torch_btn.custom_minimum_size
 	_pit_btn.size = _pit_btn.custom_minimum_size
-	_torch_btn.position = Vector2(vp.x - 130, vp.y - 455)   # über der Skill-Leiste, rechts
-	_pit_btn.position = Vector2(vp.x - 130, vp.y - 537)
+	var right := UiStyle.column(vp).end.x
+	_torch_btn.position = Vector2(right - 130, vp.y - 455)   # über der Skill-Leiste, rechts
+	_pit_btn.position = Vector2(right - 130, vp.y - 537)
 
 
 ## Stelle vor dem Hüter.

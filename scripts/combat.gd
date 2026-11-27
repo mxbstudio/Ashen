@@ -126,7 +126,10 @@ func perform(id: String, mods: Array, mult := 1.0, extra := 0) -> void:
 	if _tal("ashheart") and player.lantern.fraction() < 0.3:
 		dmg_mult *= 1.4
 	if SkillData.is_light(id):
-		dmg_mult *= 1.3 - 0.6 * player.madness.value / 100.0   # klarer Geist: stärker
+		if id == "lance":
+			dmg_mult *= 0.7 + 0.6 * player.madness.value / 100.0   # Lichtlanze: je wahnsinniger, desto stärker
+		else:
+			dmg_mult *= 1.3 - 0.6 * player.madness.value / 100.0   # Läuterung: klarer Geist, stärker
 		var calm := Config.purge_madness if id == "purge" else Config.lance_madness
 		if id == "purge" and _br("purge", "b"):
 			calm *= 2.0

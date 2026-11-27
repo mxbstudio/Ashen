@@ -58,6 +58,7 @@ func _process(_delta: float) -> void:
 			if have < _cost:
 				text += "\nNicht genug Holz (Trage + Lager)"
 		disabled = have < _cost or (_target.built and _target.wood_space() <= 0)
+		text += UiStyle.key_hint("E")
 		var vp := get_viewport_rect().size
 		size = custom_minimum_size
 		position = Vector2((vp.x - size.x) / 2.0, vp.y - 580.0)

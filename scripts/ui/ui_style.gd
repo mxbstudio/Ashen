@@ -31,6 +31,43 @@ static func button(text: String, col: Color, font_size := 28, min_size := Vector
 	return b
 
 
+## Spalte für Anzeigen und Menüs: höchstens so breit wie ein Hochformat-Bildschirm (3:4 der Höhe), mittig.
+## Auf Breitbild-Monitoren (z. B. 21:9) rückt so alles zusammen statt an die Ränder.
+static func column(vp: Vector2) -> Rect2:
+	var w := minf(vp.x, vp.y * 0.75)
+	return Rect2((vp.x - w) / 2.0, 0.0, w, vp.y)
+
+
+## Vollbild-Menü auf die Spalte begrenzen: linker/rechter Abstand = Rand der Spalte + margin.
+static func fit_column(ctrl: Control, margin: float) -> void:
+	var col := column(ctrl.get_viewport_rect().size)
+	ctrl.offset_left = col.position.x + margin
+	ctrl.offset_right = -(col.position.x + margin)
+
+
+## Menü-Inhalt dauerhaft auf die Spalte begrenzen (wird laufend angepasst, auch bei Größenänderung).
+static func keep_in_column(ctrl: Control, margin: float) -> void:
+	ctrl.set_meta("col_margin", margin)
+	ctrl.add_to_group("column_fit")
+
+
+## Alle Menü-Inhalte an die Spalte anpassen (läuft jedes Bild, auch im Pausenzustand – siehe bar_toggle.gd).
+static func update_columns(tree: SceneTree) -> void:
+	for c in tree.get_nodes_in_group("column_fit"):
+		if c.is_inside_tree():
+			fit_column(c, c.get_meta("col_margin"))
+
+
+## Echtes Handy/Tablet? (Dann keine Tasten-Hinweise.)
+static func is_phone() -> bool:
+	return OS.has_feature("web_android") or OS.has_feature("web_ios") or OS.has_feature("android") or OS.has_feature("ios")
+
+
+## Tasten-Hinweis für den PC, z. B. "  [E]" (am Handy leer).
+static func key_hint(key: String) -> String:
+	return "" if is_phone() else "  [%s]" % key
+
+
 ## In scrollbaren Menüs: Knöpfe lassen das Wischen an die Scroll-Liste durch (sonst scrollt man am Handy nur
 ## über die schmale Leiste). Ein normales Antippen löst den Knopf weiter aus. Nach jedem Neuaufbau aufrufen.
 static func pass_touch(root: Node) -> void:

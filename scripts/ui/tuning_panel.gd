@@ -115,6 +115,7 @@ func _ready() -> void:
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.offset_left = 24
 	scroll.offset_right = -24
+	UiStyle.keep_in_column(scroll, 24)
 	scroll.offset_top = 60
 	scroll.offset_bottom = -150
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -146,6 +147,7 @@ func _ready() -> void:
 	done.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	done.offset_left = 24
 	done.offset_right = -24
+	UiStyle.keep_in_column(done, 24)
 	done.offset_top = -130
 	done.offset_bottom = -30
 	done.pressed.connect(close)

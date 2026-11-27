@@ -38,7 +38,7 @@ const DEFS := {
 	"purge": {"name": "Läuterung", "short": "Läutern", "type": ATTACK, "elem": "Licht", "light": true,
 			"desc": "Lichtwelle rundum. Senkt den Wahnsinn. Stärker, je klarer dein Geist ist"},
 	"lance": {"name": "Lichtlanze", "short": "Lanze", "type": ATTACK, "elem": "Licht", "light": true,
-			"desc": "Lichtstrahl auf den nächsten Gegner. Senkt den Wahnsinn. Stärker mit klarem Geist"},
+			"desc": "Lichtstrahl auf den nächsten Gegner. Senkt den Wahnsinn. Stärker, je wahnsinniger du bist"},
 	"vigil": {"name": "Andacht", "short": "Andacht", "type": MODIFIER, "elem": "Licht", "light": true,
 			"desc": "Nächster Angriff senkt den Wahnsinn um 3"},
 	# --- dunkle Skills (nur bei Wahnsinn ab 25 im Angebot) ---

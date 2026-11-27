@@ -26,6 +26,7 @@ func _ready() -> void:
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.offset_left = 24
 	scroll.offset_right = -24
+	UiStyle.keep_in_column(scroll, 24)
 	scroll.offset_top = 60
 	scroll.offset_bottom = -150
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -38,12 +39,13 @@ func _ready() -> void:
 	done.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	done.offset_left = 24
 	done.offset_right = -24
+	UiStyle.keep_in_column(done, 24)
 	done.offset_top = -130
 	done.offset_bottom = -30
 	done.pressed.connect(close)
 	add_child(done)
 	# Knopf "Bewohner" oben links neben "Leiste" – überall erreichbar
-	_open_button = UiStyle.button("Bewohner", Color(0.6, 0.9, 0.7), 22, Vector2(150, 58))
+	_open_button = UiStyle.button("Bewohner" + UiStyle.key_hint("B"), Color(0.6, 0.9, 0.7), 22, Vector2(150, 58))
 	_open_button.add_to_group("touch_blockers")
 	_open_button.pressed.connect(open)
 	_open_button.visible = false
@@ -55,7 +57,7 @@ func _process(_delta: float) -> void:
 	var show: bool = player.is_alive() and not visible and not get_tree().paused
 	if _open_button.visible != show:
 		_open_button.visible = show
-	_open_button.position = Vector2(150, 236)
+	_open_button.position = Vector2(UiStyle.column(get_viewport_rect().size).position.x + 150, 236)
 
 
 func open() -> void:

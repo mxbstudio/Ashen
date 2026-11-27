@@ -1,6 +1,6 @@
 ## Stufenaufstieg: Spiel pausiert, 3 Karten zur Auswahl, eine antippen.
 ## Angebote: neue Skills (jeden Skill gibt es nur einmal) oder eine Stufe mehr für einen
-## Skill, den man schon hat. Neue Skills landen in einem freien Feld, sonst im Vorrat.
+## Skill, den man schon hat. Neue Skills landen im Vorrat (einsetzen im Menü „Leiste“).
 extends Control
 
 @export var player: Node3D
@@ -31,6 +31,7 @@ func _ready() -> void:
 	_box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_box.offset_left = 36
 	_box.offset_right = -36
+	UiStyle.keep_in_column(_box, 36)
 	_box.offset_top = 210
 	_box.offset_bottom = -60
 	_box.add_theme_constant_override("separation", 22)
@@ -52,7 +53,7 @@ func _open_next() -> void:
 	var level: int = _queue.pop_front()
 	if level in Config.extra_slot_levels:
 		player.skill_bar.add_slot()
-		get_tree().call_group("hud", "toast", "Neues Feld in der Skill-Leiste!")
+		get_tree().call_group("hud", "toast", "Neues leeres Feld in der Skill-Leiste – im Menü „Leiste“ füllen")
 	touch_controls.reset()
 	get_tree().paused = true
 	visible = true
@@ -137,7 +138,7 @@ func _choose(id: String) -> void:
 				var sid := id.substr(4)
 				var in_bar: bool = player.skill_bar.add_skill(sid)
 				if not in_bar:
-					get_tree().call_group("hud", "toast", "%s liegt im Vorrat – über „Leiste“ einsetzen"
+					get_tree().call_group("hud", "toast", "%s liegt im Vorrat – im Menü „Leiste“ einsetzen"
 							% SkillData.DEFS[sid]["name"])
 	_open_next()
 

@@ -322,13 +322,31 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
     Abzweigung: *Durchbohren* (alle auf der Linie) oder *Blenden* (2 s erschüttert → Sichel zerschmettert).
   - *Andacht* (Modifikator): nächster Angriff senkt den Wahnsinn um 3.
     Abzweigung: *Tiefe Andacht* (doppelt) oder *Lichtsegen* (+20 % Schaden).
-- **Leiste per Knopf starten/stoppen** (Max: „nix mit Reichweite“): Knopf **„Leiste: AN/AUS“** links über der
-  Skill-Leiste (Taste **E**). Die Leiste läuft nur, wenn sie an ist – egal wie weit die Gegner weg sind; beim Ausschalten
-  beginnt sie beim nächsten Start wieder vorn. Am Spielstart ist sie aus; der Zustand wird gespeichert.
-  (Vorher: lief nur mit Gegner in 14 m, dann zwischendurch Reichweiten-Prüfung je Angriff – beides ersetzt.)
+- **Leiste: wie vorher, plus AUS-Knopf** (Max): Die Leiste ist standardmäßig **an** und lädt, sobald irgendein
+  Angriff der Leiste einen Gegner in Reichweite hat (+2 m Puffer, `bar_range_margin`). Mit dem Knopf
+  **„Leiste: AN/AUS“** (links über der Leiste, Taste **R**) lässt sie sich ganz abschalten.
 - **„Bitte Handy drehen“ am PC repariert**: Die Meldung kam, sobald das Fenster quer war und der Browser einen
   Touch-Bildschirm meldete – das tun auch viele PC-Browser. Jetzt nur noch auf Android/iOS. Zusätzlich hat die Meldung
   einen Knopf „Trotzdem spielen“.
+
+### Feinschliff nach Max' Test (PC, 21:9)
+- **Neue Felder bleiben leer**: Ein neues Feld (Stufe 6/11) bleibt leer, und neue Skills aus dem Stufenaufstieg kommen
+  immer in den **Vorrat** – einsetzen im Menü „Leiste“.
+- **Lichtlanze**: jetzt *stärker, je wahnsinniger* (×0,7 bei Wahn 0 bis ×1,3 bei Wahn 100). Läuterung bleibt
+  stärker mit klarem Geist.
+- **Tasten am PC** (stehen auch auf den Knöpfen, am Handy nicht): **E** Bauen/Verbessern/Fackel, **F** Turm
+  besteigen/herabsteigen/Schnellreise, **L** Menü „Leiste“, **B** Menü „Bewohner“ (nochmal drücken schließt),
+  **R** Leiste an/aus. Dazu wie bisher WASD, Leertaste (Dash), Q (Trank).
+- **Breitbild (z. B. 21:9)**: Alle Anzeigen und Menüs stehen in einer mittigen Spalte (höchstens 3:4 der Höhe breit)
+  statt an den Bildschirmrändern (`UiStyle.column`).
+- **Leben, Laterne, Wahn an der Spielfigur**: links ein roter Balken (Leben, mit Zahl), rechts ein oranger
+  (Laterne) und ein schmaler violetter mit Stufen-Strichen (Wahn, darunter die Stufe). Oben rechts stehen nur noch
+  Tränke, Stufe/EP, Trage, Vorrat.
+- **Belagerung: keine schießende Mauer mehr.** Die Bewohner steigen auf den **Wachturm** und schießen sichtbar von
+  oben (Plätze: Stufe 1: 4, Stufe 2: 6, Stufe 3: 8). Wer später heimkommt, steigt nach. Bewaffnete schießen mit dem
+  Bogen (5 Schaden), Unbewaffnete 2, gute Schützen doppelt. **Ohne Wachturm schießt niemand** – der Turm wird damit
+  wichtig. Nach der Belagerung steigen alle wieder herunter.
+- Talisman **Pendel**: Beschreibung nur noch „Die Leiste pendelt: links → rechts → zurück“.
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

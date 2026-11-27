@@ -23,11 +23,12 @@ func _ready() -> void:
 func button_center(action: String) -> Vector2:
 	var s := size
 	var r := Config.button_radius
+	var right := UiStyle.column(s).end.x
 	match action:
 		"dash":
-			return Vector2(s.x - r - 40, s.y - r - 40)
+			return Vector2(right - r - 40, s.y - r - 40)
 		"potion":
-			return Vector2(s.x - r - 40 - r * 2.0, s.y - r * 0.7 - 30)
+			return Vector2(right - r - 40 - r * 2.0, s.y - r * 0.7 - 30)
 	return Vector2.ZERO
 
 
@@ -137,7 +138,7 @@ func _draw() -> void:
 		draw_circle(_joy_center + _joy_vec * r, r * 0.42, Color(1, 0.8, 0.5, 0.55))
 	else:
 		# Hinweis, wo der Joystick ist
-		var c := Vector2(40 + r, size.y - 40 - r)
+		var c := Vector2(UiStyle.column(size).position.x + 40 + r, size.y - 40 - r)
 		draw_arc(c, r, 0, TAU, 48, Color(1, 1, 1, 0.12), 2.0)
 		draw_circle(c, r * 0.42, Color(1, 1, 1, 0.08))
 
