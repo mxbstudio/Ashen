@@ -14,6 +14,7 @@ var _rotate: ColorRect
 var _watched := {}
 var _error_lines: Array = []       # [text, restzeit, verschwindet?]
 var _error_count := 0
+var _rotate_dismissed := false     # „Trotzdem spielen“ gedrückt
 var _details := false
 var _build := "lokal"
 
@@ -83,6 +84,17 @@ func _build_ui() -> void:
 	lbl.add_theme_font_size_override("font_size", 48)
 	lbl.add_theme_color_override("font_color", Color(1, 0.75, 0.4))
 	_rotate.add_child(lbl)
+	# Falls die Meldung doch einmal falsch erscheint (z. B. am PC): wegtippen
+	var skip := Button.new()
+	skip.text = "Trotzdem spielen"
+	skip.add_theme_font_size_override("font_size", 28)
+	skip.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	skip.offset_left = -160
+	skip.offset_right = 160
+	skip.offset_top = -120
+	skip.offset_bottom = -50
+	skip.pressed.connect(func(): _rotate_dismissed = true)
+	_rotate.add_child(skip)
 	_rotate.visible = false
 	add_child(_rotate)
 
@@ -106,7 +118,7 @@ func _process(_delta: float) -> void:
 		_add_error_line(e)
 
 	var size := get_viewport().get_visible_rect().size
-	_rotate.visible = size.x > size.y and DisplayServer.is_touchscreen_available()
+	_rotate.visible = size.x > size.y and _is_phone() and not _rotate_dismissed
 
 	var txt := "Aschen %s · %d FPS" % [_build, Engine.get_frames_per_second()]
 	if _error_count > 0:
@@ -121,9 +133,16 @@ func _process(_delta: float) -> void:
 	_error_lines = _error_lines.filter(func(e): return not e[2] or e[1] > 0.0)
 	_errors.visible = not _error_lines.is_empty()
 	# unterhalb der Festungsanzeige, damit nichts verdeckt wird
-	_errors.position.y = maxf(_info.position.y + _info.size.y + 4, 245.0)
+	_errors.position.y = maxf(_info.position.y + _info.size.y + 4, 340.0)
 	_errors.size.x = size.x * 0.6
 	var lines := []
 	for e in _error_lines:
 		lines.append(e[0])
 	_errors.text = "\n".join(lines)
+
+
+## Nur auf echten Handys/Tablets nach dem Drehen fragen. (Früher: "hat Touch-Bildschirm" –
+## das melden aber auch viele PC-Browser, z. B. Windows-Laptops mit Touch.)
+func _is_phone() -> bool:
+	return OS.has_feature("web_android") or OS.has_feature("web_ios") \
+			or OS.has_feature("android") or OS.has_feature("ios")

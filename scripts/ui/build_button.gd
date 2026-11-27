@@ -48,11 +48,12 @@ func _process(_delta: float) -> void:
 		var c: int = _target.next_cost()
 		if not _target.built:
 			text = "%s bauen (%d Holz)\n%s" % [_target.display_name(), c,
-					_target.description(1) if ok else "Nicht genug Holz in der Festung"]
+					_target.description(1) if ok else "Nicht genug Holz – %d bleiben fürs Feuer" % Config.vital_reserve]
 		else:
 			var nl: int = _target.level + 1
 			text = "%s verbessern → Stufe %d (%d Holz)\n%s" % [_target.display_name(), nl, c,
-					_target.description(nl) if ok else "Nicht genug Holz in der Festung"]
+					_target.description(nl) if ok else "Nicht genug Holz – %d bleiben fürs Feuer" % Config.vital_reserve]
+		text += UiStyle.key_hint("E")
 		var vp := get_viewport_rect().size
 		size = custom_minimum_size
 		position = Vector2((vp.x - size.x) / 2.0, vp.y - 580.0)

@@ -154,7 +154,7 @@ func _begin_strike(pos: Vector3, radius: float, damage: float, windup: float) ->
 
 func _strike() -> void:
 	_warn.visible = false
-	Sfx.play("slam", 2.0)
+	Sfx.play_at("slam", global_position, 2.0)
 	model.rotation.x = 0.35
 	var pd := Vector2(player.global_position.x - _strike_pos.x, player.global_position.z - _strike_pos.z).length()
 	if pd < _strike_radius:

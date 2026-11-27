@@ -21,6 +21,7 @@ func _ready() -> void:
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	box.offset_left = 40
 	box.offset_right = -40
+	UiStyle.keep_in_column(box, 40)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 30)
 	add_child(box)

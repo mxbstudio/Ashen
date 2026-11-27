@@ -66,6 +66,8 @@ func _on_boss_defeated() -> void:
 
 
 func _on_siege_ended(held: bool, final: bool) -> void:
+	if held:
+		fortress.mood_shock(10.0)   # gehalten: die Bewohner schöpfen Mut
 	if final and held:
 		game_over.show_end("Das Feuer brennt weiter",
 				"Der Hauptmann ist besiegt und das Tor hat gehalten.\nSieg!")

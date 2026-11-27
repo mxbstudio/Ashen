@@ -8,7 +8,7 @@ extends Node
 const PATH := "user://spielstand.json"
 const SmallTorch := preload("res://scripts/zones/small_torch.gd")
 const FirePit := preload("res://scripts/zones/fire_pit.gd")
-const VERSION := 1
+const VERSION := 2                  # 2 = v0.3 (Wahnsinn, Talismane, Bewohner mit Namen); 1 wird noch gelesen
 
 @export var player: Node3D
 @export var fortress: Node3D
@@ -91,22 +91,31 @@ func _collect() -> Dictionary:
 			"xp": player.xp, "level": player.level, "carry": player.carry,
 			"fuel": player.lantern.fuel,
 			"slots": Array(bar.slots), "stash": Array(bar.stash), "levels": bar.levels,
+			"branches": bar.branches, "madness": player.madness.value, "bar_on": bar.active,
+			"talismans": Array(player.talismans), "equipped": Array(player.equipped),
 		},
 		"fort": {
 			"wood": fortress.wood, "food": fortress.food, "stone": fortress.stone,
 			"bows": fortress.bows_total(), "armed": fortress.armed_target,
 			"burn": fortress._burn_acc, "eat": fortress._eat_acc, "starve": fortress._starve_acc,
 			"survivor": fortress._survivor_acc, "zone_jobs": fortress.zone_jobs,
-			"residents": fortress.residents.map(func(r): return r.hp),
+			"residents": fortress.residents.map(func(r): return r.identity()),
+			"graves": fortress.graves, "away": fortress.away, "ration": fortress.ration_t, "tools": fortress.tools,
+			"day": fortress.day, "day_time": fortress.day_time,
+			"huts": fortress.huts.map(func(h): return h.built),
 			"buildings": {},
 		},
+		"shrines": get_tree().get_nodes_in_group("shrines").map(func(sh): return sh.opened),
+		"depots": get_tree().get_nodes_in_group("depots").filter(func(dp): return dp.zone_id != "").map(
+				func(dp): return [dp.zone_id, dp.stock]),
+		"event_t": get_tree().get_first_node_in_group("events").time_left,
 		"torches": {},
 		"beacon": beacon.lit,
 		"forest": get_tree().get_first_node_in_group("forest").save_data(),
 		"food_spots": get_tree().get_nodes_in_group("resources").map(func(r): return [r.amount, r._regrow]),
 		"rocks": get_tree().get_nodes_in_group("rocks").map(func(r): return [r.amount, r._regrow]),
 		"fire_pits": get_tree().get_nodes_in_group("fire_pits").map(
-				func(t): return [t.global_position.x, t.global_position.z, t.fuel]),
+				func(t): return [t.global_position.x, t.global_position.z, t.fuel, t.depot.stock]),
 		"small_torches": get_tree().get_nodes_in_group("small_torches").map(
 				func(t): return [t.global_position.x, t.global_position.z, t.fuel]),
 		"siege": {"time": siege.time_to_bell, "count": siege.count, "final": siege.final_pending},
@@ -130,7 +139,7 @@ func read() -> Dictionary:
 		return {}
 	var d = JSON.parse_string(f.get_as_text())
 	f.close()
-	if typeof(d) != TYPE_DICTIONARY or int(d.get("version", 0)) != VERSION:
+	if typeof(d) != TYPE_DICTIONARY or not int(d.get("version", 0)) in [1, VERSION]:
 		return {}
 	return d
 
@@ -154,6 +163,9 @@ func apply(d: Dictionary) -> void:
 	siege.count = int(s.get("count", 0))
 	siege.final_pending = bool(s.get("final", false))
 	siege.time_to_bell = maxf(float(s.get("time", Config.siege_interval)), Config.siege_warning + 15.0)
+	var ev := get_tree().get_first_node_in_group("events")
+	if ev and d.has("event_t"):
+		ev.time_left = float(d["event_t"])
 	if d.get("boss_defeated", false):
 		get_parent().boss_defeated = true
 		for b in get_tree().get_nodes_in_group("boss"):
@@ -186,6 +198,10 @@ func _apply_world(d: Dictionary) -> void:
 		pit.built = true
 		pit.fuel = float(e[2])
 		pit._update_visuals()
+		if e.size() > 3:
+			for k in pit.depot.stock:
+				pit.depot.stock[k] = int(e[3].get(k, 0))
+			pit.depot.update_visuals()
 	for e in d.get("small_torches", []):
 		var t := Node3D.new()
 		t.set_script(SmallTorch)
@@ -194,6 +210,17 @@ func _apply_world(d: Dictionary) -> void:
 		t.built = true
 		t.fuel = float(e[2])
 		t._update_visuals()
+	var shrines: Array = d.get("shrines", [])
+	var shrine_nodes := get_tree().get_nodes_in_group("shrines")
+	if shrines.size() == shrine_nodes.size():
+		for i in shrine_nodes.size():
+			shrine_nodes[i].set_opened(bool(shrines[i]))
+	for e in d.get("depots", []):
+		for dp in get_tree().get_nodes_in_group("depots"):
+			if dp.zone_id != "" and dp.zone_id == str(e[0]):
+				for k in dp.stock:
+					dp.stock[k] = int(e[1].get(k, 0))
+				dp.update_visuals()
 	var spots: Array = d.get("food_spots", [])
 	var nodes := get_tree().get_nodes_in_group("resources")
 	if spots.size() == nodes.size():
@@ -208,7 +235,6 @@ func _apply_fortress(f: Dictionary) -> void:
 	fortress.food = float(f.get("food", fortress.food))
 	fortress.stone = float(f.get("stone", 0.0))
 	fortress.bows = int(f.get("bows", 0))
-	fortress.armed_target = int(f.get("armed", 0))
 	fortress._burn_acc = float(f.get("burn", 0.0))
 	fortress._eat_acc = float(f.get("eat", 0.0))
 	fortress._starve_acc = float(f.get("starve", 0.0))
@@ -220,16 +246,51 @@ func _apply_fortress(f: Dictionary) -> void:
 		for i in lvl:
 			b.improve()
 		b.wanted = int(e[1]) if typeof(e) == TYPE_ARRAY else b.capacity()
-	# Bewohner: Anzahl angleichen, Leben übernehmen
-	var hps: Array = f.get("residents", [])
-	while fortress.residents.size() > hps.size():
-		var r: Node3D = fortress.residents.pop_back()
-		r.queue_free()
-	while fortress.residents.size() < hps.size():
-		var a := randf() * TAU
-		fortress._add_resident(Vector3(cos(a), 0, sin(a)) * 3.5)
-	for i in hps.size():
-		fortress.residents[i].hp = float(hps[i])
+	# Bewohner: v2 mit Name/Eigenschaften/Stimmung, v1 nur mit Leben
+	var list: Array = f.get("residents", [])
+	var with_identity := not list.is_empty() and typeof(list[0]) == TYPE_DICTIONARY
+	if with_identity:
+		for r in fortress.residents:
+			r.queue_free()
+		fortress.residents.clear()
+		for e in list:
+			var a := randf() * TAU
+			fortress._add_resident(Vector3(cos(a), 0, sin(a)) * 3.5, e)
+	else:
+		while fortress.residents.size() > list.size():
+			var r: Node3D = fortress.residents.pop_back()
+			r.queue_free()
+		while fortress.residents.size() < list.size():
+			var a := randf() * TAU
+			fortress._add_resident(Vector3(cos(a), 0, sin(a)) * 3.5)
+		for i in list.size():
+			fortress.residents[i].hp = float(list[i])
+	# Häuser (v0.4) und wer darin wohnt
+	fortress.day = int(f.get("day", 1))
+	fortress.day_time = float(f.get("day_time", 0.0))
+	fortress._last_phase = fortress.phase()
+	var hb: Array = f.get("huts", [])
+	for i in mini(hb.size(), fortress.huts.size()):
+		if bool(hb[i]):
+			fortress.huts[i].built = true
+			fortress.huts[i]._build_visual()
+	if with_identity:
+		for h in fortress.huts:
+			h.residents.clear()
+		for i in mini(list.size(), fortress.residents.size()):
+			var hi := int(list[i].get("house", -1))
+			if hi >= 0 and hi < fortress.huts.size():
+				fortress.residents[i].house = fortress.huts[hi]
+				fortress.huts[hi].move_in(fortress.residents[i])
+		for h in fortress.huts:
+			h.update_label()
+	fortress.graves = f.get("graves", [])
+	fortress.update_graves()
+	fortress.away = f.get("away", [])
+	fortress.ration_t = float(f.get("ration", 0.0))
+	var tl: Dictionary = f.get("tools", {})
+	for k in fortress.tools:
+		fortress.tools[k] = int(tl.get(k, 0))
 	fortress.zone_jobs.clear()
 	var jobs: Dictionary = f.get("zone_jobs", {})
 	for k in jobs:
@@ -255,6 +316,13 @@ func _apply_player(p: Dictionary) -> void:
 	var lv: Dictionary = p.get("levels", {})
 	for k in lv:
 		bar.levels[k] = int(lv[k])
+	bar.branches = p.get("branches", {})
+	bar.active = bool(p.get("bar_on", false))
+	player.madness.value = float(p.get("madness", 0.0))
+	# die „Umgekehrte Sanduhr“ ist jetzt das „Pendel“
+	player.talismans.assign(Array(p.get("talismans", [])).map(func(x): return "pendulum" if x == "hourglass" else x))
+	player.equipped.assign(Array(p.get("equipped", [])).map(func(x): return "pendulum" if x == "hourglass" else x))
 	bar.index = 0
 	bar.progress = 0.0
 	bar.pending_mods.clear()
+	bar.reset_cycle()

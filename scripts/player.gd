@@ -14,6 +14,11 @@ signal leveled_up(level: int)
 @onready var combat: Node = $Combat
 @onready var skill_bar: Node = $SkillBar
 
+const MadnessScript := preload("res://scripts/madness.gd")
+var madness: Node                  # Wahnsinn (v0.3), siehe madness.gd
+var talismans: Array[String] = []  # gefundene Talismane
+var equipped: Array[String] = []   # angelegte Talismane (höchstens Config.talisman_slots)
+
 var facing := Vector3(0, 0, 1)     # Blickrichtung auf dem Boden
 var _dash_time := 0.0
 var _dash_cd := 0.0
@@ -38,6 +43,9 @@ func _ready() -> void:
 	potions = Config.potions_start
 	collision_layer = 2            # Ebene 2: Hüter (Gegner laufen nicht gegen ihn)
 	collision_mask = 1             # stößt nur an die Welt
+	madness = MadnessScript.new()
+	madness.name = "Madness"
+	add_child(madness)
 
 
 func is_alive() -> bool:
@@ -48,9 +56,19 @@ func is_dashing() -> bool:
 	return _dash_time > 0.0
 
 
-func take_damage(amount: float, _from: Node3D = null) -> void:
-	if not is_alive() or is_dashing() or protect_timer > 0.0:
+## self_inflicted: Blutopfer/Blutschwur/Wahn – wirkt auch im Dash, tötet aber nicht.
+func take_damage(amount: float, _from: Node3D = null, self_inflicted := false) -> void:
+	if not is_alive():
+		return
+	if self_inflicted:
+		health = maxf(health - amount, 1.0)
+		hurt_flash = maxf(hurt_flash, 0.15)
+		_spawn_number(amount, Color(0.8, 0.3, 0.9))
+		return
+	if is_dashing() or protect_timer > 0.0:
 		return   # während des Dashs und kurz nach dem Wiedererscheinen unverwundbar
+	if has_talisman("haste"):
+		amount *= 1.2
 	if _from:
 		DebugOverlay.watch("Letzter Treffer", "%s (%d)" % [_from.get_script().resource_path.get_file().get_basename(), int(amount)])
 	health -= amount
@@ -103,6 +121,54 @@ func _spawn_number(amount: float, col: Color, prefix := "") -> void:
 	num.global_position = global_position + Vector3(0, 2.4, 0)
 
 
+# --- Talismane (v0.3) ------------------------------------------------------------
+
+func has_talisman(id: String) -> bool:
+	return equipped.has(id)
+
+
+## Einen zufälligen, noch nicht gefundenen Talisman finden. source: wer ihn gebracht hat (für die Meldung).
+## Gibt die id zurück ("" = alle schon gefunden -> stattdessen EP).
+func find_talisman(source: String) -> String:
+	var pool := []
+	for id in TalismanData.DEFS:
+		if not talismans.has(id):
+			pool.append(id)
+	if pool.is_empty():
+		gain_xp(8)
+		get_tree().call_group("hud", "toast", "Nichts Neues – aber Erfahrung (+8 EP)")
+		return ""
+	var id: String = pool[randi() % pool.size()]
+	gain_talisman(id)
+	get_tree().call_group("hud", "toast", "Talisman: %s (von %s)" % [TalismanData.name_of(id), source], 4.0)
+	return id
+
+
+func gain_talisman(id: String) -> void:
+	if talismans.has(id):
+		return
+	talismans.append(id)
+	Sfx.play("levelup", -4.0, 0.0)
+	if equipped.size() < Config.talisman_slots:
+		equipped.append(id)
+		skill_bar.reset_cycle()
+		get_tree().call_group("hud", "toast", "Angelegt: " + TalismanData.name_of(id), 4.0)
+	else:
+		get_tree().call_group("hud", "toast", "Über „Leiste“ oben links anlegen", 4.0)
+
+
+## Talisman an- oder ablegen (Menü „Leiste“). Gibt false zurück, wenn kein Platz frei ist.
+func toggle_talisman(id: String) -> bool:
+	if equipped.has(id):
+		equipped.erase(id)
+	elif equipped.size() < Config.talisman_slots:
+		equipped.append(id)
+	else:
+		return false
+	skill_bar.reset_cycle()
+	return true
+
+
 ## Turm besteigen: oben stehen, nicht laufen, mit mehr Reichweite schießen.
 func climb(tower: Node3D) -> void:
 	on_tower = tower
@@ -140,6 +206,7 @@ func _die() -> void:
 
 func _respawn() -> void:
 	on_tower = null
+	madness.add(-Config.madness_death_relief)   # der Tod klärt den Geist etwas
 	health = Config.player_max_health
 	potions = Config.potions_start
 	lantern.fuel = Config.lantern_burn_time
@@ -163,11 +230,13 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Am Feuer: langsam heilen, Tränke auffüllen, Trage abladen
-	if Lights.refill_source_at(global_position) != null:
+	var src := Lights.refill_source_at(global_position)
+	if src != null:
 		heal(Config.fire_heal_per_second * delta)
 		if Config.potions_refill_at_fire:
 			potions = Config.potions_start
-		_unload()
+		if not src.is_in_group("beacon"):
+			_unload()   # am Leuchtfeuer nicht – dort kann man nur einen Haufen machen (Knopf „Abladen“)
 	if Input.is_action_just_pressed("potion"):
 		drink_potion()
 	if on_tower:
@@ -269,27 +338,45 @@ func _gather(delta: float) -> void:
 		_gather_t = 0.0
 	if key == "":
 		_full_warned = false
+		_ring().hide_ring()
 		return
 	if carry_total() >= Config.carry_capacity:
+		_ring().hide_ring()
 		if not _full_warned:
 			_full_warned = true
 			get_tree().call_group("hud", "toast", "Trage voll (%d)" % Config.carry_capacity)
 		return
+	var kind: String = ("stone" if node.is_in_group("rocks") else node.kind) if node else "wood"
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var need: float = Config.gather_seconds * (fort.tool_factor(kind) if fort else 1.0)   # Werkzeuge
 	_gather_t += delta
-	if _gather_t >= Config.gather_seconds:
+	# Ladekreis um das, was gerade abgebaut wird
+	var col: Color = {"wood": Color(1, 0.75, 0.45), "food": Color(0.5, 1, 0.85), "stone": Color(0.8, 0.8, 0.9)}[kind]
+	var spot: Vector3 = node.global_position if node else forest.tree_pos(tree)
+	var rr: float = (node.radius + 0.5) if node and node.is_in_group("rocks") else 1.0
+	_ring().show_at(spot, _gather_t / need, col, rr)
+	if _gather_t >= need:
 		_gather_t = 0.0
-		var kind: String = ("stone" if node.is_in_group("rocks") else node.kind) if node else "wood"
 		var ok: bool = node.take_one() if node else forest.take_one(tree)
 		if ok:
 			carry[kind] += 1
 			Sfx.play("pickup" if kind == "food" else "hit", -6.0)
-			var col: Color = {"wood": Color(1, 0.75, 0.45), "food": Color(0.5, 1, 0.85), "stone": Color(0.8, 0.8, 0.9)}[kind]
 			var num := Label3D.new()
 			num.set_script(preload("res://scripts/damage_number.gd"))
 			num.setup(1, col)
 			num.text = "+1 " + {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[kind]
 			get_parent().add_child(num)
 			num.global_position = global_position + Vector3(0, 2.4, 0)
+
+
+var _gather_ring: Node3D = null
+
+func _ring() -> Node3D:
+	if _gather_ring == null:
+		_gather_ring = MeshInstance3D.new()
+		_gather_ring.set_script(preload("res://scripts/gather_ring.gd"))
+		get_parent().add_child(_gather_ring)
+	return _gather_ring
 
 
 ## Am Feuer: Trage in die Festung abladen.

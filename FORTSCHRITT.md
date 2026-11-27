@@ -1,6 +1,11 @@
 # Aschen – Fortschritt
 
-**Stand: v0.2 fertig bis auf Werte-Feinschliff (PR #2 nach `main`). v0.3 begonnen: Sicht zum Testen.** Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.4 „Bewohner mit eigenem Leben“ zum Testen. Davor v0.3 „Tiefe“: Leiste als Puzzle (Kombos, Abzweigungen, Talismane), Bewohner mit Eigenleben, Wahnsinn.** v0.2 fertig bis auf Werte-Feinschliff. Prototyp v0.1 war fertig mit Build #14.
+
+## Nächster Chat
+**Geplant: Tag und Nacht sichtbar machen** (Max hat sich dafür entschieden). Bisher läuft nur die Uhr
+(Arbeitszeit – Freizeit – Nachtruhe, siehe v0.4). Idee: nachts dunkler (Mond/Umgebungslicht), Gegner nachts
+gefährlicher/zahlreicher, tagsüber etwas Luft; passend zum Licht-Thema des Spiels. Mit Max abstimmen, wie stark.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -156,6 +161,15 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - **Ziel-Hinweis** beim Start (3 Zeilen, 6 s).
 - HUD-Übersicht: oben links Festung (Feuer/Holz mit Restzeit bzw. „Feuer flackert …“ als Vorzeichen, Nahrung, Bewohner); oben rechts Leben, Laterne, Tränke, Stufe/EP, Trage, Vorrat; oben Mitte Belagerung/Boss; Mitte kurze Meldungen; unten Skill-Leiste mit Marker über Joystick/Dash/Trank.
 
+## Für eine spätere Etappe gemerkt (Max)
+- ~~**Bewohner mit eigenständigem Leben**~~ → in v0.4 umgesetzt.
+- **Mehr Gegner und abwechslungsreichere Belagerungen** (Max: „noch nicht“, später): Gegner, die gezielt Systeme
+  angreifen (Lagerplätze/Karren plündern, unter der Mauer durchgraben, Turm-Schützen jagen), Angriffe von mehreren
+  Seiten, Fallen, die man vorher baut.
+- **Jede Partie anders**: zufällige Karte, klares Ziel („Überlebe 10 Nächte“), Fortschritt zwischen Partien
+  (Herkünfte, „Asche“ zum Freischalten).
+- **Echte Grafik und Klang** – zum Schluss.
+
 ## Ideen für später (v0.2) – von Max beim Testen
 - ~~**Wald** außerhalb der Festung~~ → in Etappe 7 umgesetzt.
 - **Sicht nur, was der Hüter wirklich sieht** (Gegner hinter Bäumen/Mauern unsichtbar). Schießen nur mit freier Sicht gibt es schon.
@@ -165,10 +179,281 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 
 ---
 
-# Version v0.3 – (in Arbeit)
+# Version v0.4 – Bewohner mit eigenem Leben (zum Testen)
 
-Max: „Fang damit an, was du am sinnvollsten hältst.“ Reihenfolge-Vorschlag: Sicht → Ausrüstung → Wahnsinn →
-echte Grafik → Meta-Fortschritt/Herkünfte/Story.
+Max: „versuchen wir das“ (gemerkte Idee: Bedürfnisse, Arbeitszeit/Freizeit, eigene Häuser, Paare, Kinder, Training).
+
+- **Tagesablauf** (5 min = 1 Tag): **Arbeitszeit** 70 % – **Freizeit** 20 % – **Nachtruhe** 10 %.
+  Uhr in der Festungsanzeige: „Tag 3 · Freizeit 0:45“. Meldungen bei jedem Wechsel.
+  - Arbeit (Gebäude, Zonen, Karren) nur in der Arbeitszeit. Gebäude arbeiten dafür entsprechend schneller –
+    pro Tag liefern sie so viel wie vorher. Der Wachturm schießt immer. Belagerung: alle heim/auf den Turm, egal wann.
+- **Bedürfnisse** je Bewohner:
+  - **Sättigung**: sinkt (im Schnitt wie früher 1 Nahrung / 75 s, Vielfraß doppelt, Kinder halb). Gegessen wird
+    *selbst*: am Feuer aus dem Lager der Festung oder zu Hause aus dem eigenen Vorrat – in der Freizeit, bei großem
+    Hunger auch mitten in der Arbeit. Gekürzte Rationen (Ereignis): halbe Portionen. Ohne Essen: Sättigung 0 →
+    Leben sinkt → „verhungert“. (Der alte gemeinsame Verbrauch und das „alle 30 s stirbt einer“ sind weg.)
+  - **Energie**: sinkt im Wachsein; nachts wird geschlafen (liegt am Boden) – im eigenen Haus erholsamer als am Feuer.
+    Übermüdet (< 25): arbeitet langsamer.
+- **Freizeit** – jeder entscheidet selbst, der Reihe nach:
+  essen (wenn hungrig) → **Holz fürs eigene Haus hacken** (in einer hellen Zone, 8 Holz, 5 pro Gang) und es **bauen**
+  (15 s, Bauplätze an Süd- und Ostmauer, 15 Stück) → **Nahrung für zu Hause** sammeln (Vorrat bis 6) →
+  **Kampftraining** am neuen **Übungsplatz** neben dem Tor (Kampf-Stufe 0–5: +10 % Leben, +20 % Schaden je Stufe,
+  auch beim Schießen vom Turm) → **am Feuer zusammensitzen**.
+- **Paare und Kinder**: Wer allein ist, sucht öfter Gesellschaft. Wer zusammen am Feuer sitzt (beide ohne Partner, keine Geschwister, Stimmung ≥ 40), wird nach
+  25 s gemeinsamer Zeit ein **Paar** – und zieht zusammen, wenn einer ein Haus hat. Paare mit Haus bekommen nachts
+  manchmal ein **Kind** (35 %, wenn genug Nahrung da ist, Stimmung ≥ 55 und Platz für Bewohner). Kinder sind kleiner,
+  spielen am Feuer, essen halb so viel, arbeiten und kämpfen nicht – nach 2 Tagen sind sie erwachsen.
+  Eigenschaften erben sie oft von den Eltern.
+- **Stimmung** zusätzlich persönlich: Haus +6 (ab Tag 2 ohne Haus −4), Partner +5, Kind +4, hungrig −15, müde −8.
+- **Menü „Bewohner“**: je Person, was sie gerade tut („jetzt: hackt Holz fürs eigene Haus (6/10)“), satt/hungrig,
+  ausgeruht/müde, Haus und Vorrat, Kampf-Stufe; Kinder sind markiert.
+- **Speicherstand**: Tag und Uhrzeit, Häuser, wer wo wohnt, Bedürfnisse, Kampf-Stufe, Alter, Vorrat.
+- Neue Werte: Abschnitt „Eigenes Leben der Bewohner (v0.4)“ in `scripts/config.gd`.
+- Skripte: `scripts/fortress/hut.gd` (Haus), Abschnitt „Eigenes Leben“ in `resident.gd` und `fortress.gd`.
+- **Gasthaus** (Wunsch Max; neuer Bauplatz links vom Feuer, 10 Holz, 3 Stufen) und **Hungerleiste**:
+  - Über jedem Bewohner eine **dünne weiße Hungerleiste** unter der Lebensleiste (blinkt rötlich unter 25 %).
+  - **Unter 25 % Sättigung muss gegessen werden** – sofort, auch mitten in der Arbeit (draußen: mit der Ladung heim).
+    Gegessen wird im **Gasthaus** (4 s; jede Stufe macht 1 Nahrung 15 % sättigender, Stimmung +4 je Stufe) –
+    gibt es keins, **am Lager** (Vorratslager bzw. am Feuer; schnell hinuntergeschlungen, Stimmung −3).
+  - **Eigener Vorrat** zu Hause: höchstens **2 Nahrung** (vorher 6 – zu viel gebunkert). Nur für einen Imbiss in
+    der Freizeit (unter 60 %).
+  - Start-Sättigung zufällig (45–95 %), damit nicht alle gleichzeitig essen gehen.
+  - Probelauf (3 Tage, Gasthaus): Nahrung stabil (21–39), niemand verhungert.
+- Probelauf (5 Tage, 2 Sammler, 2 Holzfäller, Pilzkeller, Trümmerhof): Nahrung bleibt stabil (10–33), niemand
+  verhungert, die ersten Häuser entstehen ab Tag 4 (erste Fassung, danach Haus billiger gemacht), Überlebende kommen
+  dazu bis 12 Bewohner. Paare und Kinder brauchen erfahrungsgemäß einige Tage.
+
+---
+
+# Version v0.3 – Tiefe (zum Testen)
+
+Max: „Es wirkt mir noch nicht deep genug.“ Diagnose: viele Systeme, aber fast jede Entscheidung war „mehr ist besser“.
+v0.3 baut **Abwägungen** ein – in drei Teilen. Danach: echte Grafik → Meta-Fortschritt/Herkünfte/Story.
+
+| Teil | Inhalt | Status |
+|---|---|---|
+| Sicht | Gegner nur bei freier Sicht, im Dunkeln nur Augen | zum Testen |
+| 1 | Leiste als Puzzle: Zustände & Kombos, Lage zählt, Abzweigungen, Talismane | zum Testen |
+| 2 | Bewohner mit Eigenleben: Namen, Eigenschaften, Stimmung, Trauer, Gräber, Ereignisse | zum Testen |
+| 3 | Wahnsinn: steigt im Dunkeln, macht stärker, dunkle Skills, Trugbilder, Bewohner fürchten dich | zum Testen |
+
+Automatisch geprüft (headless, Godot 4.7.2): alle Skripte laden fehlerfrei; Testlauf mit Kombos, Schwur, Sanduhr,
+dunklen Skills, Schrein, Tod/Trauer/Grab, Rückkehr von der Suche, allen 7 Ereignissen, Speichern/Laden,
+Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufzeitfehler. **Am Handy noch nicht getestet.**
+
+## Teil 1 – Leiste als Puzzle
+- **Zustände & Kombos** (Gegner verfärben sich):
+  - Glockenschlag **erschüttert** 2 s (hellblau, Gegner nur 35 % so schnell).
+  - Glut / Zündschnur / Glutkrone setzen **in Brand** (orange).
+  - Bogen „Markieren“ **markiert** 4 s (violett): +35 % Schaden von allem (auch Turm und Bewohner).
+  - **Zerschmettern**: Sichel trifft Erschütterte → doppelter Schaden. Reihenfolge Glocke → Sichel lohnt sich.
+  - **Entfachen**: Glocke trifft Brennende → restlicher Brandschaden sofort ×1,5.
+  - **Flammenpfeil**: Bogen trifft Brennende → Explosion (2,2 m), Nachbarn brennen mit.
+  - Kombos stehen als gelber Schriftzug über dem Gegner.
+- **Neue Modifikatoren, bei denen die Lage zählt:**
+  - **Zündschnur**: nächster Angriff setzt alle Getroffenen in Brand – macht Kombos mit jedem Angriff möglich.
+  - **Spiegel**: löst das Feld *davor* noch einmal aus (Angriff 70 %, Modifikator ganz).
+  - **Schwur**: im *letzten* Feld → die ganze nächste Runde +25 % Schaden (Anzeige „Schwur +25 %“ über der Leiste).
+    Anderswo nur der nächste Angriff +10 %.
+- **Abzweigungen**: Beim Aufstieg eines Skills auf Stufe 3 wählt man eine von zwei Regeln (für immer). Beispiele:
+  Sichel *Wirbel* (rundum, −20 %) oder *Ernte* (unter 25 % Leben → tot); Bogen *Salve* oder *Markieren*;
+  Glut *Flächenbrand* oder *Funkentod*; Glocke *Sog* (zieht heran) oder *Lichtglocke* (+1 s Laterne pro Treffer);
+  Echo *Nachhall* oder *Dreiklang*; Opferlicht *Blutopfer* (Leben statt Licht) oder *Wahnopfer* (Wahnsinn statt Licht) …
+  Alle in `scripts/skill_data.gd` → `BRANCHES`. Die Abzweigung steht im Umbau-Menü unter dem Skill.
+- **Talismane** (Ausrüstung, `scripts/talisman_data.gd`): 11 Stück, biegen Regeln um, z. B. *Pendel*
+  (Leiste läuft hin und zurück), *Leerer Kelch* (leere Felder geben Laternenlicht), *Glockenseil* (jeder 3. Angriff doppelt),
+  *Bleiche Hand* (Modifikatoren wirken zweimal), *Hast-Amulett* (schneller, aber verwundbarer), *Wahnstein* …
+  - Höchstens **2 angelegt**; an-/ablegen im Menü „Leiste“ (unten, antippen) – inzwischen überall.
+  - Fundorte: **6 Schreine** im Dunkeln (violettes Glühen, 1,5 s daneben stehen, +5 Wahnsinn), Verlorene (12 %),
+    der Hauptmann, das Ereignis „Fund in den Trümmern“.
+- Umbau-Menü scrollt jetzt (wegen der Talismane).
+
+## Teil 2 – Bewohner mit Eigenleben
+- Jeder Bewohner hat einen **Namen** und **1–2 Eigenschaften** (`scripts/fortress/resident_data.gd`):
+  Flink, Kräftig, Zäh, Guter Schütze, Fleißig, Genügsam, Vielfraß, Prediger, Kränklich, Feuerhüter, Ängstlich –
+  jede wirkt wirklich (Tempo, Tragen, Leben, Schaden, Essen, Feuerverbrauch …).
+- Am Start sind zwei Paare **verbunden** (Geschwister / Paar). Stirbt einer, **trauert** der andere 4 min
+  (arbeitet langsamer, Stimmung stark unten).
+- **Stimmung** 0–100 strebt einem Zielwert zu: satt (+), Feuer sicher (+), Prediger (+), gekürzte Rationen (−),
+  Hunger (−−), Wahn des Hüters (−). Sofort-Schocks: Tod (−12 für alle), Tor gefallen, Belagerung gehalten (+10).
+  - zuversichtlich (≥ 75): +15 % Arbeitstempo · verzweifelt (< 25): halbes Tempo.
+  - Unter 15 kann ein Bewohner die Festung **verlassen**. Ängstliche gehen bei schlechter Stimmung nicht hinaus.
+- **Gräber** mit Namen an der Westmauer (innen). Meldungen nennen Namen („Hanna wurde draußen getötet.“).
+- **Name über dem Kopf**, wenn der Hüter in der Nähe ist (Farbe = Stimmung).
+- Menü „Bewohner einteilen“: neuer Abschnitt **Leute** (Name, Eigenschaften, Stimmung, Arbeit, Verbindung, Gräber).
+  HUD: „Bewohner: 7 · gefasst“ (Farbe = Durchschnittsstimmung).
+- **Ereignisse** (`scripts/ui/event_panel.gd`): etwa alle 3,5 min (nicht bei Belagerung/Vorzeichen), Spiel pausiert,
+  zwei Antworten mit Preis: Fremder am Tor (krank – aufnehmen?), Die Suche (Verwandte suchen – vielleicht nie zurück),
+  Leere Vorräte (Rationen kürzen?), Streit am Feuer, Fund in den Trümmern (Talisman oder Opfer), Prediger der Dunkelheit
+  (verbannen?), Gebet für den Hüter (bei Wahn ≥ 50: −25 Wahnsinn gegen Nahrung).
+
+## Teil 3 – Wahnsinn
+- **Wahn-Balken** oben rechts unter der Laterne (Stufen: klar · unruhig 25 · gezeichnet 50 · verloren 75).
+- **Steigt** draußen außerhalb fester Lichtquellen (0,15/s), schneller bei Laterne < 30 % (+0,35/s) und leer (+1/s),
+  durch dunkle Skills, Schreine, Wahnopfer. **Sinkt** nur langsam am Feuer (0,3/s, Prediger helfen), beim Tod (−25),
+  durch das Gebet-Ereignis.
+- **Macht stärker**: +10 % Schaden je Stufe. Ab 25 bietet der Stufenaufstieg **dunkle Skills** an:
+  *Schattenriss* (Linie, stärker mit Wahn), *Leerenschrei* (Gegner fliehen, Lichtfresser lassen los),
+  *Schattenpakt* (Modifikator, Schaden mit dem Wahn). Sie nähren den Wahn.
+- **Kostet**: violetter Bildschirmrand, **Flüstern** (violette Schrift), ab 50 **Trugbilder** (falsche Augen im Dunkeln),
+  die Anzeige **lügt** kurz (Laterne, Bewohnerzahl), die **Bewohner fürchten dich** (Stimmung −12 / −25).
+  Ab 75 springen Trugbilder dich an. Bei 100 zehrt der Wahn am Leben (2/s, tötet aber nicht).
+- Verbindung der drei Teile: Wer draußen ins Risiko geht, wird stärker – belastet damit aber die Festung.
+
+### Nach Max' Test von v0.3
+- **Scrollen repariert**: In „Leiste umbauen“ konnte man am Handy nicht richtig nach unten scrollen – die großen Knöpfe
+  (Felder, Talismane) haben das Wischen abgefangen. Jetzt geben Knöpfe in scrollbaren Menüs das Wischen an die Liste
+  weiter (`UiStyle.pass_touch`); Antippen löst sie weiter aus, Wischen nicht. Gilt auch für „Bewohner einteilen“
+  und das Werte-Menü.
+- **Leiste und Bewohner überall verwalten** (Wunsch Max): Zwei Knöpfe oben links unter der Festungsanzeige,
+  **„Leiste“** (Leiste umbauen, Vorrat, Talismane) und **„Bewohner“** (einteilen, Leute) – nicht mehr nur am Feuer.
+  Das Spiel pausiert, solange ein Menü offen ist. Die großen Knöpfe am Feuer gibt es dafür nicht mehr.
+
+### Nach Max' Test von v0.3: Feinschliff
+- **Ladekreis beim Abbauen**: Steht der Hüter an einem Baum, Felsen oder einer Pilzstelle, füllt sich ein Ring am Boden
+  darum, bis die nächste Einheit fertig ist (`scripts/gather_ring.gd`).
+- **Bögen holen sie sich selbst**: Jeder Bogen im Lager geht automatisch an einen Bewohner ohne Bogen (wer draußen
+  arbeitet, zuerst); wer einen hat, behält ihn. Das − / + im Menü ist weg (dort steht nur noch „x von y“).
+- **Der Bogner ruft**, wenn ein Bogen fertig ist: Sprechblase über ihm („Ein Bogen ist fertig!“), Ruf-Klang, Meldung mit
+  Namen – danach „Hanna holt sich den neuen Bogen.“
+- **Pendel statt Umgekehrter Sanduhr** (die ergab wenig Sinn – man kann die Felder ja umordnen): Die Leiste läuft
+  links → rechts → zurück → … Bei 5 Feldern: 1 2 3 4 5 4 3 2 1 2 … – die mittleren Felder kommen doppelt so oft dran
+  wie die äußeren. Der Spiegel kopiert das zuletzt gelaufene Feld (auf dem Rückweg also das rechte).
+  Alte Spielstände: die Sanduhr wird zum Pendel.
+- **Werkzeuge** (Menü „Bewohner“ → „Werkzeuge“): Axt (Holz), Spitzhacke (Stein), Sammelkorb (Nahrung), je 3 Stufen,
+  jede Stufe +35 % schneller – für den Hüter und die Bewohner. Kosten 6/10/16 Holz + 4/8/14 Stein.
+  Stellt die Werkstatt her: Werkzeug-Stufe höchstens so hoch wie die Werkstatt-Stufe.
+- **Weniger Talismane**: nur noch 3 Schreine (statt 6), Verlorene lassen nur noch selten einen fallen (3 % statt 12 %),
+  das Ereignis „Fund in den Trümmern“ nur, solange man weniger als 3 Talismane hat.
+- **Kriecher greifen von hinten an**: Sie wandern auf ihrem Kreis hinter den Hüter (jeder etwas versetzt) und springen
+  erst an, wenn sie hinten bzw. seitlich sind; wer vorne steht, läuft seitlich herum. Achtung: Steht der Hüter still,
+  dreht er sich zum nächsten Gegner – „hinten“ ist dann der Rücken zu diesem. Messung: die Hälfte der Angriffe beginnt
+  hinter ihm, fast alle anderen seitlich.
+- **Kriecher sind lichtscheu, aber nicht lichtdicht**: Kein hartes Wegstoßen mehr aus dem Licht. Sie lauern lieber am
+  Rand, laufen im Licht langsamer, laufen aber hindurch und greifen auch im Licht von Fackeln/Feuerstellen an
+  (mit 35 % Mut je Anlauf). In die Festung kommen sie weiter nicht.
+- **Angeschaut weichen sie zurück** (Max): Steht ein Kriecher im Blickkegel des Hüters (50° zu jeder Seite), lauert er
+  3 m weiter draußen und greift nicht an; ein laufender Anlauf wird abgebrochen (außer er ist schon näher als 1,8 m).
+  Nur hinter dem Rücken trauen sie sich heran. Messung mit fester Blickrichtung: 21 von 21 Bissen kamen von hinten.
+  Werte-Menü: „Kriecher: Blickkegel Grad“ (0 = weichen nie zurück), „Kriecher: Mut im Fackellicht“.
+- Neue Werte: `crawler_gaze_angle` (50°), `crawler_gaze_backoff` (3 m), `crawler_light_courage` (0,35), `tool_speed_per_level` (0,35), `tool_cost_wood`, `tool_cost_stone`;
+  `lost_talisman_chance` 0,12 → 0,03.
+
+### Karren, sekundengenauer Feuer-Timer, Reserve (Wunsch Max)
+- **Lagerplätze** an jeder Fackel (und am Leuchtfeuer) (`scripts/zones/depot.gd`): kleine Stapel mit Schild
+  („Lager: 11 Holz · 6 Nahrung“), je Rohstoff höchstens 20.
+- **Karrenschuppen** (neuer Bauplatz rechts vom Feuer, 10 Holz, 3 Stufen = 1/2/3 Karren, je ein Bewohner als Fahrer).
+  - Gibt es einen Karren mit Fahrer, legen Holzfäller, Sammler und Steinbrecher ihre volle Ladung **an der Fackel ab**
+    und arbeiten sofort weiter (kein Weg zum Feuer mehr). Ist der Stapel voll, tragen sie selbst heim wie bisher.
+  - **Karrenfahrer** fahren zum hellsten/vollsten Lagerplatz (nur helle Zonen, ab 4 Einheiten, nie zwei zum selben),
+    laden 2 s auf (bis 15, das Dringendste zuerst, nur was in der Festung noch Platz hat) und bringen alles zum Feuer.
+    Mit Karren sind sie langsamer (2,2 m/s). Getroffen -> Flucht heim, die Ladung kommt mit. Bei Belagerung: alle heim.
+  - Probelauf (Westsenke, 2 Holzfäller, 1 Sammler, 1 Karren, 5 min): 24-mal an der Fackel abgelegt, 5 Karrenfahrten,
+    Holzlager der Festung durchgehend fast voll.
+  - Gespeichert: Vorrat der Lagerplätze. (Was gerade auf einem Karren liegt, geht beim Laden verloren.)
+- **Feuer-Timer sekundengenau**: zählt jetzt jede Sekunde herunter (vorher in 20-s-Schritten, weil nur ganze Scheite zählten).
+- **Reserve 5**: Holz und Nahrung im Lager dürfen nicht unter 5 fallen, wenn etwas *verbraucht* wird – Bauen,
+  Verbessern, Werkzeuge, Fackeln, Feuerstellen, Bögen, Nachlegen und Holz-Botengänge der Bewohner, Ereignisse.
+  Nur das Feuer und das Essen dürfen die letzten 5 nehmen. Holz aus der Trage des Hüters darf er weiter frei verwenden.
+  Knöpfe zeigen dann „Nicht genug Holz – 5 bleiben fürs Feuer“.
+- Neue Werte: `vital_reserve` (5), `cost_carts` (10), `cart_capacity` (15), `cart_speed` (2,2), `cart_min_load` (4),
+  `depot_cap` (20 je Rohstoff).
+
+### Wahn-Entscheidungen, Talismane und Licht gegen den Wahn, Angriffe nur in Reichweite (Wunsch Max)
+- **Entscheidungen des Wahns**: Ab Wahnsinn 75 („verloren“) gibt es nur noch diese Ereignisse – und öfter (×0,6 Abstand).
+  Violetter Titel „Der Wahn spricht“, zwei rote Knöpfe, **beide Antworten schlecht**:
+  *Der Dieb* (sofort töten / vor allen hinrichten), *Der Blick* (in die Dunkelheit jagen / ohne Laterne Holz holen
+  schicken), *Gift* (halbes Holz / halbe Nahrung wegwerfen), *Das Opfer* (einen Bewohner opfern, −20 Wahnsinn /
+  eigenes Blut: −15 maximales Leben für immer), *Verschwörung* (zwei einsperren ohne Essen / einen töten).
+  Wert: `madness_event_threshold` (75).
+- **Talismane gegen den Wahn**: *Herdstein* – am Feuer der Festung sinkt der Wahnsinn dreimal so schnell;
+  *Glutamulett* – der Wahnsinn sinkt auch an Fackeln, Feuerstellen und am Leuchtfeuer.
+- **Licht-Skills** (gelb, im Stufenaufstieg „LICHT:“, immer im Angebot): senken den Wahnsinn und sind stärker, je klarer
+  der Geist ist (×1,3 bei Wahn 0 bis ×0,7 bei Wahn 100) – das Gegenstück zu den dunklen Skills.
+  - *Läuterung* (Angriff, 1,0 s): Lichtwelle rundum 4 m, 8 Schaden, −1,5 Wahnsinn.
+    Abzweigung: *Heilige Flamme* (Getroffene brennen) oder *Reinigung* (doppelt Wahn weg, halber Schaden).
+  - *Lichtlanze* (Angriff, 0,9 s): Strahl auf den nächsten Gegner, 12 Schaden, −0,8 Wahnsinn.
+    Abzweigung: *Durchbohren* (alle auf der Linie) oder *Blenden* (2 s erschüttert → Sichel zerschmettert).
+  - *Andacht* (Modifikator): nächster Angriff senkt den Wahnsinn um 3.
+    Abzweigung: *Tiefe Andacht* (doppelt) oder *Lichtsegen* (+20 % Schaden).
+- **Leiste: wie vorher, plus AUS-Knopf** (Max): Die Leiste ist standardmäßig **an** und lädt, sobald irgendein
+  Angriff der Leiste einen Gegner in Reichweite hat (+2 m Puffer, `bar_range_margin`). Mit dem Knopf
+  **„Leiste: AN/AUS“** (links über der Leiste, Taste **R**) lässt sie sich ganz abschalten.
+- **„Bitte Handy drehen“ am PC repariert**: Die Meldung kam, sobald das Fenster quer war und der Browser einen
+  Touch-Bildschirm meldete – das tun auch viele PC-Browser. Jetzt nur noch auf Android/iOS. Zusätzlich hat die Meldung
+  einen Knopf „Trotzdem spielen“.
+
+### Feinschliff nach Max' Test (PC, 21:9)
+- **Neue Felder bleiben leer**: Ein neues Feld (Stufe 6/11) bleibt leer, und neue Skills aus dem Stufenaufstieg kommen
+  immer in den **Vorrat** – einsetzen im Menü „Leiste“.
+- **Lichtlanze**: jetzt *stärker, je wahnsinniger* (×0,7 bei Wahn 0 bis ×1,3 bei Wahn 100). Läuterung bleibt
+  stärker mit klarem Geist.
+- **Tasten am PC** (stehen auch auf den Knöpfen, am Handy nicht): **E** Bauen/Verbessern/Fackel, **F** Turm
+  besteigen/herabsteigen/Schnellreise, **L** Menü „Leiste“, **B** Menü „Bewohner“ (nochmal drücken schließt),
+  **R** Leiste an/aus. Dazu WASD, Leertaste (Dash). (Neuere Belegung siehe unten: Q Leiste, 1 Trank, G Abladen.)
+- **Breitbild (z. B. 21:9)**: Alle Anzeigen und Menüs stehen in einer mittigen Spalte (höchstens 3:4 der Höhe breit)
+  statt an den Bildschirmrändern (`UiStyle.column`).
+- **Leben, Laterne, Wahn an der Spielfigur**: links ein roter Balken (Leben, mit Zahl), rechts ein oranger
+  (Laterne) und ein schmaler violetter mit Stufen-Strichen (Wahn, darunter die Stufe). Oben rechts stehen nur noch
+  Tränke, Stufe/EP, Trage, Vorrat.
+- **Belagerung: keine schießende Mauer mehr.** Die Bewohner steigen auf den **Wachturm** und schießen sichtbar von
+  oben (Plätze: Stufe 1: 4, Stufe 2: 6, Stufe 3: 8). Wer später heimkommt, steigt nach. Bewaffnete schießen mit dem
+  Bogen (5 Schaden), Unbewaffnete 2, gute Schützen doppelt. **Ohne Wachturm schießt niemand** – der Turm wird damit
+  wichtig. Nach der Belagerung steigen alle wieder herunter.
+- Talisman **Pendel**: Beschreibung nur noch „Die Leiste pendelt: links → rechts → zurück“.
+
+### Licht stärker mit Wahn, Tasten, räumlicher Klang, Haufen draußen (Wunsch Max)
+- **Alle Licht-Skills sind stärker, je wahnsinniger man ist** (wie die dunklen): ×0,7 bei Wahn 0 bis ×1,3 bei
+  Wahn 100. Einheitliche Beschreibung bei allen: „… Stärker, je wahnsinniger du bist“ bzw. „Nährt / Senkt den
+  Wahnsinn“.
+- **Tasten neu**: **Q** Menü „Leiste“ (vorher L), **1** Trank (vorher Q), **G** Trage als Haufen abladen.
+  Übrige: E Bauen/Fackel, F Turm/Schnellreise, B Bewohner, R Leiste an/aus, WASD, Leertaste Dash.
+  Unter Dash/Trank steht am PC die Taste.
+- **Räumlicher Klang** (`Sfx.play_at`): Treffer, Schläge, Bewohner, Turm-Schützen, Fackeln, Bauen, Bogner-Ruf …
+  kommen vom Ort des Geschehens: leiser mit der Entfernung zum Hüter, links/rechts verteilt, ab 34 m gar nicht,
+  die Festungsmauer dämpft um 14 dB. Den **Bogner hört man draußen nicht** – und dann gibt es auch keine Meldung.
+  Glocke und Grollen der Belagerung bleiben überall hörbar.
+- **Am Leuchtfeuer wird nicht mehr in die Festung abgeladen** (nur noch am Feuer der Festung).
+- **Haufen draußen**: An jedem Lagerplatz draußen – an den Fackeln, am Leuchtfeuer und **neu an jeder Feuerstelle** –
+  erscheint der Knopf **„Abladen (Haufen)“** (Taste G): die Trage kommt auf den Haufen, die Karren holen ihn ab,
+  solange das Feuer dort brennt. Feuerstellen-Haufen werden mitgespeichert.
+
+### Ziehen und Ablegen, Belagerungs-Fehler (Max)
+- **Menü „Leiste“ per Ziehen und Ablegen** (Finger oder Maus): Feld auf Feld = tauschen · Vorrat-Skill auf ein Feld =
+  einsetzen (ein Skill, der dort war, wandert in den Vorrat) · Feld in den Bereich „Vorrat“ = herausnehmen.
+  Antippen funktioniert weiter wie bisher. Die Skill-Knöpfe scrollen das Menü dabei nicht mit.
+- **Fehler behoben: „1 Angreifer“, aber keiner zu sehen.** Ursache: Angreifer erschienen nur, solange unter der
+  Höchstzahl gleichzeitiger Gegner (16) Platz war – mitgezählt wurden aber auch der Hauptmann und umherstreifende
+  Gegner. War das voll, erschien der letzte Angreifer nie und die Belagerung blieb offen. Jetzt:
+  - es zählen nur die Angreifer selbst,
+  - beim Glockenschlag ziehen sich Streuner weit weg vom Hüter (> 20 m) zurück,
+  - ein Angreifer, der 5 s nicht näher ans Tor kommt (Baum, Fels), springt auf den Platz vor dem Tor,
+  - bei höchstens 3 übrigen Angreifern zeigen rote Wegweiser „Angreifer“ zu ihnen (auch von drinnen).
+
+### Bewohner stehen nicht mehr untätig an der Fackel (Max)
+- **Ursache**: War im Fackellicht ihrer Zone nichts mehr zu holen (Bäume gefällt – wachsen erst nach 6 min nach –,
+  Pilze leer), blieben Holzfäller/Sammler/Steinbrecher einfach an der Fackel stehen. Selbstständige Helfer blieben
+  sogar, solange es *irgendwo anders* noch etwas gab.
+- **Jetzt: Ausweich-Arbeit.** Ist die eigene Zone leer, fragt der Bewohner, was das Lager am dringendsten braucht
+  (Holz, Nahrung, Stein – nur, was nicht schon fast voll ist), und arbeitet dort: zuerst in der eigenen Zone, sonst
+  in der nächsten hellen Zone („hilft bei: Holz“). Alle 10 s schaut er, ob es in seiner Zone wieder etwas gibt, und
+  kehrt dann zurück („zurück zur eigenen Arbeit“). Wird die Ausweich-Zone dunkel, gilt wieder die eigene.
+  Gibt es nirgends etwas Sinnvolles, geht er heim ans Feuer und ruht ~25 s („nichts zu tun – ruht am Feuer“).
+  Im Menü bleibt er weiter seiner Zone zugeteilt.
+- Probelauf (Westsenke abgeholzt, 3 Holzfäller): sie holen Holz in Osthain und bringen es heim, statt zu warten.
+
+### Dunkle Skills stärker mit klarem Geist (Max)
+- Gegenstück zu den Licht-Skills: **alle dunklen Skills sind stärker, je klarer der Geist ist** (×1,3 bei Wahn 0 bis
+  ×0,7 bei Wahn 100) – Schattenriss, Leerenschrei (macht jetzt auch so Schaden-Unterschiede) und Schattenpakt
+  (Bonus ×3 bei Wahn 0 bis ×1 bei Wahn 100, vorher genau umgekehrt). Einheitlicher Text:
+  „Nährt den Wahnsinn. Stärker, je klarer dein Geist ist“. Damit: Dunkel ist stark, solange man klar ist – und
+  macht wahnsinnig; Licht wird stark, wenn man wahnsinnig ist – und macht wieder klar.
+
+
+## Neue Werte (frei gewählt)
+Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.
+Im Werte-Menü neue Gruppen: „Leiste & Talismane“, „Wahnsinn“, „Bewohner-Stimmung“.
+Speicherstand Version 2 (alte Stände laden weiter; Bewohner bekommen dann neue Namen).
 
 ## Sicht (zum Testen)
 - Jeder Gegner bekommt `scripts/enemies/enemy_sight.gd` (prüft ~7× pro Sekunde, versetzt):

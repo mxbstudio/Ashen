@@ -1,4 +1,6 @@
-## Skill-Leiste umbauen – nur am Feuer.
+## Skill-Leiste umbauen – überall über den Knopf „Leiste“ oben links (Spiel pausiert solange).
+## Ziehen und Ablegen: Feld auf Feld = tauschen · Vorrat auf Feld = einsetzen (der alte wandert in den Vorrat) ·
+## Feld in den Vorrat = herausnehmen. Antippen geht weiterhin.
 ## Bedienung: ein Feld antippen (wird markiert), dann
 ##  - ein anderes Feld antippen  -> die beiden tauschen
 ##  - einen Skill im Vorrat antippen -> kommt in das Feld
@@ -24,28 +26,33 @@ func _ready() -> void:
 	bg.color = Color(0, 0, 0, 0.85)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.offset_left = 30
+	scroll.offset_right = -30
+	UiStyle.keep_in_column(scroll, 30)
+	scroll.offset_top = 110
+	scroll.offset_bottom = -30
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
 	_box = VBoxContainer.new()
-	_box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_box.offset_left = 30
-	_box.offset_right = -30
-	_box.offset_top = 170
-	_box.offset_bottom = -40
+	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_box.add_theme_constant_override("separation", 18)
-	add_child(_box)
-	# Knopf "Leiste umbauen" – erscheint über der Skill-Leiste, wenn der Hüter am Feuer steht
-	_open_button = UiStyle.button("Leiste umbauen", Color(1, 0.7, 0.3), 26, Vector2(300, 70))
+	scroll.add_child(_box)
+	# Knopf "Leiste" oben links unter der Festungsanzeige – überall erreichbar
+	_open_button = UiStyle.button("Leiste" + UiStyle.key_hint("Q"), Color(1, 0.7, 0.3), 22, Vector2(130, 58))
 	_open_button.add_to_group("touch_blockers")
 	_open_button.pressed.connect(open)
 	_open_button.visible = false
 	add_sibling.call_deferred(_open_button)
 
 
+## Wichtig: Sichtbarkeit nur ändern, wenn nötig – sonst geht ein Fingertipp verloren.
 func _process(_delta: float) -> void:
-	var src := Lights.refill_source_at(player.global_position)
-	var at_fire: bool = player.is_alive() and src != null and not src.is_in_group("beacon")
-	_open_button.visible = at_fire and not visible and not get_tree().paused
-	var vp := get_viewport_rect().size
-	_open_button.position = Vector2((vp.x - _open_button.size.x) / 2.0, vp.y - 560.0)
+	var show: bool = player.is_alive() and not visible and not get_tree().paused
+	if _open_button.visible != show:
+		_open_button.visible = show
+	_open_button.position = Vector2(UiStyle.column(get_viewport_rect().size).position.x + 10, 272)
 
 
 func open() -> void:
@@ -66,7 +73,9 @@ func _rebuild() -> void:
 		c.queue_free()
 	var bar: Node = player.skill_bar
 	_box.add_child(UiStyle.label("Skill-Leiste umbauen", 42, Color(1, 0.8, 0.45)))
-	_box.add_child(UiStyle.label("Läuft von links nach rechts im Kreis. Modifikatoren wirken auf den nächsten Angriff rechts davon.", 22, Color(1, 1, 1, 0.6)))
+	var dir_text := "pendelnd hin und zurück (Pendel)" if bar.pendulum() else "von links nach rechts im Kreis"
+	_box.add_child(UiStyle.label("Läuft %s. Modifikatoren wirken auf den nächsten Angriff danach. " % dir_text
+			+ "Spiegel kopiert das Feld davor, Schwur wirkt im letzten Feld auf die ganze Runde.", 22, Color(1, 1, 1, 0.6)))
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
@@ -74,11 +83,16 @@ func _rebuild() -> void:
 	for i in bar.slots.size():
 		var id: String = bar.slots[i]
 		var text := SkillData.short_with_level(id, bar.level_of(id)) if id != "" else "leer"
-		var b := UiStyle.button("%d\n%s" % [i + 1, text], SkillData.color(id), 24, Vector2(0, 130))
+		var br := SkillData.branch_name(id, bar.branches.get(id, ""))
+		if br != "":
+			text += "\n" + br
+		var b := UiStyle.button("%d\n%s" % [i + 1, text], SkillData.color(id), 22, Vector2(0, 150))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if i == _selected:
 			b.add_theme_stylebox_override("normal", UiStyle.box(Color(1, 0.8, 0.4, 0.5), Color.WHITE, 5))
 		b.pressed.connect(_on_slot.bind(i))
+		b.set_meta("draggable", true)
+		b.set_drag_forwarding(_drag.bind("slot", i), _can_drop.bind("slot", i), _drop.bind("slot", i))
 		row.add_child(b)
 	_box.add_child(row)
 
@@ -86,23 +100,32 @@ func _rebuild() -> void:
 	_info.custom_minimum_size = Vector2(0, 120)
 	_box.add_child(_info)
 
-	_box.add_child(UiStyle.label("Vorrat", 30, Color(1, 1, 1, 0.8)))
+	_box.add_child(UiStyle.label("Vorrat  (Skills hierher ziehen = herausnehmen)", 26, Color(1, 1, 1, 0.8)))
+	var stash_panel := PanelContainer.new()
+	stash_panel.add_theme_stylebox_override("panel", UiStyle.box(Color(1, 1, 1, 0.05), Color(1, 1, 1, 0.2)))
+	stash_panel.custom_minimum_size = Vector2(0, 110)
+	stash_panel.set_drag_forwarding(Callable(), _can_drop.bind("stash", -1), _drop.bind("stash", -1))
+	var stash_box := VBoxContainer.new()
+	stash_box.mouse_filter = Control.MOUSE_FILTER_PASS
+	stash_panel.add_child(stash_box)
 	var grid := GridContainer.new()
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
+	grid.mouse_filter = Control.MOUSE_FILTER_PASS
 	if bar.stash.is_empty():
-		_box.add_child(UiStyle.label("(leer – neue Skills gibt es beim Stufenaufstieg)", 22, Color(1, 1, 1, 0.4)))
+		stash_box.add_child(UiStyle.label("(leer – neue Skills gibt es beim Stufenaufstieg)", 22, Color(1, 1, 1, 0.4)))
 	for j in bar.stash.size():
 		var sid: String = bar.stash[j]
 		var sb := UiStyle.button(SkillData.short_with_level(sid, bar.level_of(sid)), SkillData.color(sid), 26, Vector2(200, 90))
 		sb.pressed.connect(_on_stash.bind(j))
+		sb.set_meta("draggable", true)
+		sb.set_drag_forwarding(_drag.bind("stash", j), _can_drop.bind("stash", j), _drop.bind("stash", j))
 		grid.add_child(sb)
-	_box.add_child(grid)
+	stash_box.add_child(grid)
+	_box.add_child(stash_panel)
 
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_box.add_child(spacer)
+	_box.add_child(_talisman_section())
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 16)
 	var clear := UiStyle.button("Feld leeren", Color(0.7, 0.7, 0.7), 28, Vector2(0, 100))
@@ -115,15 +138,19 @@ func _rebuild() -> void:
 	done.pressed.connect(close)
 	bottom.add_child(done)
 	_box.add_child(bottom)
+	UiStyle.pass_touch(_box)
 
 
 func _info_text() -> String:
 	if _selected == -1:
-		return "Tippe ein Feld an."
+		return "Skills ziehen und ablegen – oder ein Feld antippen."
 	var id: String = player.skill_bar.slots[_selected]
 	var head := "Feld %d gewählt.\n" % (_selected + 1)
 	if id != "":
 		head += "Stufe %d · " % player.skill_bar.level_of(id) + UiStyle.skill_text(id).replace("\n", " · ") + "\n"
+		var b: String = player.skill_bar.branches.get(id, "")
+		if b != "":
+			head += "Abzweigung %s: %s\n" % [SkillData.BRANCHES[id][b][0], SkillData.BRANCHES[id][b][1]]
 	return head + "Jetzt: anderes Feld (tauschen) oder Skill aus dem Vorrat antippen."
 
 
@@ -152,3 +179,72 @@ func _on_clear() -> void:
 		player.skill_bar.clear_slot(_selected)
 		_selected = -1
 		_rebuild()
+
+
+## Talismane: angelegte oben, alle gefundenen darunter. Antippen = an-/ablegen.
+func _talisman_section() -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 10)
+	col.add_child(UiStyle.label("Talismane (%d / %d angelegt)" % [player.equipped.size(), Config.talisman_slots],
+			30, Color(1, 0.85, 0.55)))
+	if player.talismans.is_empty():
+		col.add_child(UiStyle.label("Noch keine gefunden – Schreine draußen im Dunkeln, Verlorene und der Hauptmann tragen welche.",
+				22, Color(1, 1, 1, 0.45)))
+		return col
+	for id in player.talismans:
+		var on: bool = player.equipped.has(id)
+		var b := UiStyle.button("%s%s\n%s" % ["[angelegt] " if on else "", TalismanData.name_of(id), TalismanData.desc_of(id)],
+				Color(1, 0.8, 0.35) if on else Color(0.6, 0.6, 0.65), 20, Vector2(0, 96))
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.pressed.connect(_on_talisman.bind(id))
+		col.add_child(b)
+	return col
+
+
+func _on_talisman(id: String) -> void:
+	if not player.toggle_talisman(id):
+		_info.text = "Schon %d Talismane angelegt – erst einen ablegen." % Config.talisman_slots
+		return
+	_selected = -1
+	_rebuild()
+
+
+
+# --- Ziehen und Ablegen -------------------------------------------------------------
+
+## Ziehen beginnt: Feld („slot“) oder Vorrat („stash“). Leere Felder lassen sich nicht ziehen.
+func _drag(_at: Vector2, from: String, i: int) -> Variant:
+	var bar: Node = player.skill_bar
+	var id: String = bar.slots[i] if from == "slot" else bar.stash[i]
+	if id == "":
+		return null
+	var preview := UiStyle.button(SkillData.short_with_level(id, bar.level_of(id)), SkillData.color(id), 26, Vector2(180, 90))
+	preview.modulate.a = 0.85
+	var holder := Control.new()
+	holder.add_child(preview)
+	preview.position = -Vector2(90, 45)   # Vorschau unter dem Finger
+	set_drag_preview(holder)
+	return {"from": from, "i": i}
+
+
+func _can_drop(_at: Vector2, data: Variant, to: String, _j: int) -> bool:
+	if typeof(data) != TYPE_DICTIONARY or not data.has("from"):
+		return false
+	if to == "stash":
+		return data["from"] == "slot"   # nur Felder lassen sich in den Vorrat legen
+	return true
+
+
+func _drop(_at: Vector2, data: Variant, to: String, j: int) -> void:
+	var bar: Node = player.skill_bar
+	var from: String = data["from"]
+	var i: int = data["i"]
+	if to == "slot":
+		if from == "slot" and i != j:
+			bar.swap_slots(i, j)
+		elif from == "stash":
+			bar.put_from_stash(j, i)
+	elif to == "stash" and from == "slot":
+		bar.clear_slot(i)
+	_selected = -1
+	_rebuild.call_deferred()

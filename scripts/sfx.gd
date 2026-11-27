@@ -1,6 +1,8 @@
 ## Einfache Platzhalter-Klänge (Autoload "Sfx"). Werden beim Start im Code erzeugt –
 ## keine Sounddateien, kein FMOD. Aufruf überall: Sfx.play("bell")
 ## Im Browser startet der Ton erst nach der ersten Berührung (Regel der Browser).
+## Räumlich: Sfx.play_at("call", ort) – leiser mit der Entfernung zum Hüter, links/rechts verteilt,
+## die Festungsmauer dämpft (drinnen hört man draußen kaum und umgekehrt). Zu weit weg: gar nicht.
 extends Node
 
 const RATE := 22050
@@ -11,6 +13,12 @@ var _streams := {}
 var _players: Array[AudioStreamPlayer] = []
 var _last := {}                     # gegen zu viele gleiche Klänge auf einmal
 var _next := 0
+const VOICES_3D := 12
+const HEAR_RANGE := 34.0           # m – weiter weg hört man nichts
+const WALL_DAMP := 14.0            # dB leiser, wenn die Festungsmauer dazwischen ist
+var _players3d: Array[AudioStreamPlayer3D] = []
+var _next3d := 0
+var _listener: AudioListener3D
 
 
 func _ready() -> void:
@@ -20,6 +28,16 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_players.append(p)
+	for i in VOICES_3D:
+		var p3 := AudioStreamPlayer3D.new()
+		p3.unit_size = 7.0
+		p3.max_distance = HEAR_RANGE
+		p3.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+		p3.panning_strength = 0.7
+		add_child(p3)
+		_players3d.append(p3)
+	_listener = AudioListener3D.new()
+	add_child(_listener)
 	_streams["bell"] = _bell()
 	_streams["omen"] = _rumble()
 	_streams["hit"] = _noise_hit(0.07, 0.5)
@@ -32,6 +50,7 @@ func _ready() -> void:
 	_streams["levelup"] = _arpeggio([523.0, 659.0, 784.0, 1047.0])
 	_streams["death"] = _arpeggio([392.0, 330.0, 262.0, 196.0], 0.18)
 	_streams["ignite"] = _whoosh(0.5)
+	_streams["call"] = _arpeggio([587.0, 784.0, 587.0], 0.13)   # Ruf des Bogners
 
 
 ## Klang abspielen. pitch_var = zufällige Tonhöhen-Schwankung (klingt natürlicher).
@@ -47,6 +66,57 @@ func play(name: String, volume := 0.0, pitch_var := 0.08) -> void:
 	p.stream = _streams[name]
 	p.volume_db = volume_db + volume
 	p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
+	p.play()
+
+
+## Ohr am Hüter, ausgerichtet wie die Kamera (links/rechts wie auf dem Bildschirm).
+func _process(_delta: float) -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	var cam := get_viewport().get_camera_3d()
+	if player == null or cam == null:
+		return
+	_listener.global_transform = Transform3D(cam.global_transform.basis, player.global_position + Vector3(0, 1.5, 0))
+	if not _listener.is_current():
+		_listener.make_current()
+
+
+## In der Festung? (Mauer bei z = −12, Festung bis z = +14, x ±12)
+static func _inside(p: Vector3) -> bool:
+	return p.z > -12.0 and absf(p.x) < 12.5
+
+
+## Würde der Hüter einen Klang an diesem Ort hören? (für Meldungen wie den Ruf des Bogners)
+func audible(pos: Vector3, loud_range := 24.0) -> bool:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player == null:
+		return true
+	var d := player.global_position.distance_to(pos)
+	if _inside(pos) != _inside(player.global_position):
+		return d < loud_range * 0.4   # durch die Mauer nur ganz nah
+	return d < loud_range
+
+
+## Klang an einem Ort in der Welt abspielen.
+func play_at(name: String, pos: Vector3, volume := 0.0, pitch_var := 0.08) -> void:
+	if not _streams.has(name):
+		return
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player and player.global_position.distance_to(pos) > HEAR_RANGE:
+		return
+	var key := name + "@3d"
+	var now := Time.get_ticks_msec()
+	if now - _last.get(key, -1000) < 45:
+		return
+	_last[key] = now
+	var p := _players3d[_next3d]
+	_next3d = (_next3d + 1) % VOICES_3D
+	p.stream = _streams[name]
+	var damp := 0.0
+	if player and _inside(pos) != _inside(player.global_position):
+		damp = WALL_DAMP
+	p.volume_db = volume_db + volume + 4.0 - damp
+	p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
+	p.global_position = pos + Vector3(0, 1.0, 0)
 	p.play()
 
 

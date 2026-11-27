@@ -39,6 +39,8 @@ func _process(_delta: float) -> void:
 	if visible != show:
 		visible = show
 	if show:
+		if not text.ends_with("]"):
+			text += UiStyle.key_hint("F")
 		var vp := get_viewport_rect().size
 		size = custom_minimum_size
 		position = Vector2((vp.x - size.x) / 2.0, vp.y - 680.0)

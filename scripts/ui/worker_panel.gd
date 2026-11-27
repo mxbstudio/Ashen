@@ -1,4 +1,4 @@
-## Bewohner einteilen – nur am Feuer.
+## Bewohner einteilen – überall über den Knopf „Bewohner“ oben links (Spiel pausiert solange).
 ## Pro Zone draußen: Holzfäller und Sammler mit − / + einteilen.
 ## Arbeiten können sie nur in hellen Zonen; die übrigen Bewohner besetzen die Gebäude.
 ## Pausiert das Spiel, solange es offen ist.
@@ -26,6 +26,7 @@ func _ready() -> void:
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.offset_left = 24
 	scroll.offset_right = -24
+	UiStyle.keep_in_column(scroll, 24)
 	scroll.offset_top = 60
 	scroll.offset_bottom = -150
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -38,12 +39,13 @@ func _ready() -> void:
 	done.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	done.offset_left = 24
 	done.offset_right = -24
+	UiStyle.keep_in_column(done, 24)
 	done.offset_top = -130
 	done.offset_bottom = -30
 	done.pressed.connect(close)
 	add_child(done)
-	# Knopf am Feuer (über "Leiste umbauen")
-	_open_button = UiStyle.button("Bewohner einteilen", Color(0.6, 0.9, 0.7), 26, Vector2(300, 70))
+	# Knopf "Bewohner" oben links neben "Leiste" – überall erreichbar
+	_open_button = UiStyle.button("Bewohner" + UiStyle.key_hint("B"), Color(0.6, 0.9, 0.7), 22, Vector2(150, 58))
 	_open_button.add_to_group("touch_blockers")
 	_open_button.pressed.connect(open)
 	_open_button.visible = false
@@ -52,14 +54,10 @@ func _ready() -> void:
 
 ## Wichtig: Sichtbarkeit nur ändern, wenn nötig – sonst geht ein Fingertipp verloren.
 func _process(_delta: float) -> void:
-	var src := Lights.refill_source_at(player.global_position)
-	var at_fire: bool = player.is_alive() and src != null and not src.is_in_group("beacon")
-	var show := at_fire and not visible and not get_tree().paused
+	var show: bool = player.is_alive() and not visible and not get_tree().paused
 	if _open_button.visible != show:
 		_open_button.visible = show
-	if show:
-		var vp := get_viewport_rect().size
-		_open_button.position = Vector2((vp.x - _open_button.size.x) / 2.0, vp.y - 650.0)
+	_open_button.position = Vector2(UiStyle.column(get_viewport_rect().size).position.x + 150, 272)
 
 
 func open() -> void:
@@ -94,6 +92,8 @@ func _rebuild() -> void:
 			+ "Bei Belagerung kommen alle heim. Freie Bewohner helfen selbstständig, wo das Lager etwas braucht; "
 			+ "Gebäude ruhen, solange ihr Lager voll ist (ihre Arbeiter helfen dann woanders).", 20, Color(1, 1, 1, 0.6)))
 	_box.add_child(_bow_row())
+	_box.add_child(_tools())
+	_box.add_child(_people())
 	_box.add_child(_section("Gebäude"))
 	var any := false
 	for b in fortress.buildings:
@@ -116,6 +116,7 @@ func _rebuild() -> void:
 			_box.add_child(_row(z["id"], "food", "Sammler", lit))
 		if z.get("rocks", 0) > 0:
 			_box.add_child(_row(z["id"], "stone", "Steinbrecher", lit))
+	UiStyle.pass_touch(_box)
 
 
 func _row(zone_id: String, kind: String, title: String, lit: bool) -> Control:
@@ -186,24 +187,10 @@ func _bow_row() -> Control:
 			"Werkstatt baut weitere" if _has_workshop() else "Werkstatt bauen, um Bögen herzustellen"], 24, Color(0.9, 0.8, 1.0))
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	col.add_child(head)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	var name := UiStyle.label("   Bewohner mit Bogen", 24)
-	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(name)
-	var minus := UiStyle.button("−", Color(1, 0.6, 0.4), 34, Vector2(80, 70))
-	minus.disabled = fortress.armed_target <= 0
-	minus.pressed.connect(func(): fortress.change_armed(-1); _rebuild())
-	row.add_child(minus)
-	var val := UiStyle.label(str(fortress.armed_count()), 28, Color(1, 0.9, 0.6))
-	val.custom_minimum_size = Vector2(70, 0)
-	row.add_child(val)
-	var plus := UiStyle.button("+", Color(0.5, 0.9, 0.5), 34, Vector2(80, 70))
-	plus.disabled = fortress.armed_target >= mini(total, fortress.residents.size())
-	plus.pressed.connect(func(): fortress.change_armed(1); _rebuild())
-	row.add_child(plus)
-	col.add_child(row)
+	var info := UiStyle.label("   Bewohner mit Bogen: %d von %d – freie Bögen holen sie sich selbst (wer draußen arbeitet, zuerst)"
+			% [fortress.armed_count(), fortress.residents.size()], 22)
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	col.add_child(info)
 	return col
 
 
@@ -212,3 +199,92 @@ func _has_workshop() -> bool:
 		if b.kind == "workshop" and b.built:
 			return true
 	return false
+
+
+## Die Leute: Name, Eigenschaften, Stimmung, Arbeit, Verbindungen (v0.3).
+func _people() -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	col.add_child(_section("Leute – Stimmung Ø %d (%s)" % [roundi(fortress.average_mood()),
+			ResidentData.mood_word(fortress.average_mood())]))
+	for r in fortress.residents:
+		var traits := []
+		for t in r.traits:
+			traits.append("%s (%s)" % [ResidentData.trait_name(t), ResidentData.trait_desc(t)])
+		var line := "%s%s · %s %d" % [r.res_name, " (Kind)" if r.is_child() else "", ResidentData.mood_word(r.mood), roundi(r.mood)]
+		var extra := []
+		if r.state == 9 and r.activity != "":
+			extra.append("jetzt: " + r.activity)
+		elif not r.is_child():
+			extra.append(_job_text(r))
+		# Bedürfnisse und eigenes Leben
+		var needs := []
+		needs.append("satt" if r.satiety >= 60.0 else ("hungrig" if r.satiety >= 25.0 else "hungert!"))
+		needs.append("ausgeruht" if r.energy >= 50.0 else ("müde" if r.energy >= 25.0 else "erschöpft"))
+		if r.house:
+			needs.append("Haus (Vorrat %d)" % int(r.pantry))
+		elif not r.is_child():
+			needs.append("kein Haus (%d/%d Holz)" % [r.house_wood, Config.house_wood])
+		if int(r.combat) > 0:
+			needs.append("Kampf %d" % int(r.combat))
+		extra.append(", ".join(needs))
+		if r.bond_name != "":
+			extra.append("%s mit %s" % [r.bond_kind, r.bond_name])
+		if r.grief > 0.0:
+			extra.append("trauert")
+		if r.refuses():
+			extra.append("hat Angst, hinauszugehen")
+		var l := UiStyle.label("%s\n   %s\n   %s" % [line, ", ".join(traits), " · ".join(extra)], 20,
+				ResidentData.mood_color(r.mood))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		col.add_child(l)
+	for a in fortress.away:
+		var l := UiStyle.label("%s · unterwegs in der Dunkelheit …" % a[0].get("name", "?"), 20, Color(0.7, 0.7, 0.85))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		col.add_child(l)
+	if not fortress.graves.is_empty():
+		var names: Array = fortress.graves.map(func(g): return str(g[0]))
+		var l := UiStyle.label("Gräber (%d): %s" % [names.size(), ", ".join(names)], 20, Color(0.7, 0.7, 0.75))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		col.add_child(l)
+	col.add_child(UiStyle.label("Tagesablauf: Arbeitszeit – Freizeit – Nachtruhe. In der Freizeit sorgt jeder für sich: "
+			+ "essen, Holz fürs eigene Haus hacken und bauen, Nahrung für zu Hause sammeln, trainieren (Kampf-Stufe: zäher "
+			+ "und treffsicherer), am Feuer zusammensitzen – daraus werden Paare, und Paare mit Haus bekommen Kinder. "
+			+ "Stimmung: satt, ausgeruht, Haus, Partner, Kinder, sicheres Feuer und Prediger heben sie; Hunger, Müdigkeit, "
+			+ "Tote und der Wahn des Hüters drücken sie.", 18, Color(1, 1, 1, 0.5)))
+	return col
+
+
+func _job_text(r: Node3D) -> String:
+	if r.job:
+		return r.job.display_name()
+	if r.has_zone_job():
+		var k: String = {"wood": "Holzfäller", "food": "Sammler", "stone": "Steinbrecher"}.get(r.zone_kind, "")
+		return "%s %s%s" % [k, Zones.zone_name(r.zone_id), " (selbstständig)" if r.auto_job else ""]
+	return "frei"
+
+
+## Werkzeuge: schneller abbauen (Hüter und Bewohner). Stellt die Werkstatt her – höchstens bis zu ihrer Stufe.
+func _tools() -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	col.add_child(_section("Werkzeuge (aus der Werkstatt)"))
+	for kind in ["wood", "stone", "food"]:
+		var lvl: int = fortress.tools[kind]
+		var name: String = fortress.TOOL_NAMES[kind]
+		var verb: String = fortress.TOOL_VERBS[kind]
+		var now := "%s Stufe %d" % [name, lvl] if lvl > 0 else "%s: keine" % name
+		var text: String
+		var block: String = fortress.tool_blocker(kind)
+		if lvl >= 3:
+			text = "%s – %s %d %% schneller (höchste Stufe)" % [now, verb, roundi((1.0 / fortress.tool_factor(kind) - 1.0) * 100)]
+		else:
+			var faster := roundi(Config.tool_speed_per_level * (lvl + 1) * 100)
+			text = "%s → Stufe %d: %s %d %% schneller\n%d Holz, %d Stein%s" % [now, lvl + 1, verb, faster,
+					Config.tool_cost_wood[lvl], Config.tool_cost_stone[lvl], "" if block == "" else "  (" + block + ")"]
+		var b := UiStyle.button(text, Color(0.85, 0.75, 0.5), 20, Vector2(0, 84))
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.disabled = block != ""
+		b.pressed.connect(func(): fortress.upgrade_tool(kind); _rebuild())
+		col.add_child(b)
+	return col

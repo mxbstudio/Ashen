@@ -8,7 +8,7 @@ extends Node3D
 const ArrowScript := preload("res://scripts/arrow.gd")
 const MAX_LEVEL := 3
 
-@export var kind := "storehouse"   # storehouse, scrapyard, mushroom, tower, workshop
+@export var kind := "storehouse"   # storehouse, scrapyard, mushroom, tower, workshop, carts, tavern
 
 var level := 0                     # 0 = noch nicht gebaut
 var built := false                 # = level >= 1
@@ -22,7 +22,7 @@ var _plot: MeshInstance3D
 var _flags: Array[MeshInstance3D] = []
 
 const NAMES := {"storehouse": "Vorratslager", "scrapyard": "Trümmerhof",
-		"mushroom": "Pilzkeller", "tower": "Wachturm", "workshop": "Werkstatt"}
+		"mushroom": "Pilzkeller", "tower": "Wachturm", "workshop": "Werkstatt", "carts": "Karrenschuppen", "tavern": "Gasthaus"}
 
 
 func display_name() -> String:
@@ -37,6 +37,8 @@ func cost() -> int:
 		"mushroom": return Config.cost_mushroom
 		"tower": return Config.cost_tower
 		"workshop": return Config.cost_workshop
+		"carts": return Config.cost_carts
+		"tavern": return Config.cost_tavern
 	return 0
 
 
@@ -53,7 +55,7 @@ func can_improve() -> bool:
 
 
 func needs_worker() -> bool:
-	return kind != "storehouse"
+	return kind != "storehouse" and kind != "tavern"
 
 
 ## Wie viele Bewohner können hier arbeiten?
@@ -114,6 +116,10 @@ func description(l := 1) -> String:
 		"storehouse": return "+%d Lagerplatz für Holz und Nahrung" % (Config.storehouse_bonus * l)
 		"scrapyard": return "%s, je +1 Holz alle %d s" % [_places(l), int(Config.scrapyard_seconds_per_wood)]
 		"mushroom": return "%s, je +1 Nahrung alle %d s" % [_places(l), int(Config.mushroom_seconds_per_food)]
+		"tavern": return "Bewohner essen hier: 1 Nahrung sättigt +%d %%, Stimmung +%d" % [
+				roundi(Config.tavern_satiety_per_level * l * 100), roundi(Config.tavern_mood * l)]
+		"carts": return "%d Karren – holen Holz, Nahrung, Stein von den Lagerplätzen an den Fackeln (je %d)" % [
+				capacity(l), Config.cart_capacity]
 		"workshop": return "%s, je 1 Bogen alle %d s (%d Holz pro Bogen)" % [_places(l),
 				int(Config.bow_craft_seconds), Config.bow_wood_cost]
 		"tower": return "Schaden %d · Reichweite %d m · alle %.1f s (braucht Bewohner)" % [
@@ -177,7 +183,7 @@ func improve() -> void:
 		_build_house()
 	level += 1
 	built = true
-	Sfx.play("gate", 0.0, 0.0)
+	Sfx.play_at("gate", global_position, 0.0, 0.0)
 	_add_flag()
 	_update_label()
 
@@ -272,24 +278,27 @@ func advance(dt: float) -> Dictionary:
 	var out := {"wood": 0, "food": 0, "bows": 0}
 	if not built or workers.is_empty():
 		return out
+	var work := 0.0                # Arbeitskraft: jeder Bewohner nach Stimmung und Fleiß (v0.3)
+	for w in workers:
+		work += w.efficiency() if is_instance_valid(w) else 0.0
 	match kind:
 		"scrapyard":
-			_timer += dt * workers.size()
+			_timer += dt * work
 			while _timer >= Config.scrapyard_seconds_per_wood:
 				_timer -= Config.scrapyard_seconds_per_wood
 				out["wood"] += 1
 		"mushroom":
-			_timer += dt * workers.size()
+			_timer += dt * work
 			while _timer >= Config.mushroom_seconds_per_food:
 				_timer -= Config.mushroom_seconds_per_food
 				out["food"] += 1
 		"workshop":
 			# Bögen bauen: kostet Holz; hört auf, wenn jeder Bewohner einen Bogen haben könnte
 			var fort := get_parent()
-			_timer += dt * workers.size()
+			_timer += dt * work
 			while _timer >= Config.bow_craft_seconds:
 				if fort.bows_total() + out["bows"] >= fort.residents.size() \
-						or fort.wood + out["wood"] < Config.bow_wood_cost + 1:
+						or fort.wood + out["wood"] - Config.bow_wood_cost < Config.vital_reserve:
 					_timer = Config.bow_craft_seconds   # wartet auf Holz bzw. Bedarf
 					break
 				_timer -= Config.bow_craft_seconds
@@ -321,7 +330,8 @@ func _process(delta: float) -> void:
 	arrow.set_script(ArrowScript)
 	get_parent().add_child(arrow)
 	arrow.global_position = global_position + Vector3(0, 4.5, 0)
-	arrow.launch(best, tower_damage(), {}, self)
+	var sharp: bool = workers.any(func(w): return is_instance_valid(w) and w.has_trait("schuetze"))
+	arrow.launch(best, tower_damage() * (1.5 if sharp else 1.0), {}, self)
 
 
 ## Wird vom Pfeil aufgerufen (wie beim Hüter).

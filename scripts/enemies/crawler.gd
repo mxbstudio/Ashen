@@ -1,6 +1,8 @@
-## Kriecher: schnell, schwach, im Schwarm. Meidet das Licht:
-## lauert am Rand des Laternenlichts, springt dann kurz hinein, beißt und zieht sich zurück.
-## In den Lichtkreis des Feuers wagt er sich nicht.
+## Kriecher: schnell, schwach, im Schwarm. Lichtscheu, aber nicht lichtdicht:
+## lauert am Rand des Laternenlichts und schleicht sich HINTER den Hüter, springt dann hinein, beißt
+## und zieht sich zurück. Schaut der Hüter sie an, weichen sie zurück. Licht ist ihnen unangenehm (sie verweilen nicht darin und laufen dort langsamer),
+## aber sie laufen hindurch und greifen manchmal auch im Licht von Fackeln und Feuerstellen an.
+## Hinter die Mauer zum Feuer der Festung kommen sie nicht.
 extends EnemyBase
 
 enum State { LURK, ATTACK, RETREAT }
@@ -10,6 +12,7 @@ var _angle := 0.0
 var _orbit_dir := 1.0
 var _attack_cd := 2.0
 var _retreat_t := 0.0
+var _slot_offset := 0.0           # jeder Kriecher lauert etwas versetzt hinter dem Hüter
 var _roam_target := Vector3.INF
 var _roam_t := 0.0
 
@@ -27,6 +30,7 @@ func _build() -> void:
 	hunt_interval = 2.5
 	_angle = randf() * TAU
 	_orbit_dir = 1.0 if randf() < 0.5 else -1.0
+	_slot_offset = randf_range(-0.7, 0.7)
 	_attack_cd = randf_range(Config.crawler_attack_pause.x, Config.crawler_attack_pause.y)
 	var body := SphereMesh.new()
 	body.radius = 0.4
@@ -50,32 +54,56 @@ func _bar_height() -> float:
 
 func _think(delta: float) -> Vector3:
 	if not player_available():
-		return _flee_light(Vector3.ZERO)
+		return _shy(Vector3.ZERO)
 	var to_p := flat_to_player()
 	var d := to_p.length()
-	var player_safe := Lights.fixed_source_at(player.global_position) != null
+	var in_fort: bool = player.global_position.z > -12.0     # am Feuer der Festung: unerreichbar
+	var player_lit := Lights.fixed_source_at(player.global_position) != null   # Fackel, Feuerstelle …
 
 	match _state:
 		State.LURK:
-			if player_safe and d > 8.0:
-				return _flee_light(_roam(delta))   # Hüter sitzt sicher am Feuer: durch den Wald streifen
-			_angle += delta * 0.5 * _orbit_dir
+			if in_fort and d > 8.0:
+				return _shy(_roam(delta))   # Hüter sitzt sicher in der Festung: durch den Wald streifen
+			# auf dem Kreis um den Hüter langsam nach hinten wandern (jeder etwas versetzt)
+			var behind := atan2(-player.facing.z, -player.facing.x) + _slot_offset
+			_angle = lerp_angle(_angle, behind, 1.0 - exp(-1.6 * delta))
 			var r: float = player.lantern.get_light_radius() + 1.2
+			if _looked_at(to_p, d):
+				r += Config.crawler_gaze_backoff   # angeschaut: zurückweichen ins Dunkel
 			var target: Vector3 = player.global_position + Vector3(cos(_angle), 0, sin(_angle)) * r
-			target = _push_out_of_fixed_light(target)
+			target = _push_out_of_fixed_light(target)   # lauern lieber am Rand des Lichts
 			_attack_cd -= delta
-			if _attack_cd <= 0.0 and not player_safe:
-				_state = State.ATTACK
-			return _flee_light(_arrive(target, speed))
+			if _attack_cd <= 0.0 and not in_fort:
+				var me := -to_p   # vom Hüter zu mir
+				var behind_now := absf(angle_difference(atan2(me.z, me.x), behind - _slot_offset)) < 1.0
+				# im Licht einer Fackel trauen sie sich seltener – aber sie trauen sich
+				var brave := not player_lit or randf() < Config.crawler_light_courage
+				if brave and not _looked_at(to_p, d) and (behind_now or _attack_cd < -8.0):
+					_state = State.ATTACK
+				elif not brave:
+					_attack_cd = randf_range(0.8, 1.6)
+			return _shy(_arrive(target, speed))
 		State.ATTACK:
-			if player_safe:
+			if in_fort:
 				_state = State.RETREAT
 				_retreat_t = 0.6
 			elif d < 0.9 + hit_radius:
 				hurt_player(Config.crawler_damage)
 				_state = State.RETREAT
 				_retreat_t = 0.7
-			return to_p.normalized() * speed * 1.4
+			elif d > 1.8 and _looked_at(to_p, d):
+				# erwischt: der Hüter schaut her -> abbrechen und zurück ins Dunkel
+				_state = State.RETREAT
+				_retreat_t = 0.5
+			# von hinten anspringen: auf einen Punkt knapp hinter dem Hüter zielen
+			var aim: Vector3 = player.global_position - player.facing * minf(d * 0.5, 1.2)
+			if to_p.dot(player.facing) < -0.3 and d > 2.0:
+				# ich bin vor ihm: seitlich herum statt frontal
+				var side: Vector3 = player.facing.cross(Vector3.UP) * (1.0 if _orbit_dir > 0 else -1.0)
+				aim = player.global_position + side * 2.0 - player.facing * 1.0
+			var v := aim - global_position
+			v.y = 0
+			return v.normalized() * speed * 1.4 * _light_slow()
 		State.RETREAT:
 			_retreat_t -= delta
 			if _retreat_t <= 0.0:
@@ -83,6 +111,29 @@ func _think(delta: float) -> Vector3:
 				_attack_cd = randf_range(Config.crawler_attack_pause.x, Config.crawler_attack_pause.y)
 			return -to_p.normalized() * speed
 	return Vector3.ZERO
+
+
+## Schaut der Hüter gerade zu mir? (Blickkegel vor ihm, nicht zu weit weg)
+func _looked_at(to_p: Vector3, d: float) -> bool:
+	if d > player.lantern.get_light_radius() + 5.0 or d < 0.01:
+		return false
+	return player.facing.angle_to(-to_p / d) < deg_to_rad(Config.crawler_gaze_angle)
+
+
+## Im Licht einer festen Quelle laufen sie langsamer.
+func _light_slow() -> float:
+	return 0.75 if Lights.fixed_source_at(global_position) != null else 1.0
+
+
+## Lichtscheu: wer beim Lauern/Streifen im Licht steht, zieht es sanft hinaus – kein hartes Wegstoßen.
+func _shy(wanted: Vector3) -> Vector3:
+	var src := Lights.fixed_source_at(global_position)
+	if src == null:
+		return wanted
+	var out := global_position - src.global_position
+	out.y = 0
+	var v := wanted + out.normalized() * speed * 0.5
+	return v.limit_length(speed) * _light_slow()
 
 
 ## Ziellos durch den Wald streifen (statt vor der Mauer zu lauern).
@@ -117,13 +168,3 @@ func _push_out_of_fixed_light(target: Vector3) -> Vector3:
 	if dir.length() < 0.1:
 		dir = Vector3(1, 0, 0)
 	return src.global_position + dir.normalized() * (src.get_light_radius() + 1.5)
-
-
-## Steht der Kriecher selbst im Feuerlicht, flieht er hinaus.
-func _flee_light(wanted: Vector3) -> Vector3:
-	var src := Lights.fixed_source_at(global_position, 0.5)
-	if src == null:
-		return wanted
-	var out := global_position - src.global_position
-	out.y = 0
-	return out.normalized() * speed

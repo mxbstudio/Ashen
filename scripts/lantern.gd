@@ -65,7 +65,9 @@ func _process(delta: float) -> void:
 		fuel = minf(fuel + Config.lantern_burn_time / Config.lantern_refill_seconds * delta,
 				Config.lantern_burn_time)
 	else:
-		fuel = maxf(fuel - delta, 0.0)
+		var player := get_tree().get_first_node_in_group("player")
+		var rate := 0.7 if player and player.has_talisman("wick") else 1.0   # Stiller Docht
+		fuel = maxf(fuel - delta * rate, 0.0)
 	if now_refilling != refilling:
 		refilling = now_refilling
 		refilling_changed.emit(refilling)

@@ -8,13 +8,16 @@
 ## Geht eine Feuerstelle bald aus, bringt er Holz hin (Holzfäller in der Nähe direkt aus ihrer Ladung).
 ## Nebenbei: Ist er draußen im Lichtkreis einer Fackel/Feuerstelle, die unter 50 % ist, legt er kurz
 ## 1 Holz nach (aus seiner Ladung, sonst aus dem Lager) und macht dann weiter.
+## v0.3 – Eigenleben: Name, 1–2 Eigenschaften (resident_data.gd), Stimmung 0–100, manchmal verbunden
+## mit einem anderen Bewohner (Geschwister/Paar). Stirbt der Verbundene, trauert er.
+## Gute Stimmung: arbeitet schneller. Verzweifelt: arbeitet halb so schnell und verlässt vielleicht die Festung.
 extends Node3D
 
 const HpBar := preload("res://scripts/hp_bar.gd")
 const DamageNumber := preload("res://scripts/damage_number.gd")
 const ArrowScript := preload("res://scripts/arrow.gd")
 
-enum State { HOME, OUT, WORK, BACK, DELIVER, TEND }
+enum State { HOME, OUT, WORK, BACK, DELIVER, TEND, CART_OUT, DROP, DEFEND, LIFE }
 
 const GATE_IN := Vector3(0, 0, -9.5)     # innen vor dem Tor
 const GATE_OUT := Vector3(0, 0, -15.0)   # draußen vor dem Tor
@@ -22,11 +25,35 @@ const GATE_OUT := Vector3(0, 0, -15.0)   # draußen vor dem Tor
 var job: Node3D = null             # Gebäude, in dem er arbeitet (oder null)
 var zone_id := ""                  # Zonen-Arbeit: in welcher Zone ("" = keine)
 var zone_kind := ""                # "wood" (Holzfäller), "food" (Sammler) oder "stone" (Steinbrecher)
+var _alt_zone := ""                # Ausweich-Arbeit: in der eigenen Zone ist nichts mehr zu holen -> hilft hier
+var _alt_kind := ""
+var _alt_check := 0.0
 var hp := 0.0
 var cargo := 0                      # getragene Einheiten
 var cargo_kind := "wood"            # was er gerade trägt
 var has_bow := false                # trägt einen Bogen (verteilt von der Festung)
 var auto_job := false               # Zonen-Arbeit selbst gewählt (zählt weiter als "frei")
+var res_name := ""                  # Name (v0.3)
+var traits: Array = []              # Eigenschaften, z. B. ["flink"]
+var mood := 60.0                    # Stimmung 0–100
+var bond_name := ""                 # mit wem verbunden ("" = niemand)
+var bond_kind := ""                 # "Geschwister" oder "Paar"
+var grief := 0.0                    # s Trauer übrig
+# --- eigenes Leben (v0.4) ---
+var satiety := 80.0                 # Sättigung 0–100 (sinkt, Essen füllt auf)
+var energy := 100.0                 # Kraft 0–100 (sinkt im Wachsein, Schlaf füllt auf)
+var combat := 0.0                   # Kampf-Stufe 0–5 (Training am Übungsplatz)
+var age := 99999.0                  # s seit der Geburt (Kinder: < Config.child_grow)
+var house: Node3D = null            # eigenes Haus (oder null)
+var pantry := 0.0                   # Nahrung im eigenen Haus
+var house_wood := 0                 # selbst gehacktes Holz für das eigene Haus
+var courtship := 0.0                # gemeinsame Zeit am Feuer mit einem möglichen Partner
+var activity := ""                  # was er gerade tut (für das Menü)
+var _name_label: Label3D
+var cart_load := {"wood": 0, "food": 0, "stone": 0}   # Karrenfahrer: Ladung auf dem Karren
+var _depot: Node3D = null           # Lagerplatz, zu dem er gerade fährt (Karren) bzw. geht (Ablegen)
+var _cart: Node3D                   # Karren (nur sichtbar, wenn er Karrenfahrer ist)
+var _cart_load_mesh: MeshInstance3D
 var state := State.HOME
 
 var _path: Array[Vector3] = []
@@ -105,7 +132,112 @@ func _ready() -> void:
 	_hp_bar.setup(0.8)
 	_hp_bar.position.y = 1.9
 	_hp_bar._fill.material_override.albedo_color = Color(0.4, 0.85, 0.4)
+	# Hungerleiste: dünn, weiß, unter der Lebensleiste
+	_hunger_bar = Node3D.new()
+	_hunger_bar.set_script(HpBar)
+	add_child(_hunger_bar)
+	_hunger_bar.setup(0.8)
+	_hunger_bar.scale = Vector3(0.8, 0.45, 0.8)
+	_hunger_bar.position.y = 1.8
+	_hunger_bar._fill.material_override.albedo_color = Color(0.95, 0.95, 0.95)
+	_name_label = Label3D.new()
+	_name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_name_label.fixed_size = true
+	_name_label.pixel_size = 0.0008
+	_name_label.font_size = 26
+	_name_label.outline_size = 8
+	_name_label.position.y = 2.2
+	_name_label.visible = false
+	add_child(_name_label)
+	_build_cart()
 	_pick_home_target()
+
+
+## Name, Eigenschaften usw. setzen (von der Festung, gleich nach dem Erschaffen).
+func setup_identity(d: Dictionary) -> void:
+	res_name = d.get("name", "Namenlos")
+	traits = Array(d.get("traits", []))
+	mood = float(d.get("mood", Config.mood_start))
+	bond_name = d.get("bond", "")
+	bond_kind = d.get("bond_kind", "")
+	grief = float(d.get("grief", 0.0))
+	satiety = float(d.get("satiety", _rng.randf_range(45.0, 95.0)))   # verschieden satt -> essen nicht alle gleichzeitig
+	energy = float(d.get("energy", 100.0))
+	combat = float(d.get("combat", 0.0))
+	age = float(d.get("age", 99999.0))
+	pantry = float(d.get("pantry", 0.0))
+	house_wood = int(d.get("house_wood", 0))
+	hp = float(d.get("hp", max_hp()))
+	_hp_bar.set_fraction(hp / max_hp())
+	_update_size()
+
+
+func identity() -> Dictionary:
+	var fort := get_tree().get_first_node_in_group("fortress") if is_inside_tree() else null
+	return {"name": res_name, "traits": traits, "mood": mood, "bond": bond_name, "bond_kind": bond_kind,
+			"grief": grief, "hp": hp, "satiety": satiety, "energy": energy, "combat": combat, "age": age,
+			"pantry": pantry, "house_wood": house_wood,
+			"house": fort.huts.find(house) if fort and house else -1}
+
+
+func has_trait(t: String) -> bool:
+	return traits.has(t)
+
+
+func max_hp() -> float:
+	var m := Config.resident_hp
+	if has_trait("zaeh"):
+		m *= 1.5
+	if has_trait("kraenklich"):
+		m *= 0.75
+	m *= 1.0 + 0.1 * floorf(combat)   # Kampftraining macht zäher
+	if is_child():
+		m *= 0.5
+	return m
+
+
+## Arbeitstempo: Stimmung, Trauer, Fleiß.
+func efficiency() -> float:
+	var e := 1.0
+	if mood >= 75.0:
+		e = 1.15
+	elif mood < 25.0:
+		e = 0.5
+	if grief > 0.0:
+		e *= 0.6
+	if has_trait("fleissig"):
+		e *= 1.25
+	if energy < 25.0:
+		e *= 0.6   # übermüdet
+	return e
+
+
+func appetite() -> float:
+	var a := 1.0
+	if has_trait("vielfrass"):
+		a = 2.0
+	elif has_trait("genuegsam"):
+		a = 0.5
+	return a * (0.5 if is_child() else 1.0)
+
+
+func _speed() -> float:
+	return Config.worker_speed * (1.3 if has_trait("flink") else 1.0)
+
+
+func carry_cap() -> int:
+	return Config.worker_carry + (2 if has_trait("kraeftig") else 0)
+
+
+## Weigert er sich gerade hinauszugehen? (Ängstlich bei schlechter Stimmung)
+func refuses() -> bool:
+	return has_trait("aengstlich") and mood < 40.0
+
+
+## Kurzbeschreibung für Menüs: "Hanna (Flink, Zäh)"
+func title() -> String:
+	var names := traits.map(func(t): return ResidentData.trait_name(t))
+	return "%s (%s)" % [res_name, ", ".join(names)] if not names.is_empty() else res_name
 
 
 func has_zone_job() -> bool:
@@ -119,7 +251,7 @@ func zone_key() -> String:
 
 ## Frei = von Max weder in ein Gebäude noch in eine Zone eingeteilt (selbstständige Helfer zählen als frei).
 func is_free() -> bool:
-	return job == null and (not has_zone_job() or auto_job)
+	return job == null and (not has_zone_job() or auto_job) and not is_child()
 
 
 ## Steht er draußen vor der Mauer (dort können Gegner ihn erreichen)?
@@ -133,7 +265,11 @@ func is_alive() -> bool:
 
 ## Darf er gerade in seiner Zone arbeiten?
 func can_work() -> bool:
-	return has_zone_job() and Zones.is_lit(get_tree(), zone_id) and not Zones.recalled(get_tree())
+	if _alt_zone != "" and not Zones.is_lit(get_tree(), _alt_zone):
+		_alt_zone = ""   # Ausweich-Zone ist dunkel geworden: wieder die eigene Arbeit
+		_alt_kind = ""
+	return has_zone_job() and Zones.is_lit(get_tree(), wz()) and not Zones.recalled(get_tree()) and not refuses() \
+			and _work_time() and not is_child()
 
 
 ## Gebäude-Arbeit zuteilen (von der Festung).
@@ -152,10 +288,12 @@ func set_zone_job(id: String, kind: String, auto := false) -> void:
 		return
 	zone_id = id
 	zone_kind = kind
+	_alt_zone = ""
+	_alt_kind = ""
 	_node = null
 	_tree = -1
 	_work_after_delivery = false
-	if state != State.HOME and state != State.DELIVER:
+	if state != State.HOME and state != State.DELIVER and state != State.DEFEND:
 		_go_home()
 
 
@@ -165,13 +303,14 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 		return
 	hp -= amount
 	_flash = 0.12
-	Sfx.play("hurt", -8.0)
+	Sfx.play_at("hurt", global_position, -8.0)
 	_number(str(roundi(amount)), Color(1, 0.35, 0.3))
-	_hp_bar.set_fraction(hp / Config.resident_hp)
+	_hp_bar.set_fraction(hp / max_hp())
+	mood = maxf(mood - (4.0 if has_trait("aengstlich") else 2.0), 0.0)
 	if hp <= 0.0:
 		var fort := get_tree().get_first_node_in_group("fortress")
 		if fort:
-			fort.kill_resident("Ein Bewohner wurde draußen getötet.", self)
+			fort.kill_resident("%s wurde draußen getötet.", self)
 		return
 	# verletzt: Ladung bleibt, aber sofort zurück in die Festung
 	if state == State.TEND:
@@ -190,6 +329,20 @@ func _process(delta: float) -> void:
 	_mat.albedo_color = Color(1, 0.75, 0.7) if _flash > 0.0 else Color(0.5, 0.45, 0.38)
 	_load_mesh.visible = cargo > 0 or state == State.DELIVER
 	_bow_mesh.visible = has_bow
+	var driving := is_driver() and state in [State.CART_OUT, State.BACK]
+	if _cart.visible != driving:
+		_cart.visible = driving
+	_cart_load_mesh.visible = _cart_total() > 0
+	_update_name_label()
+	_hunger_bar.set_fraction(maxf(satiety / 100.0, 0.002))
+	if satiety < Config.hungry_below:
+		_hunger_bar._fill.material_override.albedo_color = Color(1, 0.55, 0.45) if fmod(Time.get_ticks_msec() / 400.0, 2.0) < 1.0 else Color(0.95, 0.95, 0.95)
+	else:
+		_hunger_bar._fill.material_override.albedo_color = Color(0.95, 0.95, 0.95)
+	_life_tick -= delta
+	if _life_tick <= 0.0:
+		_life_tick = 0.5
+		_life_decide()
 	if has_bow and is_exposed():
 		_defend(delta)
 	_tend_cd -= delta
@@ -202,32 +355,51 @@ func _process(delta: float) -> void:
 		State.OUT:
 			if not can_work():
 				_go_home()
-			elif _follow_path(delta, Config.worker_speed):
+			elif _follow_path(delta, _speed()):
 				state = State.WORK
 				_node = null
 		State.WORK:
 			_work(delta)
 		State.BACK:
-			if _follow_path(delta, Config.worker_speed * (1.6 if _fleeing else 1.0)):
+			if _follow_path(delta, _speed() * (1.6 if _fleeing else 1.0)):
 				_arrive_home()
 		State.TEND:
 			_tend_step(delta)
 		State.DELIVER:
 			if Zones.recalled(get_tree()) or not is_instance_valid(_delivery) or _delivery.wood_space() <= 0:
 				_abort_delivery()
-			elif _follow_path(delta, Config.worker_speed):
+			elif _follow_path(delta, _speed()):
 				_finish_delivery()
+		State.CART_OUT:
+			_cart_out(delta)
+		State.DEFEND:
+			_defend_step(delta)
+		State.LIFE:
+			_life_step(delta)
+		State.DROP:
+			if not can_work() or not is_instance_valid(_depot):
+				_go_home()
+			elif _follow_path(delta, _speed()):
+				_drop_at_depot()
 
 
 ## Drinnen: heilen, ums Feuer bummeln bzw. am Gebäude arbeiten; mit Zonen-Arbeit wieder losgehen.
 func _home(delta: float) -> void:
-	if hp < Config.resident_hp:
-		hp = minf(hp + Config.resident_heal_per_second * delta, Config.resident_hp)
-		_hp_bar.set_fraction(hp / Config.resident_hp)
+	if hp < max_hp():
+		var rate := Config.resident_heal_per_second * (0.5 if has_trait("kraenklich") else 1.0)
+		hp = minf(hp + rate * delta, max_hp())
+		_hp_bar.set_fraction(hp / max_hp())
 	_wait -= delta
-	if can_work() and _wait <= 0.0 and hp >= Config.resident_hp * 0.6:
+	if can_work() and _wait <= 0.0 and hp >= max_hp() * 0.6:
 		_go_out()
 		return
+	if is_driver() and _wait <= 0.0 and hp >= max_hp() * 0.6 and not Zones.recalled(get_tree()) and not refuses() \
+			and _work_time():
+		var fort := get_tree().get_first_node_in_group("fortress")
+		var d: Node3D = fort.pick_depot(self) if fort and _cart_total() < Config.cart_capacity else null
+		if d:
+			_start_cart(d)
+			return
 	var to := _target - global_position
 	to.y = 0
 	if to.length() > 0.2:
@@ -243,10 +415,12 @@ func _work(delta: float) -> void:
 		return
 	var forest := get_tree().get_first_node_in_group("forest")
 	var spot := Vector3.INF
-	if zone_kind == "wood":
-		if forest == null or not forest.has_wood(_tree):
+	if wk() == "wood":
+		var c := Zones.center(get_tree(), wz())
+		if forest == null or not forest.has_wood(_tree) \
+				or forest.tree_pos(_tree).distance_to(c) > Config.torch_light_radius - 1.0:   # Baum muss in SEINER Zone stehen
 			# nur Bäume, die sicher im Licht der Zone stehen
-			_tree = forest.nearest(Zones.center(get_tree(), zone_id), Config.torch_light_radius - 1.5) if forest else -1
+			_tree = forest.nearest(Zones.center(get_tree(), wz()), Config.torch_light_radius - 1.5) if forest else -1
 			_gather_t = 0.0
 		if _tree >= 0:
 			spot = forest.tree_pos(_tree)
@@ -257,47 +431,62 @@ func _work(delta: float) -> void:
 		if _node:
 			spot = _node.global_position
 	if spot == Vector3.INF:
-		# nichts mehr zu holen: mit dem, was er hat, heim – sonst am Licht warten
+		# nichts mehr zu holen: mit dem, was er hat, abladen – dann überlegen, was sonst gebraucht wird
 		if cargo > 0:
-			_go_home()
+			_unload_or_home()
 		else:
-			_step_towards(Zones.center(get_tree(), zone_id) + Vector3(1.5, 0, 1.5), Config.worker_speed, delta)
+			_find_other_work()
 		return
+	# Ausweich-Arbeit: ab und zu schauen, ob es in der eigentlichen Zone wieder etwas gibt
+	if _alt_kind != "":
+		_alt_check -= delta
+		if _alt_check <= 0.0:
+			_alt_check = 10.0
+			var f := get_tree().get_first_node_in_group("fortress")
+			if f and f.zone_has(zone_id, zone_kind) and cargo == 0:
+				_alt_zone = ""
+				_alt_kind = ""
+				_number("zurück zur eigenen Arbeit", Color(0.8, 0.9, 1.0))
+				_node = null
+				_tree = -1
+				_go_out()
+				return
 	var to := spot - global_position
 	to.y = 0
-	var reach: float = _node.reach() if zone_kind == "stone" and _node else 1.1
+	var reach: float = _node.reach() if wk() == "stone" and _node else 1.1
 	if to.length() > reach:
-		_step_towards(spot, Config.worker_speed, delta)
+		_step_towards(spot, _speed(), delta)
 		return
 	_gather_t += delta
 	rotation.z = sin(_gather_t * 9.0) * 0.08   # kleine Arbeitsbewegung
-	if _gather_t >= Config.worker_gather_seconds:
+	var fort := get_tree().get_first_node_in_group("fortress")
+	if _gather_t >= Config.worker_gather_seconds / efficiency() * (fort.tool_factor(wk()) if fort else 1.0):
 		_gather_t = 0.0
-		var ok: bool = forest.take_one(_tree) if zone_kind == "wood" else _node.take_one()
+		var ok: bool = forest.take_one(_tree) if wk() == "wood" else _node.take_one()
 		if ok:
 			cargo += 1
-			cargo_kind = zone_kind
+			cargo_kind = wk()
 			_load_mat.albedo_color = {"wood": Color(0.5, 0.32, 0.18), "food": Color(0.45, 0.85, 0.75),
-					"stone": Color(0.6, 0.6, 0.65)}[zone_kind]
-		if cargo >= Config.worker_carry:
+					"stone": Color(0.6, 0.6, 0.65)}[wk()]
+		if cargo >= carry_cap():
 			# Holzfäller sieht eine Feuerstelle in der Nähe, die bald ausgeht? Dann bringt er das Holz dorthin.
-			var pit := _low_fire_pit_near() if zone_kind == "wood" else null
+			var pit := _low_fire_pit_near() if wk() == "wood" else null
 			if pit:
 				_delivery_wood = cargo
 				cargo = 0
 				_work_after_delivery = true
 				_head_to_pit(pit)
 			else:
-				_go_home()
+				_unload_or_home()
 
 
 ## Nächste volle Pilzstelle bzw. Fels (Steinbrecher) in seiner Zone.
 func _find_node() -> Node3D:
 	var best: Node3D = null
 	var best_d := INF
-	var group := "rocks" if zone_kind == "stone" else "resources"
+	var group := "rocks" if wk() == "stone" else "resources"
 	for r in get_tree().get_nodes_in_group(group):
-		if r.zone_id == zone_id and (zone_kind == "stone" or r.kind == zone_kind) and r.is_available():
+		if r.zone_id == wz() and (wk() == "stone" or r.kind == wk()) and r.is_available():
 			var d := global_position.distance_to(r.global_position)
 			if d < best_d:
 				best_d = d
@@ -312,10 +501,11 @@ func _go_out() -> void:
 	if not is_exposed():
 		_path.append(GATE_IN)
 		_path.append(GATE_OUT)
-	_path.append(Zones.center(get_tree(), zone_id) + Vector3(_rng.randf_range(-1.5, 1.5), 0, _rng.randf_range(1.0, 2.0)))
+	_path.append(Zones.center(get_tree(), wz()) + Vector3(_rng.randf_range(-1.5, 1.5), 0, _rng.randf_range(1.0, 2.0)))
 
 
 func _go_home() -> void:
+	_stand_up()
 	state = State.BACK
 	rotation.z = 0.0
 	_path.clear()
@@ -340,6 +530,17 @@ func _arrive_home() -> void:
 				_number("+%d %s" % [n, {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[cargo_kind]],
 						{"wood": Color(1, 0.75, 0.45), "food": Color(0.5, 1, 0.85), "stone": Color(0.8, 0.8, 0.9)}[cargo_kind])
 		cargo = 0
+	if _cart_total() > 0:
+		var fort := get_tree().get_first_node_in_group("fortress")
+		if fort:
+			var gave: Dictionary = fort.deposit(cart_load)
+			var parts := []
+			for k in [["wood", "Holz"], ["food", "Nahrung"], ["stone", "Stein"]]:
+				if gave[k[0]] > 0:
+					parts.append("+%d %s" % [gave[k[0]], k[1]])
+			if not parts.is_empty():
+				_number(", ".join(parts), Color(1, 0.85, 0.55))
+	_release_depot()
 	_pick_home_target()
 
 
@@ -415,7 +616,7 @@ func _torch_to_tend() -> Node3D:
 	if Zones.recalled(get_tree()):
 		return null
 	var fort := get_tree().get_first_node_in_group("fortress")
-	var has_wood: bool = (cargo_kind == "wood" and cargo > 0) or (fort and fort.wood >= 2.0)
+	var has_wood: bool = (cargo_kind == "wood" and cargo > 0) or (fort and fort.spendable("wood") >= 1)
 	if not has_wood:
 		return null
 	for t in get_tree().get_nodes_in_group("torches") + get_tree().get_nodes_in_group("fire_pits"):
@@ -444,7 +645,7 @@ func _tend_step(delta: float) -> void:
 		_end_tend(true)
 		return
 	var spot: Vector3 = _tend.global_position + (global_position - _tend.global_position).normalized() * 1.2
-	if not _step_towards(spot, Config.worker_speed, delta):
+	if not _step_towards(spot, _speed(), delta):
 		return
 	_tend_t += delta
 	if _tend_t < 1.2:
@@ -452,7 +653,7 @@ func _tend_step(delta: float) -> void:
 	var fort := get_tree().get_first_node_in_group("fortress")
 	if cargo_kind == "wood" and cargo > 0:
 		cargo -= 1
-	elif fort and fort.wood >= 2.0:
+	elif fort and fort.spendable("wood") >= 1:
 		fort.wood -= 1.0
 	else:
 		_end_tend(true)
@@ -494,8 +695,8 @@ func _defend(delta: float) -> void:
 	arrow.set_script(ArrowScript)
 	get_parent().add_child(arrow)
 	arrow.global_position = global_position + Vector3(0, 1.2, 0)
-	arrow.launch(best, Config.resident_bow_damage, {}, self)
-	Sfx.play("shoot", -10.0)
+	arrow.launch(best, Config.resident_bow_damage * (2.0 if has_trait("schuetze") else 1.0) * combat_factor(), {}, self)
+	Sfx.play_at("shoot", global_position, -10.0)
 
 
 ## Wird vom Pfeil aufgerufen.
@@ -540,3 +741,618 @@ func _number(text: String, col: Color) -> void:
 	num.text = text
 	get_parent().add_child(num)
 	num.global_position = global_position + Vector3(0, 2.2, 0)
+
+
+## Name über dem Kopf: sichtbar, wenn der Hüter in der Nähe ist (Farbe = Stimmung).
+func _update_name_label() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	var near: bool = player != null and global_position.distance_to(player.global_position) < 6.5
+	var show := near or _flash > 0.0
+	if _name_label.visible != show:
+		_name_label.visible = show
+	if show:
+		var t := res_name
+		if grief > 0.0:
+			t += " (trauert)"
+		elif refuses():
+			t += " (hat Angst)"
+		_name_label.text = t
+		_name_label.modulate = ResidentData.mood_color(mood)
+
+
+## Ruft etwas (Sprechblase über dem Kopf, 3 s, auch von Weitem sichtbar).
+func shout(text: String) -> void:
+	var l := Label3D.new()
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.fixed_size = true
+	l.no_depth_test = true
+	l.pixel_size = 0.001
+	l.font_size = 32
+	l.outline_size = 10
+	l.modulate = Color(1, 0.95, 0.7)
+	l.text = "„%s“" % text
+	l.position.y = 2.7
+	add_child(l)
+	var tw := l.create_tween()
+	tw.tween_property(l, "position:y", 3.2, 3.0)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 1.0).set_delay(2.0)
+	tw.tween_callback(l.queue_free)
+
+
+
+# --- Karren & Lagerplätze (v0.3) ---------------------------------------------------
+
+## Arbeitet er im Karrenschuppen?
+func is_driver() -> bool:
+	return job != null and is_instance_valid(job) and job.kind == "carts"
+
+
+func _cart_total() -> int:
+	return cart_load["wood"] + cart_load["food"] + cart_load["stone"]
+
+
+## Volle Ladung: gibt es Karren, an der Fackel ablegen und weiterarbeiten – sonst wie früher heim.
+func _unload_or_home() -> void:
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var d: Node3D = fort.depot_of(wz()) if fort and fort.has_carts() else null
+	if d == null or d.space(cargo_kind) <= 0:
+		_go_home()
+		return
+	_depot = d
+	state = State.DROP
+	_path.clear()
+	_path.append(d.global_position + (global_position - d.global_position).normalized() * 1.1)
+
+
+func _drop_at_depot() -> void:
+	var n: int = _depot.put(cargo_kind, cargo)
+	if n > 0:
+		_number("+%d abgelegt" % n, Color(1, 0.85, 0.55))
+	cargo -= n
+	_depot = null
+	if cargo > 0:
+		_go_home()   # Lagerplatz voll: den Rest selbst heimtragen
+	else:
+		state = State.WORK
+		_node = null
+		_tree = -1
+
+
+## Karrenfahrer: hinaus zum Lagerplatz.
+func _start_cart(d: Node3D) -> void:
+	_depot = d
+	d.claimed_by = self
+	state = State.CART_OUT
+	_fleeing = false
+	_path.clear()
+	if not is_exposed():
+		_path.append(GATE_IN)
+		_path.append(GATE_OUT)
+	_path.append(d.global_position + Vector3(0, 0, 1.6))
+	_wait = 0.0
+
+
+func _cart_out(delta: float) -> void:
+	if Zones.recalled(get_tree()) or not is_instance_valid(_depot) or not _depot.is_safe():
+		_go_home()
+		return
+	var spd := Config.cart_speed * (1.3 if has_trait("flink") else 1.0)
+	if not _follow_path(delta, spd):
+		return
+	_wait += delta
+	rotation.z = sin(_wait * 9.0) * 0.06
+	if _wait < 2.0:
+		return   # aufladen
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var limits: Dictionary = fort.room() if fort else {}
+	for k in limits:
+		limits[k] = maxi(limits[k] - cart_load[k], 0)
+	var got: Dictionary = _depot.take(Config.cart_capacity - _cart_total(),
+			fort.cart_order() if fort else ["wood", "food", "stone"], limits)
+	for k in got:
+		cart_load[k] += got[k]
+	_number("Karren beladen (%d)" % _cart_total(), Color(1, 0.85, 0.55))
+	_go_home()
+
+
+func _release_depot() -> void:
+	if is_instance_valid(_depot) and _depot.claimed_by == self:
+		_depot.claimed_by = null
+	_depot = null
+
+
+## Einfacher Handkarren vor dem Bewohner (Kasten, zwei Räder, Ladung).
+func _build_cart() -> void:
+	_cart = Node3D.new()
+	_cart.position = Vector3(0, 0, 1.0)
+	add_child(_cart)
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.4, 0.28, 0.16)
+	var box := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.9, 0.35, 1.1)
+	box.mesh = bm
+	box.material_override = wood
+	box.position.y = 0.45
+	_cart.add_child(box)
+	for side in [-1, 1]:
+		var w := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.28
+		cm.bottom_radius = 0.28
+		cm.height = 0.08
+		cm.radial_segments = 10
+		w.mesh = cm
+		w.material_override = wood
+		w.rotation.z = PI / 2.0
+		w.position = Vector3(side * 0.5, 0.28, 0)
+		_cart.add_child(w)
+	_cart_load_mesh = MeshInstance3D.new()
+	var lm := BoxMesh.new()
+	lm.size = Vector3(0.75, 0.3, 0.95)
+	_cart_load_mesh.mesh = lm
+	var lmat := StandardMaterial3D.new()
+	lmat.albedo_color = Color(0.55, 0.45, 0.3)
+	_cart_load_mesh.material_override = lmat
+	_cart_load_mesh.position.y = 0.75
+	_cart.add_child(_cart_load_mesh)
+	_cart.visible = false
+
+
+
+# --- Belagerung: vom Wachturm aus verteidigen (v0.3) --------------------------------
+
+var _post := Vector3.ZERO           # Platz oben auf dem Turm
+var _post_tower: Node3D = null
+var on_post := false                # steht oben und schießt
+
+
+## Zum Wachturm gehen und hinaufsteigen.
+func defend(tower: Node3D, post: Vector3) -> void:
+	_post_tower = tower
+	_post = post
+	on_post = false
+	state = State.DEFEND
+	_path.clear()
+	_path.append(tower.work_spot())
+
+
+func stop_defend() -> void:
+	if state != State.DEFEND:
+		return
+	if on_post and is_instance_valid(_post_tower):
+		global_position = _post_tower.work_spot()   # wieder herunter
+	on_post = false
+	_post_tower = null
+	state = State.HOME
+	_wait = 1.0
+	_pick_home_target()
+
+
+func _defend_step(delta: float) -> void:
+	if not is_instance_valid(_post_tower):
+		stop_defend()
+		return
+	if not on_post:
+		if _follow_path(delta, _speed() * 1.3):
+			global_position = _post
+			on_post = true
+		return
+	global_position = _post
+	rotation.y = PI   # nach Norden, zum Tor hin
+
+
+
+# --- Ausweich-Arbeit --------------------------------------------------------------
+
+## Zone und Art, in der er gerade wirklich arbeitet (eigene Zuteilung oder Ausweich-Arbeit).
+func wz() -> String:
+	return _alt_zone if _alt_zone != "" else zone_id
+
+
+func wk() -> String:
+	return _alt_kind if _alt_kind != "" else zone_kind
+
+
+## In der Zone ist nichts mehr zu holen: das Lager fragen, was sonst gebraucht wird, und dort helfen.
+## Gibt es nirgends etwas Sinnvolles, geht er heim ans Feuer und ruht etwas, statt draußen herumzustehen.
+func _find_other_work() -> void:
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var alt: Array = fort.fallback_for(self) if fort else []
+	if alt.is_empty():
+		_alt_zone = ""
+		_alt_kind = ""
+		_go_home()
+		_wait = 25.0   # erst später wieder hinaus
+		_number("nichts zu tun – ruht am Feuer", Color(0.8, 0.8, 0.8))
+		return
+	var z: String = alt[0]
+	var k: String = alt[1]
+	if z == zone_id and k == zone_kind:
+		_alt_zone = ""
+		_alt_kind = ""
+	else:
+		_alt_zone = z
+		_alt_kind = k
+		_alt_check = 10.0
+		_number("hilft bei: %s" % {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[k], Color(0.8, 0.9, 1.0))
+	_node = null
+	_tree = -1
+	_go_out()
+
+
+# --- Eigenes Leben (v0.4) -----------------------------------------------------------
+# Tagesablauf (fortress.phase()): Arbeitszeit – Freizeit – Nachtruhe.
+# In der Freizeit sorgt jeder für sich: essen, Holz fürs eigene Haus hacken und bauen, Nahrung für den eigenen
+# Vorrat sammeln, am Übungsplatz trainieren, am Feuer zusammensitzen (daraus werden Paare). Nachts wird geschlafen.
+# Kinder spielen am Feuer, bis sie erwachsen sind. Bei Belagerung (und schon beim Vorzeichen) gilt: alle heim.
+
+var _act := ""                      # aktuelle Freizeit-Tätigkeit
+var _act_t := 0.0
+var _life_tick := 0.0
+var _own := 0                       # für sich selbst getragene Einheiten (Holz fürs Haus / Nahrung für den Vorrat)
+var _own_target: Variant = null      # Baum-Index (int) bzw. Pilzstelle (Node3D)
+var _no_chop := 0.0                 # s, in denen „Holz fürs Haus“ nicht geht (keine helle Zone mit Bäumen)
+var _no_forage := 0.0
+var _lying := false
+var _was_child := false
+var _eat_tavern := 0               # Stufe des Gasthauses, in dem er gerade isst (0 = am Lager)
+var _hunger_bar: Node3D
+
+
+func is_child() -> bool:
+	return age < Config.child_grow
+
+
+func combat_factor() -> float:
+	return 1.0 + 0.2 * floorf(combat)
+
+
+func _fort() -> Node3D:
+	return get_tree().get_first_node_in_group("fortress")
+
+
+func _work_time() -> bool:
+	var f := _fort()
+	return f == null or f.phase() == "work"
+
+
+## Kinder sind kleiner; werden sie erwachsen, wachsen sie.
+func _update_size() -> void:
+	var c := is_child()
+	scale = Vector3.ONE * (0.65 if c else 1.0)
+	if _was_child and not c:
+		var f := _fort()
+		if f:
+			f.message.emit("%s ist erwachsen geworden." % res_name)
+			f._assign_jobs()
+	_was_child = c
+
+
+## Zweimal pro Sekunde: Soll er gerade Freizeit haben, arbeiten oder heim?
+func _life_decide() -> void:
+	var f := _fort()
+	if f == null:
+		return
+	if is_child() != _was_child:
+		_update_size()
+	var recalled: bool = Zones.recalled(get_tree())
+	var phase: String = f.phase()
+	if state == State.LIFE:
+		if recalled and is_exposed():
+			_end_life()
+			_go_home()
+		elif phase == "work" and not is_child() and _act != "eat" and not recalled:
+			_end_life()
+		elif phase == "night" and _act != "sleep" and _act != "eat":
+			_start_act(_choose_act())
+		return
+	if state == State.HOME:
+		if is_child() or phase != "work" or satiety < Config.starving_below:
+			_start_life()
+	elif state in [State.OUT, State.WORK] and not _fleeing:
+		# Feierabend (oder großer Hunger): mit der Ladung heim
+		if phase != "work" or satiety < Config.hungry_below:
+			_go_home()
+
+
+func _start_life() -> void:
+	state = State.LIFE
+	_start_act(_choose_act())
+
+
+func _end_life() -> void:
+	_stand_up()
+	if _own > 0 and _act == "forage" and house:
+		pantry = minf(pantry + _own, Config.pantry_max)
+	_own = 0
+	_act = ""
+	activity = ""
+	state = State.HOME
+	_wait = 0.5
+	_pick_home_target()
+
+
+## Was tut er jetzt in seiner freien Zeit?
+func _choose_act() -> String:
+	var f := _fort()
+	if f.phase() == "night" and satiety >= 30.0:
+		return "sleep"
+	if satiety < Config.hungry_below:
+		return "eat"
+	if house and pantry >= 1.0 and satiety < Config.snack_below and not is_child():
+		return "snack"
+	if is_child():
+		return "play"
+	if Zones.recalled(get_tree()):
+		return "social"
+	if bond_kind != "Paar" and _rng.randf() < 0.3:
+		return "social"   # wer allein ist, sucht öfter Gesellschaft
+	if house == null and _no_chop <= 0.0:
+		if house_wood >= Config.house_wood and f.hut_for(self) != null:
+			return "build"
+		if house_wood < Config.house_wood and f.hut_for(self) != null and f.nearest_zone_with("wood", global_position) != "":
+			return "chop"
+	if house != null and pantry < Config.pantry_max - 1 and _no_forage <= 0.0 \
+			and f.nearest_zone_with("food", global_position) != "":
+		return "forage"
+	if combat < Config.combat_max and _rng.randf() < 0.35:
+		return "train"
+	return "social"
+
+
+func _start_act(a: String) -> void:
+	_stand_up()
+	_act = a
+	_act_t = 0.0
+	_own_target = null
+	var f := _fort()
+	var fire := Vector3.ZERO
+	match a:
+		"eat":
+			var place: Dictionary = f.eat_place()
+			_eat_tavern = place["tavern"]
+			activity = "isst im Gasthaus" if _eat_tavern > 0 else "holt sich etwas am Lager"
+			_path_to(place["pos"])
+		"snack":
+			activity = "isst zu Hause aus dem eigenen Vorrat"
+			_path_to(house.bed_pos())
+		"sleep":
+			activity = "schläft" + ("" if house else " am Feuer")
+			_path_to(house.bed_pos() if house else _around(fire, 2.5, 3.5))
+		"chop":
+			activity = "hackt Holz fürs eigene Haus (%d/%d)" % [house_wood, Config.house_wood]
+			var z: String = f.nearest_zone_with("wood", global_position)
+			var forest := get_tree().get_first_node_in_group("forest")
+			var t: int = forest.nearest(Zones.center(get_tree(), z), Config.torch_light_radius - 1.5) if forest and z != "" else -1
+			if t < 0:
+				_no_chop = 30.0
+				_start_act(_choose_act())
+				return
+			_own_target = t
+			_path_to(forest.tree_pos(t))
+		"build":
+			var hut: Node3D = f.hut_for(self)
+			activity = "baut sein Haus"
+			_path_to(hut.global_position + (hut.bed_pos() - hut.global_position) * 1.3)
+		"forage":
+			activity = "sammelt Nahrung für zu Hause"
+			var z2: String = f.nearest_zone_with("food", global_position)
+			var best: Node3D = null
+			for r in get_tree().get_nodes_in_group("resources"):
+				if r.zone_id == z2 and r.is_available():
+					best = r
+					break
+			if best == null:
+				_no_forage = 30.0
+				_start_act(_choose_act())
+				return
+			_own_target = best
+			_path_to(best.global_position)
+		"train":
+			activity = "trainiert für den Kampf (Stufe %d)" % int(combat)
+			_path_to(f.training_spot() + Vector3(_rng.randf_range(-1.2, 1.2), 0, _rng.randf_range(0.8, 1.4)))
+		"social":
+			activity = "sitzt am Feuer"
+			_path_to(_around(fire, 2.2, 3.2))
+		"play":
+			activity = "spielt"
+			_path_to(_around(fire, 2.0, 4.5))
+
+
+func _life_step(delta: float) -> void:
+	_no_chop -= delta
+	_no_forage -= delta
+	if not is_exposed() and hp < max_hp():
+		var rate := Config.resident_heal_per_second * (0.5 if has_trait("kraenklich") else 1.0)
+		hp = minf(hp + rate * delta, max_hp())
+		_hp_bar.set_fraction(hp / max_hp())
+	var f := _fort()
+	match _act:
+		"eat":
+			if not _follow_path(delta, _speed()):
+				return
+			_act_t += delta
+			if _act_t < (4.0 if _eat_tavern > 0 else 2.0):
+				return
+			_eat(f)
+			_after_act()
+		"snack":
+			if not _follow_path(delta, _speed()):
+				return
+			_act_t += delta
+			if _act_t < 2.0:
+				return
+			var n := minf(pantry, (95.0 - satiety) / Config.meal_satiety)
+			if n > 0.0:
+				pantry -= n
+				satiety = minf(satiety + n * Config.meal_satiety, 100.0)
+			_after_act()
+		"sleep":
+			if not _lying:
+				if not _follow_path(delta, _speed()):
+					return
+				_lie_down()
+			var k := Config.sleep_home_factor if house else Config.sleep_fire_factor
+			energy = minf(energy + delta * 100.0 / (Config.day_length * (1.0 - Config.work_share - Config.free_share)) * k, 100.0)
+			if f.phase() != "night":
+				_after_act()
+		"chop":
+			_chop_step(delta, f)
+		"build":
+			if not _follow_path(delta, _speed()):
+				return
+			_act_t += delta
+			rotation.z = sin(_act_t * 9.0) * 0.08
+			if _act_t >= Config.house_build_time:
+				rotation.z = 0.0
+				var hut: Node3D = f.hut_for(self)
+				if hut:
+					house_wood -= Config.house_wood
+					f.give_house(self, hut)
+				_after_act()
+		"forage":
+			_forage_step(delta, f)
+		"train":
+			if not _follow_path(delta, _speed()):
+				return
+			_act_t += delta
+			rotation.z = sin(_act_t * 12.0) * 0.12   # Schwertübungen
+			var before := int(combat)
+			combat = minf(combat + delta / Config.train_seconds_per_level, Config.combat_max)
+			if int(combat) > before:
+				_number("Kampf-Stufe %d" % int(combat), Color(1, 0.8, 0.5))
+				f.message.emit("%s hat trainiert: Kampf-Stufe %d" % [res_name, int(combat)])
+			if _act_t > 25.0:
+				rotation.z = 0.0
+				_after_act()
+		"social", "play":
+			if not _follow_path(delta, _speed() * (1.2 if _act == "play" else 1.0)):
+				return
+			_act_t += delta
+			if _act == "social":
+				f.courtship_tick(self, delta)
+			if _act_t > (20.0 if _act == "social" else 8.0):
+				_after_act()
+		_:
+			_after_act()
+
+
+func _after_act() -> void:
+	var f := _fort()
+	if f.phase() == "work" and not is_child() and satiety >= Config.starving_below:
+		_end_life()
+	else:
+		_start_act(_choose_act())
+
+
+## Essen: im Gasthaus (sättigt besser, hebt die Stimmung) oder am Lager (nicht so befriedigend).
+func _eat(f: Node3D) -> void:
+	var per_food := Config.meal_satiety * (1.0 + Config.tavern_satiety_per_level * _eat_tavern)
+	var want := (95.0 - satiety) / per_food   # Nahrung, die er bräuchte
+	if want <= 0.0:
+		return
+	var cost := 0.5 if f.ration_t > 0.0 else 1.0       # gekürzte Rationen: halb so viel
+	var got := 0.0
+	if f.food > 0.0:
+		var take := minf(want * cost, f.food)
+		f.food -= take
+		got = take / cost
+	satiety = minf(satiety + got * per_food, 100.0)
+	if got <= 0.0:
+		_number("nichts zu essen …", Color(1, 0.5, 0.4))
+	elif _eat_tavern > 0:
+		mood = minf(mood + Config.tavern_mood * _eat_tavern, 100.0)
+	else:
+		mood = maxf(mood - 3.0, 0.0)   # am Lager schnell etwas hinunterschlingen – nicht befriedigend
+
+
+func _chop_step(delta: float, f: Node3D) -> void:
+	var forest := get_tree().get_first_node_in_group("forest")
+	if _own_target == null or forest == null:
+		_after_act()
+		return
+	var t: int = _own_target
+	if _own >= Config.own_carry or house_wood + _own >= Config.house_wood or not forest.has_wood(t):
+		# zum Bauplatz bringen
+		var hut: Node3D = f.hut_for(self)
+		if hut == null:
+			_own = 0
+			_after_act()
+			return
+		if _path.is_empty() and global_position.distance_to(hut.global_position) > 2.5:
+			_path_to(hut.global_position + (hut.bed_pos() - hut.global_position) * 1.3)
+		if _follow_path(delta, _speed()):
+			house_wood += _own
+			if _own > 0:
+				_number("+%d Holz fürs Haus" % _own, Color(1, 0.75, 0.45))
+			_own = 0
+			_after_act()
+		return
+	if not _follow_path(delta, _speed()):
+		return
+	_act_t += delta
+	rotation.z = sin(_act_t * 9.0) * 0.08
+	if _act_t >= Config.worker_gather_seconds / efficiency() * f.tool_factor("wood"):
+		_act_t = 0.0
+		if forest.take_one(t):
+			_own += 1
+
+
+func _forage_step(delta: float, f: Node3D) -> void:
+	var node = _own_target
+	if node == null or not is_instance_valid(node):
+		_after_act()
+		return
+	if _own >= 2 or not node.is_available():
+		if _own == 0:
+			_after_act()
+			return
+		if _path.is_empty() and global_position.distance_to(house.bed_pos()) > 1.0:
+			_path_to(house.bed_pos())
+		if _follow_path(delta, _speed()):
+			pantry = minf(pantry + _own, Config.pantry_max)
+			_number("+%d Nahrung für zu Hause" % _own, Color(0.5, 1, 0.85))
+			_own = 0
+			_after_act()
+		return
+	if not _follow_path(delta, _speed()):
+		return
+	_act_t += delta
+	if _act_t >= Config.worker_gather_seconds / efficiency() * f.tool_factor("food"):
+		_act_t = 0.0
+		if node.take_one():
+			_own += 1
+
+
+## Weg zu einem Ziel – durch das Tor, wenn die Mauer dazwischen liegt.
+func _path_to(target: Vector3) -> void:
+	_path.clear()
+	var inside := not is_exposed() and global_position.z > -12.0
+	var t_inside := target.z > -12.0
+	if inside and not t_inside:
+		_path.append(GATE_IN)
+		_path.append(GATE_OUT)
+	elif not inside and t_inside:
+		_path.append(GATE_OUT)
+		_path.append(GATE_IN)
+	_path.append(target)
+
+
+func _around(center: Vector3, r0: float, r1: float) -> Vector3:
+	var a := _rng.randf() * TAU
+	return center + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(r0, r1)
+
+
+func _lie_down() -> void:
+	_lying = true
+	rotation.x = -PI / 2.0
+	position.y = 0.3
+
+
+func _stand_up() -> void:
+	if _lying:
+		_lying = false
+		rotation.x = 0.0
+		position.y = 0.0
+	rotation.z = 0.0

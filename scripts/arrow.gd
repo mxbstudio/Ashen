@@ -11,7 +11,7 @@ var _dir := Vector3.FORWARD
 var _travelled := 0.0
 
 
-## Pfeil (burning = false) oder Glutwurf (burning = true).
+## Pfeil (burning = false) oder Glutwurf (burning = true). heal = Kontext des Angriffs (siehe combat.gd).
 func launch(target: Node3D, damage: float, heal: Dictionary, combat: Node, burning := false) -> void:
 	_target = target
 	_damage = damage
@@ -46,6 +46,8 @@ func _physics_process(delta: float) -> void:
 			_combat.hit(_target, _damage, _heal)
 			if _burning and is_instance_valid(_target) and _target.is_alive():
 				_target.ignite(burn_dps, Config.ember_burn_time)
+			if _burning and _combat.has_method("ember_impact"):
+				_combat.ember_impact(global_position, burn_dps)
 			queue_free()
 			return
 	var step := (Config.ember_speed if _burning else Config.arrow_speed) * delta

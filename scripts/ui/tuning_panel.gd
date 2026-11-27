@@ -60,11 +60,31 @@ const ENTRIES := [
 	["Nachschub alle … s", "spawn_interval", 1.0, 10.0, 0.5, ""],
 	["Kriecher-Schaden", "crawler_damage", 1, 20, 1, "neue Gegner"],
 	["Verlorener-Schaden", "lost_damage", 5, 60, 1, "neue Gegner"],
+	["Kriecher: Blickkegel Grad", "crawler_gaze_angle", 0, 120, 5, "0 = weichen nie zurück"],
+	["Kriecher: Mut im Fackellicht", "crawler_light_courage", 0.0, 1.0, 0.05, ""],
 	["Boss-Leben", "hp_boss", 200, 3000, 100, "ab Neustart"],
 	["Sichelhieb-Schaden", "sickle_damage", 4, 40, 1, ""],
 	["Bogenschuss-Schaden", "bow_damage", 3, 30, 1, ""],
 	["EP für Stufe 2", "xp_first_level", 2, 40, 1, ""],
 	["EP mehr pro Stufe", "xp_level_step", 0, 30, 1, ""],
+	["Leiste & Talismane (v0.3)"],
+	["Erschüttert: Dauer s", "stagger_time", 0.5, 6, 0.5, ""],
+	["Zerschmettern: Schaden ×", "combo_shatter", 1.0, 4.0, 0.25, ""],
+	["Markiert: +Schaden", "mark_bonus", 0.0, 1.5, 0.05, "0,35 = +35 %"],
+	["Schwur: Runden-Bonus", "oath_bonus", 0.0, 1.0, 0.05, ""],
+	["Spiegel: Kopie-Schaden", "mirror_copy", 0.2, 1.0, 0.05, ""],
+	["Talisman von Verlorenen: Chance", "lost_talisman_chance", 0.0, 1.0, 0.01, ""],
+	["Wahnsinn (v0.3)"],
+	["Wahn pro s im Dunkeln", "madness_dark_rate", 0.0, 1.0, 0.05, ""],
+	["Wahn extra bei schwacher Laterne", "madness_low_lantern_rate", 0.0, 2.0, 0.05, ""],
+	["Wahn sinkt am Feuer pro s", "madness_fire_recover", 0.0, 3.0, 0.1, ""],
+	["Schaden je Wahn-Stufe", "madness_damage_per_stage", 0.0, 0.5, 0.05, ""],
+	["Dunkle Skills ab Wahn", "madness_dark_offer", 0, 100, 5, ""],
+	["Bewohner-Stimmung (v0.3)"],
+	["Stimmung: Tempo pro s", "mood_rate", 0.02, 1.0, 0.02, ""],
+	["Stimmung: Verlust bei Tod", "mood_on_death", 0, 40, 2, ""],
+	["Verlassen unter Stimmung", "desert_mood", 0, 50, 5, "0 = nie"],
+	["Ereignis alle … s", "event_interval", 60, 900, 30, ""],
 	["Sicht"],
 	["Sicht an (1) / aus (0)", "sight_enabled", 0, 1, 1, "0 = alle Gegner sichtbar"],
 	["Im Dunkeln ganz sichtbar bis m", "sight_near", 0, 10, 0.5, ""],
@@ -95,6 +115,7 @@ func _ready() -> void:
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.offset_left = 24
 	scroll.offset_right = -24
+	UiStyle.keep_in_column(scroll, 24)
 	scroll.offset_top = 60
 	scroll.offset_bottom = -150
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -120,11 +141,13 @@ func _ready() -> void:
 	var reset := UiStyle.button("Alles auf Standard", Color(0.7, 0.7, 0.7), 24, Vector2(0, 80))
 	reset.pressed.connect(_reset_all)
 	_box.add_child(reset)
+	UiStyle.pass_touch(_box)
 	# fester "Weiter"-Knopf unten
 	var done := UiStyle.button("Weiter", Color(0.5, 0.9, 0.5), 32, Vector2(0, 100))
 	done.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	done.offset_left = 24
 	done.offset_right = -24
+	UiStyle.keep_in_column(done, 24)
 	done.offset_top = -130
 	done.offset_bottom = -30
 	done.pressed.connect(close)

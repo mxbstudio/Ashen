@@ -39,6 +39,7 @@ var survivor_min_food := 3         # nur wenn mindestens so viel Nahrung da ist
 var scrapyard_seconds_per_wood := 45.0   # Trümmerhof
 var mushroom_seconds_per_food := 30.0  # Pilzkeller (v0.1: 40)
 var starve_seconds := 30.0         # ohne Nahrung stirbt alle 30 s ein Bewohner
+var vital_reserve := 5            # Holz und Nahrung: darunter darf nichts verbraucht werden (nur Feuer und Essen)
 var wood_cap := 30                 # so viel Holz passt ohne Vorratslager ins Lager
 var food_cap := 25
 var storehouse_bonus := 30         # Vorratslager: +30 auf beide Grenzen
@@ -47,6 +48,11 @@ var cost_scrapyard := 8
 var cost_mushroom := 8
 var cost_tower := 10
 var cost_workshop := 8             # Werkstatt (baut Bögen)
+var cost_carts := 10               # Karrenschuppen: je Stufe ein Karren (v0.3)
+var cart_capacity := 15            # so viel passt auf einen Karren
+var cart_speed := 2.2              # m/s mit Karren (etwas langsamer als zu Fuß)
+var cart_min_load := 4             # erst ab so viel Vorrat fährt ein Karren zu einem Lagerplatz
+var depot_cap := 20                # so viel passt je Rohstoff auf einen Lagerplatz an der Fackel
 var bow_craft_seconds := 60.0      # s pro Bogen und Bewohner in der Werkstatt
 var bow_wood_cost := 4             # Holz pro Bogen
 var resident_bow_damage := 5.0     # Bewohner mit Bogen: Schaden pro Pfeil
@@ -157,6 +163,7 @@ var cast_modifier := 0.2
 
 # --- Skills (Wirkung) -----------------------------------------------------
 var combat_range := 14.0           # m – nur wenn ein Gegner so nah ist, läuft die Leiste
+var bar_range_margin := 2.0        # m – die Leiste lädt schon, wenn ein Gegner so viel weiter weg ist als die größte Angriffs-Reichweite
 var sickle_damage := 12.0
 var sickle_range := 2.8            # m Reichweite des Bogens vor dem Hüter
 var sickle_angle := 150.0          # Grad Öffnungswinkel
@@ -187,6 +194,9 @@ var hp_boss := 800.0
 var crawler_speed := 5.0
 var crawler_damage := 5.0
 var crawler_attack_pause := Vector2(1.5, 3.5)   # s zwischen zwei Angriffen (zufällig)
+var crawler_gaze_angle := 50.0     # Grad: so weit seitlich zählt noch als „angeschaut“ – dann weichen Kriecher zurück
+var crawler_gaze_backoff := 3.0    # m so weit weichen angeschaute Kriecher zusätzlich zurück
+var crawler_light_courage := 0.35  # Chance, trotzdem anzugreifen, wenn der Hüter im Licht einer Fackel/Feuerstelle steht
 # Lichtfresser: saugen an der Laterne statt den Hüter zu verletzen
 var lighteater_speed := 3.2
 var lighteater_drain := 6.0        # s Laternenlicht pro Sekunde, solange er saugt
@@ -218,6 +228,95 @@ var ember_burn_per_level := 1.5    # Brandschaden/s
 var mend_heal_per_level := 4.0     # Labung
 var echo_cast_per_level := 0.15    # Echo: Cast-Verlängerung sinkt je Stufe
 var sacrifice_per_level := 0.5     # Opferlicht: +0,5 Multiplikator je Stufe
+
+# --- Leiste mit Tiefe (v0.3) ----------------------------------------------------
+var branch_level := 3              # beim Aufstieg auf diese Skill-Stufe wählt man eine Abzweigung
+var stagger_time := 2.0            # s – Glockenschlag erschüttert (Gegner langsam, Sichel macht doppelt Schaden)
+var stagger_slow := 0.35           # erschütterte Gegner laufen nur so schnell
+var mark_time := 4.0               # s – markierte Gegner (Bogen „Markieren“) nehmen mehr Schaden
+var mark_bonus := 0.35             # +35 % Schaden auf markierte Gegner
+var combo_shatter := 2.0           # Sichel × erschüttert: Schaden ×2
+var combo_kindle := 1.5            # Glocke × brennend: restlicher Brandschaden sofort ×1,5
+var combo_flamearrow_radius := 2.2 # Bogen × brennend: Explosion (m)
+var kindle_burn_dps := 3.0         # Zündschnur: Brand/s auf getroffene Gegner
+var kindle_per_level := 1.0
+var mirror_copy := 0.7             # Spiegel: kopierter Angriff macht 70 % Schaden
+var mirror_per_level := 0.1
+var oath_bonus := 0.25             # Schwur im letzten Feld: ganze nächste Runde +25 %
+var oath_per_level := 0.05
+var oath_next := 0.1               # Schwur anderswo: nur der nächste Angriff +10 %
+var talisman_slots := 2            # so viele Talismane trägt der Hüter gleichzeitig
+var lost_talisman_chance := 0.03   # Verlorene lassen selten einen Talisman fallen (zuerst 0,12)
+var shrine_time := 1.5             # s neben einem Schrein stehen, um ihn zu öffnen
+
+# --- Werkzeuge (v0.3) ------------------------------------------------------------
+var tool_speed_per_level := 0.35   # jede Werkzeug-Stufe: Abbauen +35 % schneller (Hüter und Bewohner)
+var tool_cost_wood := [6, 10, 16]  # Holz für Stufe 1 / 2 / 3
+var tool_cost_stone := [4, 8, 14]  # Stein für Stufe 1 / 2 / 3
+
+# --- Eigenes Leben der Bewohner (v0.4) ----------------------------------------------
+var day_length := 300.0            # s – ein Tag: Arbeitszeit, Freizeit, Nachtruhe
+var work_share := 0.7              # Anteil Arbeitszeit am Tag
+var free_share := 0.2              # Anteil Freizeit (der Rest ist Nachtruhe)
+var meal_satiety := 34.0           # so viel Sättigung (0–100) bringt 1 Nahrung; verbraucht wird wie früher 1 Nahrung / food_seconds_per_person
+var hungry_below := 25.0           # darunter MUSS gegessen werden – sofort, auch mitten in der Arbeit (Gasthaus, sonst Lager)
+var starving_below := 25.0         # (gleich wie hungry_below)
+var snack_below := 60.0            # in der Freizeit: Imbiss aus dem eigenen Vorrat, wer darunter ist
+var cost_tavern := 10              # Gasthaus (v0.4)
+var tavern_satiety_per_level := 0.15 # Gasthaus: jede Stufe macht 1 Nahrung 15 % sättigender
+var tavern_mood := 4.0             # Gasthaus: Stimmung + (je Stufe), am Lager dagegen −3
+var starve_damage := 0.5           # Leben pro s ohne jede Sättigung
+var sleep_home_factor := 1.0       # Erholung im eigenen Haus
+var sleep_fire_factor := 0.6       # Erholung am Feuer (ohne Haus)
+var house_wood := 8                # Holz, das ein Bewohner für sein Haus selbst hackt
+var house_build_time := 15.0       # s Bauzeit
+var pantry_max := 2                # so viel Nahrung passt in den eigenen Vorrat (Max: nicht zu viel bunkern; zuerst 6)
+var own_carry := 5                 # so viel trägt man in der Freizeit für sich auf einmal
+var train_seconds_per_level := 120.0 # s Training für eine Kampf-Stufe
+var combat_max := 5
+var courtship_needed := 25.0       # s gemeinsame Zeit am Feuer, bis zwei ein Paar werden
+var child_chance := 0.35           # pro Nacht für ein Paar mit Haus
+var child_grow := 600.0            # s bis ein Kind erwachsen ist (2 Tage)
+
+# --- Wahnsinn (v0.3) -----------------------------------------------------------
+var madness_dark_rate := 0.15      # pro s draußen außerhalb fester Lichtquellen
+var madness_low_lantern_rate := 0.35 # zusätzlich pro s, wenn die Laterne unter 30 % ist
+var madness_empty_rate := 1.0      # zusätzlich pro s, wenn die Laterne leer ist
+var madness_fire_recover := 0.3    # pro s am Feuer (langsam – Ruhe kostet Zeit)
+var madness_death_relief := 25.0   # der Tod klärt den Geist etwas
+var madness_damage_per_stage := 0.1 # +10 % Schaden je Wahn-Stufe (25 / 50 / 75)
+var madness_dark_offer := 25.0     # ab so viel Wahnsinn bietet der Stufenaufstieg dunkle Skills an
+var madness_full_drain := 2.0      # Leben pro s bei 100 Wahnsinn
+var madness_event_threshold := 75.0 # ab so viel Wahnsinn („komplett wahnsinnig“) gibt es nur noch die Entscheidungen des Wahns
+var cast_rift := 0.7               # Schattenriss
+var rift_damage := 14.0
+var rift_length := 7.0             # m Linie vor dem Hüter
+var rift_madness := 0.6            # Wahnsinn pro Einsatz
+var cast_scream := 1.2             # Leerenschrei
+var scream_damage := 8.0
+var scream_radius := 5.0
+var scream_fear := 2.5             # s fliehen die Gegner
+var scream_madness := 1.0
+var pact_madness := 1.5            # Schattenpakt
+# Licht-Skills (v0.3): senken den Wahnsinn – und sind stärker, je wahnsinniger man ist
+var cast_purge := 1.0              # Läuterung
+var purge_damage := 8.0
+var purge_radius := 4.0
+var purge_madness := 1.5           # so viel Wahnsinn senkt ein Einsatz
+var cast_lance := 0.9              # Lichtlanze
+var lance_damage := 12.0
+var lance_madness := 0.8
+var vigil_madness := 3.0           # Andacht (Modifikator)
+
+# --- Bewohner mit Eigenleben (v0.3) ----------------------------------------------
+var mood_start := 60.0             # Stimmung 0–100
+var mood_rate := 0.1               # so schnell (pro s) nähert sich die Stimmung ihrem Zielwert
+var mood_on_death := 12.0          # stirbt jemand, sinkt die Stimmung aller
+var grief_time := 240.0            # s Trauer des Verbundenen
+var desert_mood := 15.0            # darunter kann ein Bewohner die Festung verlassen
+var desert_chance := 0.25          # Chance pro Minute
+var event_interval := 210.0        # s zwischen zwei Ereignissen (ungefähr)
+var event_first := 150.0           # s bis zum ersten Ereignis
 
 # --- Sicht (v0.3) -----------------------------------------------------------
 var sight_enabled := true          # false = alle Gegner immer sichtbar (wie v0.2)
@@ -306,14 +405,20 @@ func reset() -> void:
 		set(k, _defaults[k])
 
 
-## Tastenbelegung: WASD/Pfeile bewegen, Leertaste Dash, Q Trank.
+## Tastenbelegung: WASD/Pfeile bewegen, Leertaste Dash, 1 Trank, Q Menü „Leiste“, B „Bewohner“, R Leiste an/aus, E Bauen, F Turm/Reise.
 func _setup_input() -> void:
 	_bind("move_left", [KEY_A, KEY_LEFT])
 	_bind("move_right", [KEY_D, KEY_RIGHT])
 	_bind("move_up", [KEY_W, KEY_UP])
 	_bind("move_down", [KEY_S, KEY_DOWN])
 	_bind("dash", [KEY_SPACE])
-	_bind("potion", [KEY_Q])
+	_bind("potion", [KEY_1])          # Trank (vorher Q)
+	_bind("bar_toggle", [KEY_R])      # Leiste an/aus
+	_bind("interact", [KEY_E])        # Bauen / Verbessern / Fackel
+	_bind("interact2", [KEY_F])       # Turm besteigen / Schnellreise
+	_bind("menu_bar", [KEY_Q])        # Menü „Leiste“ (Wunsch Max; vorher L)
+	_bind("drop_pile", [KEY_G])       # Trage als Haufen abladen (draußen an Lagerplätzen)
+	_bind("menu_people", [KEY_B])     # Menü „Bewohner"
 
 
 func _bind(action: String, keys: Array) -> void:

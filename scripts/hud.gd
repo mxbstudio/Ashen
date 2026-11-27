@@ -43,6 +43,14 @@ func saved_flash() -> void:
 	_saved_t = 1.5
 
 
+## Flüstern des Wahns: violette Schrift an zufälliger Stelle, verblasst langsam.
+var _whispers: Array = []   # [text, pos, restzeit]
+func whisper(text: String) -> void:
+	var colw := UiStyle.column(size)
+	var pos := Vector2(colw.position.x + randf_range(40.0, maxf(60.0, colw.size.x - 420.0)), randf_range(size.y * 0.35, size.y * 0.6))
+	_whispers.append([text, pos, 4.0])
+
+
 ## Kurze Meldung in der Bildschirmmitte (z. B. "Abgeladen: +5 Holz").
 func toast(text: String, duration := 2.5) -> void:
 	_toasts.append([text, duration])
@@ -69,6 +77,9 @@ func _process(delta: float) -> void:
 	for t in _toasts:
 		t[1] -= delta
 	_toasts = _toasts.filter(func(t): return t[1] > 0.0)
+	for w in _whispers:
+		w[2] -= delta
+	_whispers = _whispers.filter(func(w): return w[2] > 0.0)
 	queue_redraw()
 
 
@@ -76,15 +87,10 @@ func _draw() -> void:
 	if player == null:
 		return
 	var font := get_theme_default_font()
-	var x := size.x - BAR_W - MARGIN
+	var col := UiStyle.column(size)
+	var x := col.end.x - BAR_W - MARGIN
 	var y := MARGIN + 6.0
-	var lantern = player.lantern
-	_draw_bar(font, x, y, "Leben  %d" % ceili(player.health),
-			player.health / Config.player_max_health, Color(0.85, 0.2, 0.18))
-	y += 62.0
-	_draw_bar(font, x, y, "Laterne", lantern.fraction(), Color(1.0, 0.7, 0.3),
-			lantern.refilling)
-	y += 62.0
+	_draw_player_bars(font)   # Leben, Laterne, Wahn direkt an der Spielfigur
 	draw_string(font, Vector2(x, y + 22), "Tränke: %d / %d" % [player.potions, Config.potions_start],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.6, 1.0, 0.6, 0.9))
 	y += 34.0
@@ -119,9 +125,84 @@ func _draw() -> void:
 		draw_string(font, Vector2((size.x - sw) / 2.0 + 10.0, 80), st, HORIZONTAL_ALIGNMENT_LEFT, -1, 18,
 				Color(0.7, 1, 0.7, clampf(_saved_t, 0.0, 1.0) * 0.8))
 	_draw_skill_bar(font, player.skill_bar)
+	_draw_madness(font)
 	_draw_hurt(player.hurt_flash)
 	if not player.is_alive():
 		_draw_death(font)
+
+
+## Leben (links), Laterne und Wahn (rechts) als schmale Balken direkt neben der Spielfigur.
+func _draw_player_bars(font: Font) -> void:
+	if not player.is_alive():
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var feet := cam.unproject_position(player.global_position)
+	var head := cam.unproject_position(player.global_position + Vector3(0, 2.0, 0))
+	var h := maxf(feet.y - head.y, 60.0)
+	var top := head.y + h * 0.05
+	var bh := h * 0.85
+	var gap := maxf(h * 0.42, 34.0)
+	# Leben links
+	var hf: float = player.health / Config.player_max_health
+	var hcol := Color(0.9, 0.22, 0.2)
+	if hf < 0.25:
+		hcol = hcol.lerp(Color(1, 0.6, 0.5), 0.5 + 0.5 * sin(_t * 9.0))
+	_vbar(Rect2(feet.x - gap - 11, top, 11, bh), hf, hcol)
+	var hs := str(ceili(player.health))
+	var hw := font.get_string_size(hs, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+	draw_string_outline(font, Vector2(feet.x - gap - 5 - hw / 2.0, top - 6), hs, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 5, Color(0, 0, 0, 0.8))
+	draw_string(font, Vector2(feet.x - gap - 5 - hw / 2.0, top - 6), hs, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.6, 0.55))
+	# Laterne rechts (die Anzeige lügt manchmal im Wahn)
+	var lf: float = player.lantern.fraction()
+	if player.madness.lie_amount() > 0.0:
+		lf = clampf(lf + sin(_t * 3.7) * 0.35, 0.02, 1.0)
+	var lcol := Color(1.0, 0.72, 0.3)
+	if lf < 0.2:
+		lcol = lcol.lerp(Color(1, 0.2, 0.1), 0.5 + 0.5 * sin(_t * 8.0))
+	if player.lantern.refilling:
+		lcol = lcol.lightened(0.25 + 0.2 * sin(_t * 10.0))
+	_vbar(Rect2(feet.x + gap, top, 11, bh), lf, lcol)
+	# Wahn daneben (schmaler, violett, mit Stufen-Strichen)
+	var mad: Node = player.madness
+	var mcol := Color(0.6, 0.3, 0.95)
+	if mad.value >= 75.0:
+		mcol = mcol.lerp(Color(1, 0.3, 0.8), 0.5 + 0.5 * sin(_t * 6.0))
+	var mr := Rect2(feet.x + gap + 15, top, 7, bh)
+	_vbar(mr, mad.value / 100.0, mcol)
+	for k in [0.25, 0.5, 0.75]:
+		draw_line(Vector2(mr.position.x, mr.end.y - mr.size.y * k), Vector2(mr.end.x, mr.end.y - mr.size.y * k), Color(1, 1, 1, 0.35), 1.0)
+	if mad.stage() > 0:
+		var st: String = mad.stage_name()
+		draw_string_outline(font, Vector2(feet.x + gap - 4, top + bh + 18), st, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 5, Color(0, 0, 0, 0.8))
+		draw_string(font, Vector2(feet.x + gap - 4, top + bh + 18), st, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.8, 0.55, 1.0))
+
+
+## Senkrechter Balken, füllt sich von unten.
+func _vbar(r: Rect2, frac: float, col: Color) -> void:
+	frac = clampf(frac, 0.0, 1.0)
+	draw_rect(r.grow(2), Color(0, 0, 0, 0.55))
+	draw_rect(Rect2(r.position.x, r.end.y - r.size.y * frac, r.size.x, r.size.y * frac), col)
+	draw_rect(r.grow(2), Color(1, 1, 1, 0.3), false, 1.5)
+
+
+## Wahnsinn: violetter Rand (stärker mit dem Wahn), Flüstern.
+func _draw_madness(font: Font) -> void:
+	var v: float = player.madness.value / 100.0
+	if v > 0.2:
+		var a := (v - 0.2) * 0.45 * (0.85 + 0.15 * sin(_t * 1.7))
+		var t := 30.0 + 60.0 * v
+		var c := Color(0.35, 0.05, 0.5, a)
+		draw_rect(Rect2(0, 0, size.x, t), c)
+		draw_rect(Rect2(0, size.y - t, size.x, t), c)
+		draw_rect(Rect2(0, 0, t, size.y), c)
+		draw_rect(Rect2(size.x - t, 0, t, size.y), c)
+	for w in _whispers:
+		var a: float = clampf(w[2] / 1.5, 0.0, 1.0) * clampf((4.0 - w[2]) * 2.0, 0.0, 1.0)
+		var p: Vector2 = w[1] + Vector2(sin(_t * 2.0 + w[1].x) * 6.0, 0)
+		draw_string_outline(font, p, w[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 26, 6, Color(0, 0, 0, 0.7 * a))
+		draw_string(font, p, w[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(0.8, 0.55, 1.0, a))
 
 
 ## Roter Rand, wenn der Hüter getroffen wird.
@@ -211,14 +292,20 @@ func _draw_skill_bar(font: Font, bar: Node) -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(p[1].lightened(0.3), 1.0 - k))
 
 	# vorgemerkte Modifikatoren anzeigen
+	if bar.round_bonus > 0.0:
+		draw_string(font, Vector2(x0 + total - 170, y0 - 22), "Schwur +%d %%" % roundi(bar.round_bonus * 100),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.85, 0.4))
 	if not bar.pending_mods.is_empty():
 		var names := []
 		for m in bar.pending_mods:
 			names.append(SkillData.short_name(m))
 		draw_string(font, Vector2(x0, y0 + slot_h + 34), "Vorgemerkt: " + ", ".join(names),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.7, 0.75, 1.0))
-	elif not running:
-		draw_string(font, Vector2(x0, y0 + slot_h + 34), "Leiste ruht – kein Gegner in der Nähe",
+	elif not bar.active:
+		draw_string(font, Vector2(x0, y0 + slot_h + 34), "Leiste aus – „Leiste: AN“ drücken%s" % UiStyle.key_hint("R"),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.45))
+	elif not running or bar.waiting:
+		draw_string(font, Vector2(x0, y0 + slot_h + 34), "Leiste ruht – kein Gegner in Reichweite",
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.4))
 
 
@@ -243,9 +330,9 @@ func _draw_bar(font: Font, x: float, y: float, label: String, frac: float, col: 
 func _draw_fortress(font: Font) -> void:
 	if fortress == null:
 		return
-	var x := MARGIN
+	var x := UiStyle.column(size).position.x + MARGIN
 	var y := 40.0
-	draw_rect(Rect2(x - 6, y - 4, 330, 188), Color(0, 0, 0, 0.4))
+	draw_rect(Rect2(x - 6, y - 4, 360, 222), Color(0, 0, 0, 0.4))
 	var secs := int(fortress.wood_seconds_left())
 	var low_wood: bool = fortress.wood < 5
 	var blink := 0.5 + 0.5 * sin(_t * 8.0)
@@ -262,9 +349,13 @@ func _draw_fortress(font: Font) -> void:
 	draw_string(font, Vector2(x, y + 60), "Nahrung: %d / %d" % [int(fortress.food), fortress.food_cap()],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, food_col)
 	var outside: int = fortress.residents_outside()
-	draw_string(font, Vector2(x, y + 96), "Bewohner: %d%s" % [fortress.residents.size(),
-			"  (%d draußen)" % outside if outside > 0 else ""],
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.9, 0.85, 0.8))
+	var shown_res: int = fortress.residents.size()
+	if player.madness.lie_amount() > 0.0:
+		shown_res = maxi(0, shown_res + (1 if sin(_t * 2.3) > 0.0 else -2))
+	var avg: float = fortress.average_mood()
+	draw_string(font, Vector2(x, y + 96), "Bewohner: %d%s · %s" % [shown_res,
+			" (%d drau.)" % outside if outside > 0 else "", ResidentData.mood_word(avg)],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, ResidentData.mood_color(avg) if fortress.residents.size() > 0 else Color(0.9, 0.85, 0.8))
 	# Fackeln draußen: wie viele brennen? Rot blinkend, wenn eine angegriffen wird.
 	var burning := 0
 	var total := 0
@@ -279,6 +370,11 @@ func _draw_fortress(font: Font) -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, torch_col)
 	draw_string(font, Vector2(x, y + 168), "Stein: %d   Bögen: %d" % [int(fortress.stone), fortress.bows_total()],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.82, 0.82, 0.92))
+	# Uhr: Tag, Phase, Restzeit der Phase
+	var left := int(fortress.phase_left())
+	var pcol: Color = {"work": Color(1, 0.9, 0.6), "free": Color(0.6, 0.9, 1.0), "night": Color(0.7, 0.7, 1.0)}[fortress.phase()]
+	draw_string(font, Vector2(x, y + 204), "Tag %d · %s %d:%02d" % [fortress.day, fortress.phase_name(), left / 60, left % 60],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, pcol)
 
 
 func _draw_toasts(font: Font) -> void:
@@ -286,10 +382,14 @@ func _draw_toasts(font: Font) -> void:
 	for t in _toasts:
 		var a := clampf(t[1], 0.0, 1.0)
 		var txt: String = t[0]
-		var ts := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 28)
+		var fs := 28
+		var ts := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
+		while ts.x > size.x - 48.0 and fs > 16:   # lange Meldungen kleiner schreiben
+			fs -= 2
+			ts = font.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
 		var px := (size.x - ts.x) / 2.0
 		draw_rect(Rect2(px - 14, y - 30, ts.x + 28, 42), Color(0, 0, 0, 0.55 * a))
-		draw_string(font, Vector2(px, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(1, 0.9, 0.7, a))
+		draw_string(font, Vector2(px, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 0.9, 0.7, a))
 		y += 50.0
 
 
@@ -318,8 +418,9 @@ func _draw_boss(font: Font) -> void:
 	var boss := get_tree().get_first_node_in_group("boss")
 	if boss == null or not boss.is_engaged():
 		return
-	var w := size.x - 80.0
-	_draw_bar_at(font, 40.0, 280.0, w, "Der verwandelte Hauptmann",
+	var col := UiStyle.column(size)
+	var w := col.size.x - 80.0
+	_draw_bar_at(font, col.position.x + 40.0, 280.0, w, "Der verwandelte Hauptmann",
 			boss.hp / boss.max_hp, Color(0.7, 0.15, 0.2))
 
 
@@ -334,10 +435,17 @@ func _draw_bar_at(font: Font, x: float, y: float, w: float, label: String, frac:
 ## Wegweiser am Bildschirmrand: zum Tor (orange) und zum Leuchtfeuer (blau),
 ## wenn sie gerade nicht im Bild sind und der Hüter draußen ist.
 func _draw_pointers(font: Font) -> void:
-	if not player.is_alive() or player.global_position.z > -11.0:
+	if not player.is_alive():
 		return
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
+		return
+	# Belagerung fast vorbei: Wegweiser zu den letzten Angreifern (auch von drinnen)
+	if siege and siege.active and siege.attackers_left() <= 3:
+		for e in siege._enemies:
+			if is_instance_valid(e) and e.is_alive():
+				_pointer(font, cam, e.global_position, "Angreifer", Color(1, 0.3, 0.3))
+	if player.global_position.z > -11.0:
 		return
 	_pointer(font, cam, Vector3(0, 0, -12), "Tor", Color(1, 0.7, 0.3))
 	var beacon := get_tree().get_first_node_in_group("beacon")
@@ -348,9 +456,11 @@ func _draw_pointers(font: Font) -> void:
 			_pointer(font, cam, t.global_position, "Fackel!", Color(1, 0.35, 0.25))
 
 
+
 func _pointer(font: Font, cam: Camera3D, world: Vector3, label: String, col: Color) -> void:
 	var p := cam.unproject_position(world)
-	var inner := Rect2(Vector2(70, 230), size - Vector2(140, 230 + 420))
+	var colr := UiStyle.column(size)
+	var inner := Rect2(Vector2(colr.position.x + 70, 230), Vector2(colr.size.x - 140, size.y - 230 - 420))
 	if inner.grow(60).has_point(p):
 		return   # sichtbar genug, kein Pfeil nötig
 	var center := size / 2.0

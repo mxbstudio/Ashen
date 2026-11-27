@@ -1,7 +1,7 @@
 ## Belagerungen: alle paar Minuten. Ablauf:
 ##   1. Vorzeichen (30 s vorher): das Feuer flackert unruhig – kein Countdown.
 ##   2. Die Glocke läutet: Gegner erscheinen vor dem Tor und schlagen darauf ein.
-##   3. Bewohner (von der Mauer) und Wachturm schießen mit. Der Hüter kann draußen mitkämpfen.
+##   3. Bewohner steigen auf den Wachturm und schießen von dort (ohne Turm: niemand). Der Hüter kann draußen mitkämpfen.
 ##   4. Ende: alle Angreifer tot -> überstanden. Tor fällt -> ein Bewohner stirbt, Angreifer ziehen ab.
 ## Nach dem Boss folgt die letzte Belagerung: hält das Tor, ist das Spiel gewonnen.
 extends Node
@@ -97,6 +97,10 @@ func _start() -> void:
 	_spawn_t = 0.0
 	_enemies.clear()
 	spawner.enabled = false
+	# herumstreifende Gegner weit weg vom Hüter ziehen sich zurück – die Dunkelheit sammelt sich zum Sturm
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not e.is_in_group("boss") and e.siege_gate == null and e.global_position.distance_to(player.global_position) > 20.0:
+			e.queue_free()
 	get_tree().call_group("hud", "bell")
 	Sfx.play("bell", 2.0, 0.0)
 	get_tree().call_group("hud", "toast",
@@ -111,7 +115,9 @@ func _spawn_step(delta: float) -> void:
 	if _spawn_t > 0.0:
 		return
 	_spawn_t = Config.siege_batch_interval
-	var room := Config.max_enemies - get_tree().get_nodes_in_group("enemies").size()
+	# Platz: nur Angreifer zählen (nicht der Hauptmann, nicht herumstreifende Gegner) – sonst konnte der
+	# letzte Angreifer nie erscheinen und die Anzeige blieb bei „1 Angreifer“ stehen.
+	var room := Config.max_enemies - attackers_alive()
 	var n := mini(mini(Config.siege_batch, _to_spawn), room)
 	for i in n:
 		var roll := _rng.randf()
@@ -125,31 +131,42 @@ func _spawn_step(delta: float) -> void:
 		_to_spawn -= 1
 
 
-## Bewohner schießen von der Mauer auf Angreifer in Tornähe.
+## Bewohner steigen auf den Wachturm und schießen von oben (nicht mehr unsichtbar „von der Mauer“).
+## Ohne Wachturm schießt niemand – je höher der Turm, desto mehr Plätze (4 / 6 / 8).
 func _defend(delta: float) -> void:
-	# Bewohner mit Bogen zählen doppelt
-	var n: int = fortress.residents.size() + fortress.armed_count()
-	if n == 0:
+	fortress.update_defense()   # wer heimkommt, steigt hinauf
+	var shooters: Array = fortress.defenders()
+	if shooters.is_empty():
 		return
+	# Bewohner mit Bogen und gute Schützen zählen doppelt
+	var n: int = shooters.size()
+	for r in shooters:
+		n += (1 if r.has_bow else 0) + (1 if r.has_trait("schuetze") else 0)
 	_defense_t -= delta
 	if _defense_t > 0.0:
 		return
 	_defense_t = Config.resident_defense_interval / n
+	var shooter: Node3D = shooters[_rng.randi() % shooters.size()]
 	var best: Node3D = null
-	var best_d := 9.0
+	var best_d := 20.0
 	for e in _enemies:
 		if is_instance_valid(e) and e.is_alive():
-			var d := e.global_position.distance_to(gate.global_position)
+			var d: float = e.global_position.distance_to(shooter.global_position)
 			if d < best_d:
 				best_d = d
 				best = e
 	if best == null:
 		return
+	var dmg := Config.resident_bow_damage if shooter.has_bow else Config.resident_defense_damage
+	if shooter.has_trait("schuetze"):
+		dmg *= 2.0
+	dmg *= shooter.combat_factor()   # Kampftraining (v0.4)
 	var arrow := Node3D.new()
 	arrow.set_script(ArrowScript)
 	fortress.add_child(arrow)
-	arrow.global_position = gate.global_position + Vector3(_rng.randf_range(-4, 4), 3.2, 0.3)
-	arrow.launch(best, Config.resident_defense_damage, {}, self)
+	arrow.global_position = shooter.global_position + Vector3(0, 1.2, 0)
+	arrow.launch(best, dmg, {}, self)
+	Sfx.play_at("shoot", shooter.global_position, -10.0)
 
 
 ## Wird vom Pfeil der Bewohner aufgerufen.
@@ -170,7 +187,8 @@ func _check_end() -> void:
 func _on_gate_broken() -> void:
 	if not active:
 		return
-	fortress.kill_resident("Das Tor ist gefallen – ein Bewohner ist tot.")
+	fortress.kill_resident("Das Tor ist gefallen – %s ist tot.")
+	fortress.mood_shock(-8.0)
 	# Angreifer ziehen ab
 	for e in _enemies:
 		if is_instance_valid(e) and e.is_alive():
@@ -180,6 +198,7 @@ func _on_gate_broken() -> void:
 
 func _end(held: bool) -> void:
 	active = false
+	fortress.end_defense()   # alle steigen vom Turm
 	_to_spawn = 0
 	spawner.enabled = true
 	gate.repair_full()
@@ -194,6 +213,15 @@ func _end(held: bool) -> void:
 	if held:
 		get_tree().call_group("hud", "toast", "Belagerung überstanden!")
 	siege_ended.emit(held, was_final)
+
+
+## Angreifer, die gerade leben (ohne die noch nicht erschienenen).
+func attackers_alive() -> int:
+	var n := 0
+	for e in _enemies:
+		if is_instance_valid(e) and e.is_alive():
+			n += 1
+	return n
 
 
 ## Lebende Angreifer (für das HUD).
