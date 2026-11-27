@@ -1,6 +1,6 @@
 ## Kriecher: schnell, schwach, im Schwarm. Lichtscheu, aber nicht lichtdicht:
 ## lauert am Rand des Laternenlichts und schleicht sich HINTER den Hüter, springt dann hinein, beißt
-## und zieht sich zurück. Licht ist ihnen unangenehm (sie verweilen nicht darin und laufen dort langsamer),
+## und zieht sich zurück. Schaut der Hüter sie an, weichen sie zurück. Licht ist ihnen unangenehm (sie verweilen nicht darin und laufen dort langsamer),
 ## aber sie laufen hindurch und greifen manchmal auch im Licht von Fackeln und Feuerstellen an.
 ## Hinter die Mauer zum Feuer der Festung kommen sie nicht.
 extends EnemyBase
@@ -68,6 +68,8 @@ func _think(delta: float) -> Vector3:
 			var behind := atan2(-player.facing.z, -player.facing.x) + _slot_offset
 			_angle = lerp_angle(_angle, behind, 1.0 - exp(-1.6 * delta))
 			var r: float = player.lantern.get_light_radius() + 1.2
+			if _looked_at(to_p, d):
+				r += Config.crawler_gaze_backoff   # angeschaut: zurückweichen ins Dunkel
 			var target: Vector3 = player.global_position + Vector3(cos(_angle), 0, sin(_angle)) * r
 			target = _push_out_of_fixed_light(target)   # lauern lieber am Rand des Lichts
 			_attack_cd -= delta
@@ -76,7 +78,7 @@ func _think(delta: float) -> Vector3:
 				var behind_now := absf(angle_difference(atan2(me.z, me.x), behind - _slot_offset)) < 1.0
 				# im Licht einer Fackel trauen sie sich seltener – aber sie trauen sich
 				var brave := not player_lit or randf() < Config.crawler_light_courage
-				if brave and (behind_now or _attack_cd < -8.0):
+				if brave and not _looked_at(to_p, d) and (behind_now or _attack_cd < -8.0):
 					_state = State.ATTACK
 				elif not brave:
 					_attack_cd = randf_range(0.8, 1.6)
@@ -89,6 +91,10 @@ func _think(delta: float) -> Vector3:
 				hurt_player(Config.crawler_damage)
 				_state = State.RETREAT
 				_retreat_t = 0.7
+			elif d > 1.8 and _looked_at(to_p, d):
+				# erwischt: der Hüter schaut her -> abbrechen und zurück ins Dunkel
+				_state = State.RETREAT
+				_retreat_t = 0.5
 			# von hinten anspringen: auf einen Punkt knapp hinter dem Hüter zielen
 			var aim: Vector3 = player.global_position - player.facing * minf(d * 0.5, 1.2)
 			if to_p.dot(player.facing) < -0.3 and d > 2.0:
@@ -105,6 +111,13 @@ func _think(delta: float) -> Vector3:
 				_attack_cd = randf_range(Config.crawler_attack_pause.x, Config.crawler_attack_pause.y)
 			return -to_p.normalized() * speed
 	return Vector3.ZERO
+
+
+## Schaut der Hüter gerade zu mir? (Blickkegel vor ihm, nicht zu weit weg)
+func _looked_at(to_p: Vector3, d: float) -> bool:
+	if d > player.lantern.get_light_radius() + 5.0 or d < 0.01:
+		return false
+	return player.facing.angle_to(-to_p / d) < deg_to_rad(Config.crawler_gaze_angle)
 
 
 ## Im Licht einer festen Quelle laufen sie langsamer.

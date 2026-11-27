@@ -187,6 +187,8 @@ var hp_boss := 800.0
 var crawler_speed := 5.0
 var crawler_damage := 5.0
 var crawler_attack_pause := Vector2(1.5, 3.5)   # s zwischen zwei Angriffen (zufällig)
+var crawler_gaze_angle := 50.0     # Grad: so weit seitlich zählt noch als „angeschaut“ – dann weichen Kriecher zurück
+var crawler_gaze_backoff := 3.0    # m so weit weichen angeschaute Kriecher zusätzlich zurück
 var crawler_light_courage := 0.35  # Chance, trotzdem anzugreifen, wenn der Hüter im Licht einer Fackel/Feuerstelle steht
 # Lichtfresser: saugen an der Laterne statt den Hüter zu verletzen
 var lighteater_speed := 3.2

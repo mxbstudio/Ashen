@@ -60,6 +60,8 @@ const ENTRIES := [
 	["Nachschub alle … s", "spawn_interval", 1.0, 10.0, 0.5, ""],
 	["Kriecher-Schaden", "crawler_damage", 1, 20, 1, "neue Gegner"],
 	["Verlorener-Schaden", "lost_damage", 5, 60, 1, "neue Gegner"],
+	["Kriecher: Blickkegel Grad", "crawler_gaze_angle", 0, 120, 5, "0 = weichen nie zurück"],
+	["Kriecher: Mut im Fackellicht", "crawler_light_courage", 0.0, 1.0, 0.05, ""],
 	["Boss-Leben", "hp_boss", 200, 3000, 100, "ab Neustart"],
 	["Sichelhieb-Schaden", "sickle_damage", 4, 40, 1, ""],
 	["Bogenschuss-Schaden", "bow_damage", 3, 30, 1, ""],

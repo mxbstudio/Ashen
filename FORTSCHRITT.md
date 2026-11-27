@@ -272,7 +272,11 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
 - **Kriecher sind lichtscheu, aber nicht lichtdicht**: Kein hartes Wegstoßen mehr aus dem Licht. Sie lauern lieber am
   Rand, laufen im Licht langsamer, laufen aber hindurch und greifen auch im Licht von Fackeln/Feuerstellen an
   (mit 35 % Mut je Anlauf). In die Festung kommen sie weiter nicht.
-- Neue Werte: `crawler_light_courage` (0,35), `tool_speed_per_level` (0,35), `tool_cost_wood`, `tool_cost_stone`;
+- **Angeschaut weichen sie zurück** (Max): Steht ein Kriecher im Blickkegel des Hüters (50° zu jeder Seite), lauert er
+  3 m weiter draußen und greift nicht an; ein laufender Anlauf wird abgebrochen (außer er ist schon näher als 1,8 m).
+  Nur hinter dem Rücken trauen sie sich heran. Messung mit fester Blickrichtung: 21 von 21 Bissen kamen von hinten.
+  Werte-Menü: „Kriecher: Blickkegel Grad“ (0 = weichen nie zurück), „Kriecher: Mut im Fackellicht“.
+- Neue Werte: `crawler_gaze_angle` (50°), `crawler_gaze_backoff` (3 m), `crawler_light_courage` (0,35), `tool_speed_per_level` (0,35), `tool_cost_wood`, `tool_cost_stone`;
   `lost_talisman_chance` 0,12 → 0,03.
 
 ## Neue Werte (frei gewählt)
