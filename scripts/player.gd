@@ -336,27 +336,45 @@ func _gather(delta: float) -> void:
 		_gather_t = 0.0
 	if key == "":
 		_full_warned = false
+		_ring().hide_ring()
 		return
 	if carry_total() >= Config.carry_capacity:
+		_ring().hide_ring()
 		if not _full_warned:
 			_full_warned = true
 			get_tree().call_group("hud", "toast", "Trage voll (%d)" % Config.carry_capacity)
 		return
+	var kind: String = ("stone" if node.is_in_group("rocks") else node.kind) if node else "wood"
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var need: float = Config.gather_seconds * (fort.tool_factor(kind) if fort else 1.0)   # Werkzeuge
 	_gather_t += delta
-	if _gather_t >= Config.gather_seconds:
+	# Ladekreis um das, was gerade abgebaut wird
+	var col: Color = {"wood": Color(1, 0.75, 0.45), "food": Color(0.5, 1, 0.85), "stone": Color(0.8, 0.8, 0.9)}[kind]
+	var spot: Vector3 = node.global_position if node else forest.tree_pos(tree)
+	var rr: float = (node.radius + 0.5) if node and node.is_in_group("rocks") else 1.0
+	_ring().show_at(spot, _gather_t / need, col, rr)
+	if _gather_t >= need:
 		_gather_t = 0.0
-		var kind: String = ("stone" if node.is_in_group("rocks") else node.kind) if node else "wood"
 		var ok: bool = node.take_one() if node else forest.take_one(tree)
 		if ok:
 			carry[kind] += 1
 			Sfx.play("pickup" if kind == "food" else "hit", -6.0)
-			var col: Color = {"wood": Color(1, 0.75, 0.45), "food": Color(0.5, 1, 0.85), "stone": Color(0.8, 0.8, 0.9)}[kind]
 			var num := Label3D.new()
 			num.set_script(preload("res://scripts/damage_number.gd"))
 			num.setup(1, col)
 			num.text = "+1 " + {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[kind]
 			get_parent().add_child(num)
 			num.global_position = global_position + Vector3(0, 2.4, 0)
+
+
+var _gather_ring: Node3D = null
+
+func _ring() -> Node3D:
+	if _gather_ring == null:
+		_gather_ring = MeshInstance3D.new()
+		_gather_ring.set_script(preload("res://scripts/gather_ring.gd"))
+		get_parent().add_child(_gather_ring)
+	return _gather_ring
 
 
 ## Am Feuer: Trage in die Festung abladen.

@@ -1,7 +1,7 @@
 ## Die Skill-Leiste (Kern des Kampfes).
 ## Ablauf pro Feld: erst ausholen (Cast-Zeit, Feld füllt sich) -> wenn voll: Skill wird ausgelöst.
 ## - Felder werden automatisch von links nach rechts abgearbeitet, dann wieder links (Kreis).
-##   Mit dem Talisman „Umgekehrte Sanduhr“ läuft sie rückwärts.
+##   Mit dem Talisman „Pendel“ läuft sie links -> rechts -> zurück: mittlere Felder kommen doppelt so oft dran.
 ## - Kein Cooldown: jeder Skill hat eine Cast-Zeit, danach ist das nächste Feld dran.
 ## - Angriffe wirken selbst. Modifikatoren werden "vorgemerkt" und verändern den
 ##   nächsten Angriff (auch über das Ende der Leiste hinweg auf das erste Feld).
@@ -26,6 +26,8 @@ var round_bonus := 0.0             # Schwur: Schadensbonus für die laufende Run
 var _oath_pending := 0.0           # Schwur: Bonus für die nächste Runde
 var _carry_mods: Array[String] = []    # Bleiche Hand: Modifikatoren wirken noch einmal
 var _attack_count := 0             # Glockenseil: jeder 3. Angriff doppelt
+var _pdir := 1                     # Pendel: aktuelle Laufrichtung (+1 rechts, −1 zurück)
+var _last_index := -1              # zuletzt ausgelöstes Feld (für den Spiegel)
 
 @onready var player: Node3D = get_parent()
 
@@ -45,13 +47,17 @@ func _talisman(id: String) -> bool:
 	return player.has_talisman(id)
 
 
-## +1 = links -> rechts, −1 = rückwärts (Umgekehrte Sanduhr)
+func pendulum() -> bool:
+	return _talisman("pendulum")
+
+
+## Aktuelle Laufrichtung: +1 = nach rechts, −1 = zurück (nur mit dem Pendel).
 func direction() -> int:
-	return -1 if _talisman("hourglass") else 1
+	return _pdir if pendulum() else 1
 
 
 func _start_index() -> int:
-	return 0 if direction() == 1 else slots.size() - 1
+	return 0
 
 
 ## Cast-Zeit des aktuellen Slots (Echo verlängert den Angriff, Talismane verändern das Tempo).
@@ -109,8 +115,17 @@ func _physics_process(delta: float) -> void:
 
 
 ## Zum nächsten Feld (in Laufrichtung). Beim Rundenwechsel greift ein vorgemerkter Schwur.
+## Pendel: am rechten bzw. linken Ende kehrt die Richtung um; eine Runde ist einmal hin und zurück.
 func _advance_index() -> void:
-	index = wrapi(index + direction(), 0, slots.size())
+	if pendulum() and slots.size() > 1:
+		var next := index + _pdir
+		if next < 0 or next >= slots.size():
+			_pdir = -_pdir
+			next = index + _pdir
+		index = next
+	else:
+		_pdir = 1
+		index = wrapi(index + 1, 0, slots.size())
 	if index == _start_index():
 		round_bonus = _oath_pending
 		_oath_pending = 0.0
@@ -118,13 +133,9 @@ func _advance_index() -> void:
 			player.take_damage(3.0, null, true)   # Blutschwur
 
 
-## Ist dieses Feld das letzte belegte der Runde?
+## Ist dieses Feld das letzte belegte (ganz rechts)? Mit dem Pendel: der Umkehrpunkt rechts.
 func _is_last_filled(i: int) -> bool:
-	var j := i
-	for k in slots.size():
-		j = wrapi(j + direction(), 0, slots.size())
-		if j == _start_index():
-			return true
+	for j in range(i + 1, slots.size()):
 		if slots[j] != "":
 			return false
 	return true
@@ -141,6 +152,7 @@ func _execute(id: String) -> void:
 				pending_mods.append(id)
 			else:
 				_fire_attack(id, 1.0)
+	_last_index = index
 	skill_fired.emit(id, index)
 
 
@@ -168,9 +180,11 @@ func _oath(i: int) -> void:
 		pending_mods.append("oath")
 
 
-## Spiegel: das Feld davor (links, bzw. rechts mit der Sanduhr) wird noch einmal ausgelöst.
-func _mirror(i: int) -> void:
-	var prev := wrapi(i - direction(), 0, slots.size())
+## Spiegel: das zuvor gelaufene Feld wird noch einmal ausgelöst (links davon, beim Pendel-Rückweg rechts).
+func _mirror(_i: int) -> void:
+	var prev := _last_index
+	if prev < 0 or prev >= slots.size():
+		return
 	var left := slots[prev]
 	if left == "" or left == "mirror":
 		return
@@ -263,6 +277,8 @@ func swap_slots(a: int, b: int) -> void:
 ## Nach einem Umbau beginnt die Leiste wieder am Anfang, ohne Vormerkungen.
 func _reset_cycle() -> void:
 	index = _start_index()
+	_pdir = 1
+	_last_index = -1
 	progress = 0.0
 	pending_mods.clear()
 	_carry_mods.clear()

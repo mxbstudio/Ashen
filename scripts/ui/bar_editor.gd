@@ -70,8 +70,8 @@ func _rebuild() -> void:
 		c.queue_free()
 	var bar: Node = player.skill_bar
 	_box.add_child(UiStyle.label("Skill-Leiste umbauen", 42, Color(1, 0.8, 0.45)))
-	var dir_text := "von rechts nach links (Sanduhr)" if bar.direction() < 0 else "von links nach rechts"
-	_box.add_child(UiStyle.label("Läuft %s im Kreis. Modifikatoren wirken auf den nächsten Angriff danach. " % dir_text
+	var dir_text := "pendelnd hin und zurück (Pendel)" if bar.pendulum() else "von links nach rechts im Kreis"
+	_box.add_child(UiStyle.label("Läuft %s. Modifikatoren wirken auf den nächsten Angriff danach. " % dir_text
 			+ "Spiegel kopiert das Feld davor, Schwur wirkt im letzten Feld auf die ganze Runde.", 22, Color(1, 1, 1, 0.6)))
 
 	var row := HBoxContainer.new()

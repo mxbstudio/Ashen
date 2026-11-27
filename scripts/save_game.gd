@@ -100,7 +100,7 @@ func _collect() -> Dictionary:
 			"burn": fortress._burn_acc, "eat": fortress._eat_acc, "starve": fortress._starve_acc,
 			"survivor": fortress._survivor_acc, "zone_jobs": fortress.zone_jobs,
 			"residents": fortress.residents.map(func(r): return r.identity()),
-			"graves": fortress.graves, "away": fortress.away, "ration": fortress.ration_t,
+			"graves": fortress.graves, "away": fortress.away, "ration": fortress.ration_t, "tools": fortress.tools,
 			"buildings": {},
 		},
 		"shrines": get_tree().get_nodes_in_group("shrines").map(func(sh): return sh.opened),
@@ -221,7 +221,6 @@ func _apply_fortress(f: Dictionary) -> void:
 	fortress.food = float(f.get("food", fortress.food))
 	fortress.stone = float(f.get("stone", 0.0))
 	fortress.bows = int(f.get("bows", 0))
-	fortress.armed_target = int(f.get("armed", 0))
 	fortress._burn_acc = float(f.get("burn", 0.0))
 	fortress._eat_acc = float(f.get("eat", 0.0))
 	fortress._starve_acc = float(f.get("starve", 0.0))
@@ -256,6 +255,9 @@ func _apply_fortress(f: Dictionary) -> void:
 	fortress.update_graves()
 	fortress.away = f.get("away", [])
 	fortress.ration_t = float(f.get("ration", 0.0))
+	var tl: Dictionary = f.get("tools", {})
+	for k in fortress.tools:
+		fortress.tools[k] = int(tl.get(k, 0))
 	fortress.zone_jobs.clear()
 	var jobs: Dictionary = f.get("zone_jobs", {})
 	for k in jobs:
@@ -283,8 +285,9 @@ func _apply_player(p: Dictionary) -> void:
 		bar.levels[k] = int(lv[k])
 	bar.branches = p.get("branches", {})
 	player.madness.value = float(p.get("madness", 0.0))
-	player.talismans.assign(p.get("talismans", []))
-	player.equipped.assign(p.get("equipped", []))
+	# die „Umgekehrte Sanduhr“ ist jetzt das „Pendel“
+	player.talismans.assign(Array(p.get("talismans", [])).map(func(x): return "pendulum" if x == "hourglass" else x))
+	player.equipped.assign(Array(p.get("equipped", [])).map(func(x): return "pendulum" if x == "hourglass" else x))
 	bar.index = 0
 	bar.progress = 0.0
 	bar.pending_mods.clear()

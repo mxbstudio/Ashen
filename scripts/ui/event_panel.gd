@@ -115,7 +115,7 @@ func _build(id: String) -> Dictionary:
 				"a": ["%s recht geben" % a.res_name, "%s freut sich, %s ist gekränkt" % [a.res_name, b.res_name], _side.bind(a, b)],
 				"b": ["Beide zurechtweisen", "Beide verärgert, die anderen schätzen die Ordnung", _scold.bind(a, b)]}
 		"relic":
-			if player.talismans.size() >= TalismanData.DEFS.size():
+			if player.talismans.size() >= 3:   # Talismane sollen selten bleiben
 				return {}
 			var r := _any(fortress.residents)
 			return {"id": id, "title": "Ein Fund in den Trümmern",

@@ -71,7 +71,7 @@ const ENTRIES := [
 	["Markiert: +Schaden", "mark_bonus", 0.0, 1.5, 0.05, "0,35 = +35 %"],
 	["Schwur: Runden-Bonus", "oath_bonus", 0.0, 1.0, 0.05, ""],
 	["Spiegel: Kopie-Schaden", "mirror_copy", 0.2, 1.0, 0.05, ""],
-	["Talisman von Verlorenen: Chance", "lost_talisman_chance", 0.0, 1.0, 0.04, ""],
+	["Talisman von Verlorenen: Chance", "lost_talisman_chance", 0.0, 1.0, 0.01, ""],
 	["Wahnsinn (v0.3)"],
 	["Wahn pro s im Dunkeln", "madness_dark_rate", 0.0, 1.0, 0.05, ""],
 	["Wahn extra bei schwacher Laterne", "madness_low_lantern_rate", 0.0, 2.0, 0.05, ""],

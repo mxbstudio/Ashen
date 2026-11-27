@@ -3,8 +3,7 @@
 ## Danach ist er leer (bleibt im Speicherstand leer).
 extends Node3D
 
-const SPOTS := [Vector3(-26, 0, -38), Vector3(26, 0, -44), Vector3(-8, 0, -64),
-		Vector3(12, 0, -72), Vector3(-26, 0, -84), Vector3(26, 0, -86)]
+const SPOTS := [Vector3(26, 0, -44), Vector3(-8, 0, -64), Vector3(-26, 0, -84)]   # nur 3 – Talismane sollen selten sein
 
 var opened := false
 var _t := 0.0

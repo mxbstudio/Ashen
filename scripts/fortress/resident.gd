@@ -364,7 +364,8 @@ func _work(delta: float) -> void:
 		return
 	_gather_t += delta
 	rotation.z = sin(_gather_t * 9.0) * 0.08   # kleine Arbeitsbewegung
-	if _gather_t >= Config.worker_gather_seconds / efficiency():
+	var fort := get_tree().get_first_node_in_group("fortress")
+	if _gather_t >= Config.worker_gather_seconds / efficiency() * (fort.tool_factor(zone_kind) if fort else 1.0):
 		_gather_t = 0.0
 		var ok: bool = forest.take_one(_tree) if zone_kind == "wood" else _node.take_one()
 		if ok:
@@ -650,3 +651,22 @@ func _update_name_label() -> void:
 			t += " (hat Angst)"
 		_name_label.text = t
 		_name_label.modulate = ResidentData.mood_color(mood)
+
+
+## Ruft etwas (Sprechblase über dem Kopf, 3 s, auch von Weitem sichtbar).
+func shout(text: String) -> void:
+	var l := Label3D.new()
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.fixed_size = true
+	l.no_depth_test = true
+	l.pixel_size = 0.001
+	l.font_size = 32
+	l.outline_size = 10
+	l.modulate = Color(1, 0.95, 0.7)
+	l.text = "„%s“" % text
+	l.position.y = 2.7
+	add_child(l)
+	var tw := l.create_tween()
+	tw.tween_property(l, "position:y", 3.2, 3.0)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 1.0).set_delay(2.0)
+	tw.tween_callback(l.queue_free)

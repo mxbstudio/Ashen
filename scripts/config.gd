@@ -187,6 +187,7 @@ var hp_boss := 800.0
 var crawler_speed := 5.0
 var crawler_damage := 5.0
 var crawler_attack_pause := Vector2(1.5, 3.5)   # s zwischen zwei Angriffen (zufällig)
+var crawler_light_courage := 0.35  # Chance, trotzdem anzugreifen, wenn der Hüter im Licht einer Fackel/Feuerstelle steht
 # Lichtfresser: saugen an der Laterne statt den Hüter zu verletzen
 var lighteater_speed := 3.2
 var lighteater_drain := 6.0        # s Laternenlicht pro Sekunde, solange er saugt
@@ -236,8 +237,13 @@ var oath_bonus := 0.25             # Schwur im letzten Feld: ganze nächste Rund
 var oath_per_level := 0.05
 var oath_next := 0.1               # Schwur anderswo: nur der nächste Angriff +10 %
 var talisman_slots := 2            # so viele Talismane trägt der Hüter gleichzeitig
-var lost_talisman_chance := 0.12   # Verlorene lassen manchmal einen Talisman fallen
+var lost_talisman_chance := 0.03   # Verlorene lassen selten einen Talisman fallen (zuerst 0,12)
 var shrine_time := 1.5             # s neben einem Schrein stehen, um ihn zu öffnen
+
+# --- Werkzeuge (v0.3) ------------------------------------------------------------
+var tool_speed_per_level := 0.35   # jede Werkzeug-Stufe: Abbauen +35 % schneller (Hüter und Bewohner)
+var tool_cost_wood := [6, 10, 16]  # Holz für Stufe 1 / 2 / 3
+var tool_cost_stone := [4, 8, 14]  # Stein für Stufe 1 / 2 / 3
 
 # --- Wahnsinn (v0.3) -----------------------------------------------------------
 var madness_dark_rate := 0.15      # pro s draußen außerhalb fester Lichtquellen

@@ -32,6 +32,7 @@ func _ready() -> void:
 	_streams["levelup"] = _arpeggio([523.0, 659.0, 784.0, 1047.0])
 	_streams["death"] = _arpeggio([392.0, 330.0, 262.0, 196.0], 0.18)
 	_streams["ignite"] = _whoosh(0.5)
+	_streams["call"] = _arpeggio([587.0, 784.0, 587.0], 0.13)   # Ruf des Bogners
 
 
 ## Klang abspielen. pitch_var = zufällige Tonhöhen-Schwankung (klingt natürlicher).

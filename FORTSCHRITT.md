@@ -200,8 +200,8 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   Glut *Flächenbrand* oder *Funkentod*; Glocke *Sog* (zieht heran) oder *Lichtglocke* (+1 s Laterne pro Treffer);
   Echo *Nachhall* oder *Dreiklang*; Opferlicht *Blutopfer* (Leben statt Licht) oder *Wahnopfer* (Wahnsinn statt Licht) …
   Alle in `scripts/skill_data.gd` → `BRANCHES`. Die Abzweigung steht im Umbau-Menü unter dem Skill.
-- **Talismane** (Ausrüstung, `scripts/talisman_data.gd`): 11 Stück, biegen Regeln um, z. B. *Umgekehrte Sanduhr*
-  (Leiste läuft rückwärts), *Leerer Kelch* (leere Felder geben Laternenlicht), *Glockenseil* (jeder 3. Angriff doppelt),
+- **Talismane** (Ausrüstung, `scripts/talisman_data.gd`): 11 Stück, biegen Regeln um, z. B. *Pendel*
+  (Leiste läuft hin und zurück), *Leerer Kelch* (leere Felder geben Laternenlicht), *Glockenseil* (jeder 3. Angriff doppelt),
   *Bleiche Hand* (Modifikatoren wirken zweimal), *Hast-Amulett* (schneller, aber verwundbarer), *Wahnstein* …
   - Höchstens **2 angelegt**; an-/ablegen im Menü „Leiste“ (unten, antippen) – inzwischen überall.
   - Fundorte: **6 Schreine** im Dunkeln (violettes Glühen, 1,5 s daneben stehen, +5 Wahnsinn), Verlorene (12 %),
@@ -248,6 +248,32 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
 - **Leiste und Bewohner überall verwalten** (Wunsch Max): Zwei Knöpfe oben links unter der Festungsanzeige,
   **„Leiste“** (Leiste umbauen, Vorrat, Talismane) und **„Bewohner“** (einteilen, Leute) – nicht mehr nur am Feuer.
   Das Spiel pausiert, solange ein Menü offen ist. Die großen Knöpfe am Feuer gibt es dafür nicht mehr.
+
+### Nach Max' Test von v0.3: Feinschliff
+- **Ladekreis beim Abbauen**: Steht der Hüter an einem Baum, Felsen oder einer Pilzstelle, füllt sich ein Ring am Boden
+  darum, bis die nächste Einheit fertig ist (`scripts/gather_ring.gd`).
+- **Bögen holen sie sich selbst**: Jeder Bogen im Lager geht automatisch an einen Bewohner ohne Bogen (wer draußen
+  arbeitet, zuerst); wer einen hat, behält ihn. Das − / + im Menü ist weg (dort steht nur noch „x von y“).
+- **Der Bogner ruft**, wenn ein Bogen fertig ist: Sprechblase über ihm („Ein Bogen ist fertig!“), Ruf-Klang, Meldung mit
+  Namen – danach „Hanna holt sich den neuen Bogen.“
+- **Pendel statt Umgekehrter Sanduhr** (die ergab wenig Sinn – man kann die Felder ja umordnen): Die Leiste läuft
+  links → rechts → zurück → … Bei 5 Feldern: 1 2 3 4 5 4 3 2 1 2 … – die mittleren Felder kommen doppelt so oft dran
+  wie die äußeren. Der Spiegel kopiert das zuletzt gelaufene Feld (auf dem Rückweg also das rechte).
+  Alte Spielstände: die Sanduhr wird zum Pendel.
+- **Werkzeuge** (Menü „Bewohner“ → „Werkzeuge“): Axt (Holz), Spitzhacke (Stein), Sammelkorb (Nahrung), je 3 Stufen,
+  jede Stufe +35 % schneller – für den Hüter und die Bewohner. Kosten 6/10/16 Holz + 4/8/14 Stein.
+  Stellt die Werkstatt her: Werkzeug-Stufe höchstens so hoch wie die Werkstatt-Stufe.
+- **Weniger Talismane**: nur noch 3 Schreine (statt 6), Verlorene lassen nur noch selten einen fallen (3 % statt 12 %),
+  das Ereignis „Fund in den Trümmern“ nur, solange man weniger als 3 Talismane hat.
+- **Kriecher greifen von hinten an**: Sie wandern auf ihrem Kreis hinter den Hüter (jeder etwas versetzt) und springen
+  erst an, wenn sie hinten bzw. seitlich sind; wer vorne steht, läuft seitlich herum. Achtung: Steht der Hüter still,
+  dreht er sich zum nächsten Gegner – „hinten“ ist dann der Rücken zu diesem. Messung: die Hälfte der Angriffe beginnt
+  hinter ihm, fast alle anderen seitlich.
+- **Kriecher sind lichtscheu, aber nicht lichtdicht**: Kein hartes Wegstoßen mehr aus dem Licht. Sie lauern lieber am
+  Rand, laufen im Licht langsamer, laufen aber hindurch und greifen auch im Licht von Fackeln/Feuerstellen an
+  (mit 35 % Mut je Anlauf). In die Festung kommen sie weiter nicht.
+- Neue Werte: `crawler_light_courage` (0,35), `tool_speed_per_level` (0,35), `tool_cost_wood`, `tool_cost_stone`;
+  `lost_talisman_chance` 0,12 → 0,03.
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

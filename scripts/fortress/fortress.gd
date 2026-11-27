@@ -16,7 +16,7 @@ var wood := 0.0                    # Holz im Feuer/Lager
 var food := 0.0
 var stone := 0.0                   # Stein (für Feuerstellen)
 var bows := 0                      # Bögen im Lager (nicht verteilt)
-var armed_target := 0              # so viele Bewohner sollen einen Bogen tragen (Einteilen-Menü)
+var armed_target := 0              # (alt, v0.2: im Menü eingestellt) – Bögen werden jetzt automatisch verteilt
 var _courier_t := 0.0
 var _smart_t := 0.0
 var residents: Array[Node3D] = []
@@ -32,6 +32,7 @@ var _fire_dead := false
 var graves: Array = []             # [Name, Todesursache] – Gräber an der Westmauer
 var away: Array = []               # Bewohner, die gerade unterwegs sind (Ereignis): [Identität, Restzeit, Begleitung?]
 var ration_t := 0.0                # s mit gekürzten Rationen (Ereignis)
+var tools := {"wood": 0, "stone": 0, "food": 0}   # Werkzeug-Stufen: Axt, Spitzhacke, Sammelkorb
 var _desert_acc := 0.0
 var _grave_nodes: Array[Node3D] = []
 var _rng := RandomNumberGenerator.new()
@@ -166,8 +167,10 @@ func advance(dt: float) -> void:
 		food = minf(food + out["food"], food_cap())
 		if out.get("bows", 0) > 0:
 			bows += out["bows"]
-			message.emit("Die Werkstatt hat einen Bogen gebaut")
-			_hand_out_bows()
+			_bowyer_call(b)
+			var got := _hand_out_bows()
+			for r in got:
+				message.emit("%s holt sich den neuen Bogen." % r.res_name)
 	# Feuerstellen: Bewohner bringen Holz, wenn eine bald leer ist
 	_courier_t += dt
 	if _courier_t >= 1.0:
@@ -274,8 +277,6 @@ func remove_resident(victim: Node3D, reason: String, death := false, keep_bond :
 			b.wanted = maxi(b.wanted - 1, 0)
 	residents.erase(victim)
 	victim.queue_free()   # sein Bogen geht mit verloren
-	if armed_target > bows_total():
-		armed_target = bows_total()
 	_assign_jobs()
 	if death:
 		resident_died.emit(reason)
@@ -295,21 +296,36 @@ func armed_count() -> int:
 	return n
 
 
-## Wie viele Bewohner sollen einen Bogen tragen (aus dem Einteilen-Menü)?
-func change_armed(delta: int) -> void:
-	armed_target = clampi(armed_target + delta, 0, mini(bows_total(), residents.size()))
-	_hand_out_bows()
+## Der Bogner ruft, wenn ein Bogen fertig ist.
+func _bowyer_call(workshop: Node3D) -> void:
+	var calls := ["Ein Bogen ist fertig!", "Bogen fertig – wer will?", "Noch einer für die Mauer!", "Fertig! Holt ihn euch!"]
+	var text: String = calls[_rng.randi() % calls.size()]
+	var bowyer: Node3D = null
+	for w in workshop.workers:
+		if is_instance_valid(w):
+			bowyer = w
+			break
+	if bowyer:
+		bowyer.shout(text)
+		message.emit("%s (Bogner): „%s“" % [bowyer.res_name, text])
+	else:
+		message.emit("Werkstatt: „%s“" % text)
+	Sfx.play("call", 0.0, 0.05)
 
 
-## Bögen verteilen: wer draußen arbeitet, bekommt zuerst einen.
-func _hand_out_bows() -> void:
-	var total := bows_total()
-	var want := mini(mini(armed_target, total), residents.size())
-	var order := residents.duplicate()
+## Bögen verteilen: Bögen im Lager gehen automatisch an Bewohner ohne Bogen –
+## wer draußen arbeitet, zuerst. Wer schon einen hat, behält ihn. Gibt die neuen Träger zurück.
+func _hand_out_bows() -> Array:
+	var got := []
+	var order := residents.filter(func(r): return not r.has_bow)
 	order.sort_custom(func(a, b): return a.has_zone_job() and not b.has_zone_job())
-	for i in order.size():
-		order[i].has_bow = i < want
-	bows = total - want
+	for r in order:
+		if bows <= 0:
+			break
+		r.has_bow = true
+		bows -= 1
+		got.append(r)
+	return got
 
 
 ## Feuerstellen, die bald ausgehen: ein Bewohner aus der Festung bringt Holz.
@@ -669,3 +685,43 @@ func _update_graves() -> void:
 
 func update_graves() -> void:
 	_update_graves()
+
+
+
+# --- Werkzeuge -------------------------------------------------------------------
+
+const TOOL_NAMES := {"wood": "Axt", "stone": "Spitzhacke", "food": "Sammelkorb"}
+const TOOL_VERBS := {"wood": "Holz hacken", "stone": "Stein klopfen", "food": "Nahrung sammeln"}
+
+
+## Faktor auf die Abbau-Zeit (1 = ohne Werkzeug, kleiner = schneller).
+func tool_factor(kind: String) -> float:
+	return 1.0 / (1.0 + Config.tool_speed_per_level * tools.get(kind, 0))
+
+
+func _workshop_level() -> int:
+	return _level_of("workshop")
+
+
+## Kann das Werkzeug verbessert werden? "" = ja, sonst der Grund.
+func tool_blocker(kind: String) -> String:
+	var lvl: int = tools.get(kind, 0)
+	if lvl >= 3:
+		return "höchste Stufe"
+	if _workshop_level() <= lvl:
+		return "braucht Werkstatt Stufe %d" % (lvl + 1)
+	if wood < Config.tool_cost_wood[lvl] + 1 or stone < Config.tool_cost_stone[lvl]:
+		return "zu wenig Holz/Stein"
+	return ""
+
+
+func upgrade_tool(kind: String) -> bool:
+	if tool_blocker(kind) != "":
+		return false
+	var lvl: int = tools[kind]
+	wood -= Config.tool_cost_wood[lvl]
+	stone -= Config.tool_cost_stone[lvl]
+	tools[kind] = lvl + 1
+	Sfx.play("gate", 0.0, 0.0)
+	message.emit("%s Stufe %d: %s geht schneller" % [TOOL_NAMES[kind], lvl + 1, TOOL_VERBS[kind]])
+	return true

@@ -5,8 +5,8 @@ class_name TalismanData
 extends RefCounted
 
 const DEFS := {
-	"hourglass": {"name": "Umgekehrte Sanduhr",
-			"desc": "Die Leiste läuft rückwärts – Modifikatoren wirken jetzt nach links"},
+	"pendulum": {"name": "Pendel",
+			"desc": "Die Leiste pendelt: links → rechts → zurück. Mittlere Felder laufen doppelt so oft"},
 	"chalice": {"name": "Leerer Kelch",
 			"desc": "Leere Felder werden nicht übersprungen: kurze Pause, +3 s Laternenlicht"},
 	"bellrope": {"name": "Glockenseil",
