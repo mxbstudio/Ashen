@@ -38,7 +38,7 @@ func _ready() -> void:
 	_box.add_theme_constant_override("separation", 18)
 	scroll.add_child(_box)
 	# Knopf "Leiste" oben links unter der Festungsanzeige – überall erreichbar
-	_open_button = UiStyle.button("Leiste" + UiStyle.key_hint("L"), Color(1, 0.7, 0.3), 22, Vector2(130, 58))
+	_open_button = UiStyle.button("Leiste" + UiStyle.key_hint("Q"), Color(1, 0.7, 0.3), 22, Vector2(130, 58))
 	_open_button.add_to_group("touch_blockers")
 	_open_button.pressed.connect(open)
 	_open_button.visible = false

@@ -230,11 +230,13 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Am Feuer: langsam heilen, Tränke auffüllen, Trage abladen
-	if Lights.refill_source_at(global_position) != null:
+	var src := Lights.refill_source_at(global_position)
+	if src != null:
 		heal(Config.fire_heal_per_second * delta)
 		if Config.potions_refill_at_fire:
 			potions = Config.potions_start
-		_unload()
+		if not src.is_in_group("beacon"):
+			_unload()   # am Leuchtfeuer nicht – dort kann man nur einen Haufen machen (Knopf „Abladen“)
 	if Input.is_action_just_pressed("potion"):
 		drink_potion()
 	if on_tower:

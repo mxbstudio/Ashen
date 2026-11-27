@@ -90,7 +90,7 @@ func _think(delta: float) -> Vector3:
 			if _t <= 0.0:
 				_warn.visible = false
 				model.rotation.x = 0.35       # schlägt zu
-				Sfx.play("slam", -6.0)
+				Sfx.play_at("slam", global_position, -6.0)
 				var pd := Vector2(player.global_position.x - _strike_pos.x,
 						player.global_position.z - _strike_pos.z).length()
 				if pd < 1.3:

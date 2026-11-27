@@ -12,6 +12,8 @@ const FirePit := preload("res://scripts/zones/fire_pit.gd")
 
 var _torch_btn: Button
 var _pit_btn: Button
+var _drop_btn: Button              # „Abladen“: Trage als Haufen an einem Lagerplatz draußen (Taste G)
+var _depot: Node3D = null
 
 
 func _ready() -> void:
@@ -21,7 +23,9 @@ func _ready() -> void:
 	_torch_btn.pressed.connect(_place_torch)
 	_pit_btn = UiStyle.button("", Color(0.85, 0.5, 0.3), 18, Vector2(125, 72))
 	_pit_btn.pressed.connect(_place_pit)
-	for b in [_torch_btn, _pit_btn]:
+	_drop_btn = UiStyle.button("", Color(0.85, 0.75, 0.5), 18, Vector2(125, 72))
+	_drop_btn.pressed.connect(_drop)
+	for b in [_torch_btn, _pit_btn, _drop_btn]:
 		b.add_to_group("touch_blockers")
 		b.visible = false
 		add_child(b)
@@ -48,6 +52,9 @@ func _process(_delta: float) -> void:
 	if _torch_btn.visible != show:
 		_torch_btn.visible = show
 		_pit_btn.visible = show
+	_depot = _near_depot() if show and player.carry_total() > 0 else null
+	if _drop_btn.visible != (_depot != null):
+		_drop_btn.visible = _depot != null
 	if not show:
 		return
 	var n_t := get_tree().get_nodes_in_group("small_torches").size()
@@ -63,6 +70,41 @@ func _process(_delta: float) -> void:
 	var right := UiStyle.column(vp).end.x
 	_torch_btn.position = Vector2(right - 130, vp.y - 455)   # über der Skill-Leiste, rechts
 	_pit_btn.position = Vector2(right - 130, vp.y - 537)
+	if _depot:
+		_drop_btn.text = "Abladen\n(Haufen)" + UiStyle.key_hint("G").replace("  ", " ")
+		_drop_btn.size = _drop_btn.custom_minimum_size
+		_drop_btn.position = Vector2(right - 130, vp.y - 619)
+
+
+## Lagerplatz draußen in Reichweite (an Fackel, Leuchtfeuer oder Feuerstelle)?
+func _near_depot() -> Node3D:
+	for d in get_tree().get_nodes_in_group("depots"):
+		if d.global_position.distance_to(player.global_position) < 4.0:
+			return d
+	return null
+
+
+## Trage als Haufen ablegen – die Karren holen ihn irgendwann ab.
+func _drop() -> void:
+	if _depot == null:
+		return
+	var parts := []
+	for k in [["wood", "Holz"], ["food", "Nahrung"], ["stone", "Stein"]]:
+		var n: int = _depot.put(k[0], player.carry[k[0]])
+		player.carry[k[0]] -= n
+		if n > 0:
+			parts.append("%d %s" % [n, k[1]])
+	if parts.is_empty():
+		get_tree().call_group("hud", "toast", "Der Haufen ist voll")
+	else:
+		get_tree().call_group("hud", "toast", "Abgeladen: " + ", ".join(parts) + " – die Karren holen es ab")
+		Sfx.play("pickup", -4.0)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("drop_pile") and _drop_btn.visible and not get_tree().paused:
+		_drop()
+		get_viewport().set_input_as_handled()
 
 
 ## Stelle vor dem Hüter.

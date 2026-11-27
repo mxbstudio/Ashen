@@ -91,7 +91,7 @@ func build() -> void:
 	built = true
 	fuel = max_fuel()
 	_warned_low = false
-	Sfx.play("ignite", 0.0, 0.0)
+	Sfx.play_at("ignite", global_position, 0.0, 0.0)
 	_toast("%s brennt – die Zone ist hell" % title())
 	_update_visuals()
 
@@ -101,7 +101,7 @@ func add_wood(n: int) -> void:
 	var was_out := not is_burning()
 	fuel = minf(fuel + n * seconds_per_wood(), max_fuel())
 	_warned_low = false
-	Sfx.play("ignite" if was_out else "pickup", 0.0, 0.0)
+	Sfx.play_at("ignite" if was_out else "pickup", global_position, 0.0, 0.0)
 	if was_out:
 		_toast("%s brennt wieder" % title())
 	_update_visuals()
@@ -128,7 +128,7 @@ func _burn(seconds: float) -> void:
 	fuel = maxf(fuel - seconds, 0.0)
 	if fuel <= 0.0:
 		_toast("%s ist erloschen" % title())
-		Sfx.play("death", -8.0)
+		Sfx.play_at("death", global_position, -4.0)
 		_update_visuals()
 	elif fuel < 30.0 and not _warned_low:
 		_warned_low = true

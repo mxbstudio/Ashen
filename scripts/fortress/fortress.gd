@@ -185,7 +185,8 @@ func advance(dt: float) -> void:
 			_bowyer_call(b)
 			var got := _hand_out_bows()
 			for r in got:
-				message.emit("%s holt sich den neuen Bogen." % r.res_name)
+				if Sfx.audible(r.global_position):
+					message.emit("%s holt sich den neuen Bogen." % r.res_name)
 	# Feuerstellen: Bewohner bringen Holz, wenn eine bald leer ist
 	_courier_t += dt
 	if _courier_t >= 1.0:
@@ -240,7 +241,7 @@ func advance(dt: float) -> void:
 		if residents.size() < Config.residents_max and food >= Config.survivor_min_food:
 			var nr := _add_resident(Vector3(0, 0, -9.5))   # kommt durchs Tor herein
 			_assign_jobs()
-			Sfx.play("pickup", 0.0, 0.0)
+			Sfx.play_at("pickup", Vector3(0, 0, -9.5), 0.0, 0.0)
 			message.emit("%s hat das Licht gefunden (+1 Bewohner)" % nr.title())
 	# Unterwegs (Ereignis): zurückkehren
 	_away_step(dt)
@@ -320,12 +321,13 @@ func _bowyer_call(workshop: Node3D) -> void:
 		if is_instance_valid(w):
 			bowyer = w
 			break
+	var where: Vector3 = bowyer.global_position if bowyer else workshop.global_position
 	if bowyer:
 		bowyer.shout(text)
-		message.emit("%s (Bogner): „%s“" % [bowyer.res_name, text])
-	else:
-		message.emit("Werkstatt: „%s“" % text)
-	Sfx.play("call", 0.0, 0.05)
+	Sfx.play_at("call", where, 0.0, 0.05)
+	# Meldung nur, wenn der Hüter den Ruf hören kann (draußen hört man ihn nicht)
+	if Sfx.audible(where):
+		message.emit("%s (Bogner): „%s“" % [bowyer.res_name, text] if bowyer else "Werkstatt: „%s“" % text)
 
 
 ## Bögen verteilen: Bögen im Lager gehen automatisch an Bewohner ohne Bogen –
@@ -764,7 +766,7 @@ func depot_of(zone_id: String) -> Node3D:
 func pick_depot(driver: Node3D) -> Node3D:
 	var best: Node3D = null
 	for d in get_tree().get_nodes_in_group("depots"):
-		if _useful(d) < Config.cart_min_load or not Zones.is_lit(get_tree(), d.zone_id):
+		if _useful(d) < Config.cart_min_load or not d.is_safe():
 			continue
 		if d.claimed_by != null and is_instance_valid(d.claimed_by) and d.claimed_by != driver:
 			continue

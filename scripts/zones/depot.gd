@@ -1,10 +1,12 @@
-## Lagerplatz an der Fackel einer Zone (v0.3, Karren).
+## Lagerplatz an der Fackel einer Zone, am Leuchtfeuer oder an einer Feuerstelle (v0.3, Karren).
+## Der Hüter kann dort seine Trage als Haufen abladen (Knopf „Abladen“, Taste G).
 ## Gibt es in der Festung Karren, legen Sammler, Holzfäller und Steinbrecher ihre volle Ladung hier ab
 ## und arbeiten gleich weiter. Karrenfahrer holen den Vorrat ab und bringen ihn zum Feuer.
 ## Sichtbar als kleine Stapel (Holz braun, Nahrung türkis, Stein grau) mit Schild.
 extends Node3D
 
-var zone_id := ""
+var zone_id := ""                  # Lagerplatz einer Zone (an der Fackel bzw. am Leuchtfeuer)
+var host: Node3D = null            # … oder einer Feuerstelle (dann zone_id leer)
 var stock := {"wood": 0, "food": 0, "stone": 0}
 var claimed_by: Node3D = null      # Karrenfahrer, der gerade hierher unterwegs ist
 
@@ -39,6 +41,13 @@ func _ready() -> void:
 	_label.position.y = 1.6
 	add_child(_label)
 	update_visuals()
+
+
+## Dürfen Karren hierher? Nur solange es dort hell ist.
+func is_safe() -> bool:
+	if host != null:
+		return is_instance_valid(host) and host.is_burning()
+	return Zones.is_lit(get_tree(), zone_id)
 
 
 func total() -> int:

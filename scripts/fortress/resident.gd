@@ -260,7 +260,7 @@ func take_damage(amount: float, _from: Node3D = null) -> void:
 		return
 	hp -= amount
 	_flash = 0.12
-	Sfx.play("hurt", -8.0)
+	Sfx.play_at("hurt", global_position, -8.0)
 	_number(str(roundi(amount)), Color(1, 0.35, 0.3))
 	_hp_bar.set_fraction(hp / max_hp())
 	mood = maxf(mood - (4.0 if has_trait("aengstlich") else 2.0), 0.0)
@@ -624,7 +624,7 @@ func _defend(delta: float) -> void:
 	get_parent().add_child(arrow)
 	arrow.global_position = global_position + Vector3(0, 1.2, 0)
 	arrow.launch(best, Config.resident_bow_damage * (2.0 if has_trait("schuetze") else 1.0), {}, self)
-	Sfx.play("shoot", -10.0)
+	Sfx.play_at("shoot", global_position, -10.0)
 
 
 ## Wird vom Pfeil aufgerufen.
@@ -761,7 +761,7 @@ func _start_cart(d: Node3D) -> void:
 
 
 func _cart_out(delta: float) -> void:
-	if Zones.recalled(get_tree()) or not is_instance_valid(_depot) or not Zones.is_lit(get_tree(), _depot.zone_id):
+	if Zones.recalled(get_tree()) or not is_instance_valid(_depot) or not _depot.is_safe():
 		_go_home()
 		return
 	var spd := Config.cart_speed * (1.3 if has_trait("flink") else 1.0)

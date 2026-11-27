@@ -274,7 +274,7 @@ var scream_radius := 5.0
 var scream_fear := 2.5             # s fliehen die Gegner
 var scream_madness := 1.0
 var pact_madness := 1.5            # Schattenpakt
-# Licht-Skills (v0.3): arbeiten gegen den Wahn – je klarer der Geist, desto stärker
+# Licht-Skills (v0.3): senken den Wahnsinn – und sind stärker, je wahnsinniger man ist
 var cast_purge := 1.0              # Läuterung
 var purge_damage := 8.0
 var purge_radius := 4.0
@@ -381,18 +381,19 @@ func reset() -> void:
 		set(k, _defaults[k])
 
 
-## Tastenbelegung: WASD/Pfeile bewegen, Leertaste Dash, Q Trank.
+## Tastenbelegung: WASD/Pfeile bewegen, Leertaste Dash, 1 Trank, Q Menü „Leiste“, B „Bewohner“, R Leiste an/aus, E Bauen, F Turm/Reise.
 func _setup_input() -> void:
 	_bind("move_left", [KEY_A, KEY_LEFT])
 	_bind("move_right", [KEY_D, KEY_RIGHT])
 	_bind("move_up", [KEY_W, KEY_UP])
 	_bind("move_down", [KEY_S, KEY_DOWN])
 	_bind("dash", [KEY_SPACE])
-	_bind("potion", [KEY_Q])
+	_bind("potion", [KEY_1])          # Trank (vorher Q)
 	_bind("bar_toggle", [KEY_R])      # Leiste an/aus
 	_bind("interact", [KEY_E])        # Bauen / Verbessern / Fackel
 	_bind("interact2", [KEY_F])       # Turm besteigen / Schnellreise
-	_bind("menu_bar", [KEY_L])        # Menü „Leiste“
+	_bind("menu_bar", [KEY_Q])        # Menü „Leiste“ (Wunsch Max; vorher L)
+	_bind("drop_pile", [KEY_G])       # Trage als Haufen abladen (draußen an Lagerplätzen)
 	_bind("menu_people", [KEY_B])     # Menü „Bewohner"
 
 

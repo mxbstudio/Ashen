@@ -159,7 +159,7 @@ func _defend(delta: float) -> void:
 	fortress.add_child(arrow)
 	arrow.global_position = shooter.global_position + Vector3(0, 1.2, 0)
 	arrow.launch(best, dmg, {}, self)
-	Sfx.play("shoot", -10.0)
+	Sfx.play_at("shoot", shooter.global_position, -10.0)
 
 
 ## Wird vom Pfeil der Bewohner aufgerufen.

@@ -336,7 +336,7 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   stärker mit klarem Geist.
 - **Tasten am PC** (stehen auch auf den Knöpfen, am Handy nicht): **E** Bauen/Verbessern/Fackel, **F** Turm
   besteigen/herabsteigen/Schnellreise, **L** Menü „Leiste“, **B** Menü „Bewohner“ (nochmal drücken schließt),
-  **R** Leiste an/aus. Dazu wie bisher WASD, Leertaste (Dash), Q (Trank).
+  **R** Leiste an/aus. Dazu WASD, Leertaste (Dash). (Neuere Belegung siehe unten: Q Leiste, 1 Trank, G Abladen.)
 - **Breitbild (z. B. 21:9)**: Alle Anzeigen und Menüs stehen in einer mittigen Spalte (höchstens 3:4 der Höhe breit)
   statt an den Bildschirmrändern (`UiStyle.column`).
 - **Leben, Laterne, Wahn an der Spielfigur**: links ein roter Balken (Leben, mit Zahl), rechts ein oranger
@@ -347,6 +347,23 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   Bogen (5 Schaden), Unbewaffnete 2, gute Schützen doppelt. **Ohne Wachturm schießt niemand** – der Turm wird damit
   wichtig. Nach der Belagerung steigen alle wieder herunter.
 - Talisman **Pendel**: Beschreibung nur noch „Die Leiste pendelt: links → rechts → zurück“.
+
+### Licht stärker mit Wahn, Tasten, räumlicher Klang, Haufen draußen (Wunsch Max)
+- **Alle Licht-Skills sind stärker, je wahnsinniger man ist** (wie die dunklen): ×0,7 bei Wahn 0 bis ×1,3 bei
+  Wahn 100. Einheitliche Beschreibung bei allen: „… Stärker, je wahnsinniger du bist“ bzw. „Nährt / Senkt den
+  Wahnsinn“.
+- **Tasten neu**: **Q** Menü „Leiste“ (vorher L), **1** Trank (vorher Q), **G** Trage als Haufen abladen.
+  Übrige: E Bauen/Fackel, F Turm/Schnellreise, B Bewohner, R Leiste an/aus, WASD, Leertaste Dash.
+  Unter Dash/Trank steht am PC die Taste.
+- **Räumlicher Klang** (`Sfx.play_at`): Treffer, Schläge, Bewohner, Turm-Schützen, Fackeln, Bauen, Bogner-Ruf …
+  kommen vom Ort des Geschehens: leiser mit der Entfernung zum Hüter, links/rechts verteilt, ab 34 m gar nicht,
+  die Festungsmauer dämpft um 14 dB. Den **Bogner hört man draußen nicht** – und dann gibt es auch keine Meldung.
+  Glocke und Grollen der Belagerung bleiben überall hörbar.
+- **Am Leuchtfeuer wird nicht mehr in die Festung abgeladen** (nur noch am Feuer der Festung).
+- **Haufen draußen**: An jedem Lagerplatz draußen – an den Fackeln, am Leuchtfeuer und **neu an jeder Feuerstelle** –
+  erscheint der Knopf **„Abladen (Haufen)“** (Taste G): die Trage kommt auf den Haufen, die Karren holen ihn ab,
+  solange das Feuer dort brennt. Feuerstellen-Haufen werden mitgespeichert.
+
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

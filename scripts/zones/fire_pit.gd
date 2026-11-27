@@ -6,6 +6,7 @@
 extends "res://scripts/zones/torch_post.gd"
 
 var courier: Node3D = null         # Bewohner, der gerade Holz hierher bringt
+var depot: Node3D                  # Lagerplatz daneben: hier kann der Hüter einen Haufen machen, Karren holen ihn ab
 
 
 func _ready() -> void:
@@ -13,6 +14,11 @@ func _ready() -> void:
 	super._ready()
 	remove_from_group("torches")   # zählt nicht als Zonen-Fackel
 	add_to_group("fire_pits")
+	depot = Node3D.new()
+	depot.set_script(preload("res://scripts/zones/depot.gd"))
+	depot.host = self
+	depot.position = Vector3(1.8, 0, 1.4)
+	add_child(depot)
 
 
 func seconds_per_wood() -> float:

@@ -6,7 +6,8 @@
 ##   Sichel × erschüttert = Zerschmettern, Glocke × brennend = Entfachen, Bogen × brennend = Flammenpfeil.
 ## - Lage zählt: Spiegel kopiert das Feld links davon, Schwur wirkt im letzten Feld auf die ganze Runde.
 ## - Abzweigungen: beim Aufstieg auf Stufe 3 wählt man für jeden Skill eine von zwei Regeln.
-## - Dunkle Skills (nur bei Wahnsinn): stark, aber sie nähren den Wahn.
+## - Dunkle Skills (nur bei Wahnsinn): nähren den Wahnsinn. Licht-Skills senken ihn.
+##   Beide sind stärker, je wahnsinniger man ist (einheitlich: „Stärker, je wahnsinniger du bist“).
 class_name SkillData
 extends RefCounted
 
@@ -36,18 +37,18 @@ const DEFS := {
 			"desc": "Im LETZTEN Feld: ganze nächste Runde stärker. Sonst nur der nächste Angriff etwas"},
 	# --- Licht-Skills: senken den Wahnsinn, stärker mit klarem Geist ---
 	"purge": {"name": "Läuterung", "short": "Läutern", "type": ATTACK, "elem": "Licht", "light": true,
-			"desc": "Lichtwelle rundum. Senkt den Wahnsinn. Stärker, je klarer dein Geist ist"},
+			"desc": "Lichtwelle rundum. Senkt den Wahnsinn. Stärker, je wahnsinniger du bist"},
 	"lance": {"name": "Lichtlanze", "short": "Lanze", "type": ATTACK, "elem": "Licht", "light": true,
 			"desc": "Lichtstrahl auf den nächsten Gegner. Senkt den Wahnsinn. Stärker, je wahnsinniger du bist"},
 	"vigil": {"name": "Andacht", "short": "Andacht", "type": MODIFIER, "elem": "Licht", "light": true,
 			"desc": "Nächster Angriff senkt den Wahnsinn um 3"},
 	# --- dunkle Skills (nur bei Wahnsinn ab 25 im Angebot) ---
 	"rift": {"name": "Schattenriss", "short": "Riss", "type": ATTACK, "elem": "Schatten", "dark": true,
-			"desc": "Schattenklinge trifft alles in einer Linie. Stärker mit Wahnsinn, nährt den Wahn"},
+			"desc": "Schattenklinge trifft alles in einer Linie. Nährt den Wahnsinn. Stärker, je wahnsinniger du bist"},
 	"scream": {"name": "Leerenschrei", "short": "Schrei", "type": ATTACK, "elem": "Schatten", "dark": true,
-			"desc": "Gegner rundum fliehen voller Furcht. Nährt den Wahn"},
+			"desc": "Gegner rundum fliehen voller Furcht. Nährt den Wahnsinn"},
 	"pact": {"name": "Schattenpakt", "short": "Pakt", "type": MODIFIER, "elem": "Schatten", "dark": true,
-			"desc": "Nächster Angriff stärker, je größer der Wahnsinn. Nährt den Wahn"},
+			"desc": "Nächster Angriff stärker. Nährt den Wahnsinn. Stärker, je wahnsinniger du bist"},
 }
 
 ## Abzweigungen ab Stufe 3: [Name, Regel]

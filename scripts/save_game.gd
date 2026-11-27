@@ -104,7 +104,8 @@ func _collect() -> Dictionary:
 			"buildings": {},
 		},
 		"shrines": get_tree().get_nodes_in_group("shrines").map(func(sh): return sh.opened),
-		"depots": get_tree().get_nodes_in_group("depots").map(func(dp): return [dp.zone_id, dp.stock]),
+		"depots": get_tree().get_nodes_in_group("depots").filter(func(dp): return dp.zone_id != "").map(
+				func(dp): return [dp.zone_id, dp.stock]),
 		"event_t": get_tree().get_first_node_in_group("events").time_left,
 		"torches": {},
 		"beacon": beacon.lit,
@@ -112,7 +113,7 @@ func _collect() -> Dictionary:
 		"food_spots": get_tree().get_nodes_in_group("resources").map(func(r): return [r.amount, r._regrow]),
 		"rocks": get_tree().get_nodes_in_group("rocks").map(func(r): return [r.amount, r._regrow]),
 		"fire_pits": get_tree().get_nodes_in_group("fire_pits").map(
-				func(t): return [t.global_position.x, t.global_position.z, t.fuel]),
+				func(t): return [t.global_position.x, t.global_position.z, t.fuel, t.depot.stock]),
 		"small_torches": get_tree().get_nodes_in_group("small_torches").map(
 				func(t): return [t.global_position.x, t.global_position.z, t.fuel]),
 		"siege": {"time": siege.time_to_bell, "count": siege.count, "final": siege.final_pending},
@@ -195,6 +196,10 @@ func _apply_world(d: Dictionary) -> void:
 		pit.built = true
 		pit.fuel = float(e[2])
 		pit._update_visuals()
+		if e.size() > 3:
+			for k in pit.depot.stock:
+				pit.depot.stock[k] = int(e[3].get(k, 0))
+			pit.depot.update_visuals()
 	for e in d.get("small_torches", []):
 		var t := Node3D.new()
 		t.set_script(SmallTorch)
@@ -210,7 +215,7 @@ func _apply_world(d: Dictionary) -> void:
 			shrine_nodes[i].set_opened(bool(shrines[i]))
 	for e in d.get("depots", []):
 		for dp in get_tree().get_nodes_in_group("depots"):
-			if dp.zone_id == str(e[0]):
+			if dp.zone_id != "" and dp.zone_id == str(e[0]):
 				for k in dp.stock:
 					dp.stock[k] = int(e[1].get(k, 0))
 				dp.update_visuals()

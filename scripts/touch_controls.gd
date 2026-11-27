@@ -155,6 +155,11 @@ func _draw() -> void:
 		var ts := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
 		draw_string(font, c + Vector2(-ts.x / 2.0, ts.y / 4.0), label,
 				HORIZONTAL_ALIGNMENT_CENTER, -1, fs, Color(1, 1, 1, 0.85))
+		var hint := UiStyle.key_hint("Leertaste" if action == "dash" else "1").strip_edges()
+		if hint != "":
+			var hs := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 16)
+			draw_string(font, c + Vector2(-hs.x / 2.0, ts.y / 4.0 + 24), hint,
+					HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color(1, 1, 1, 0.5))
 
 
 func _notification(what: int) -> void:

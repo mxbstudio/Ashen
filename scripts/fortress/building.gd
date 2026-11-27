@@ -180,7 +180,7 @@ func improve() -> void:
 		_build_house()
 	level += 1
 	built = true
-	Sfx.play("gate", 0.0, 0.0)
+	Sfx.play_at("gate", global_position, 0.0, 0.0)
 	_add_flag()
 	_update_label()
 
