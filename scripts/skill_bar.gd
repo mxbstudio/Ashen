@@ -7,7 +7,7 @@
 ##   nächsten Angriff (auch über das Ende der Leiste hinweg auf das erste Feld).
 ## - Lage zählt (v0.3): Spiegel kopiert das Feld davor, Schwur im letzten Feld stärkt die ganze nächste Runde.
 ## - Ohne Angriff in der Leiste passiert nichts.
-## - Die Leiste läuft nur, wenn ein Gegner in der Nähe ist.
+## - Die Leiste läuft nur, wenn sie eingeschaltet ist (Knopf „Leiste: AN/AUS“, Taste E) – ohne Reichweiten-Prüfung.
 ## - Ein Dash unterbricht den aktuellen Cast (Fortschritt geht verloren).
 extends Node
 
@@ -18,7 +18,8 @@ var index := 0                     # aktueller Slot
 var progress := 0.0                # Sekunden, die der aktuelle Cast schon läuft
 var pending_mods: Array[String] = []   # vorgemerkte Modifikatoren
 var running := false
-var waiting := false               # kein Angriff der Leiste hat einen Gegner in Reichweite -> nichts lädt
+var waiting := false               # (alt) – die Leiste wird jetzt per Knopf gestartet/gestoppt
+var active := false                # eingeschaltet? (Knopf „Leiste: AN/AUS“)
 var stash: Array[String] = []          # Vorrat: besessene Skills, die nicht in der Leiste sind
 var levels := {"sickle": 1, "bow": 1}  # jeder Skill nur einmal – dafür mit Stufe
 var branches := {}                     # gewählte Abzweigung je Skill: "a" oder "b" (ab Stufe 3)
@@ -82,6 +83,13 @@ func fraction() -> float:
 	return clampf(progress / t, 0.0, 1.0) if t > 0.0 else 0.0
 
 
+## Leiste starten / stoppen (Knopf). Beim Stoppen beginnt sie beim nächsten Start wieder vorn.
+func toggle() -> void:
+	active = not active
+	if not active:
+		_reset_cycle()
+
+
 func interrupt() -> void:
 	progress = 0.0
 
@@ -93,7 +101,7 @@ func on_kill() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	running = has_attack() and player.is_alive() and player.combat.enemy_near()
+	running = active and has_attack() and player.is_alive()
 	if not running:
 		progress = 0.0
 		waiting = false
@@ -105,11 +113,6 @@ func _physics_process(delta: float) -> void:
 		while slots[index] == "" and guard < slots.size():
 			_advance_index()
 			guard += 1
-	# Die Leiste lädt, sobald irgendein Angriff der Leiste einen Gegner in Reichweite hat (+ etwas Puffer).
-	# Die größte Reichweite zählt – so schießt der Bogen auch, wenn die Sichel in der Leiste steckt.
-	waiting = not player.combat.bar_in_range()
-	if waiting:
-		return
 	progress += delta
 	if progress >= current_cast_time():
 		progress = 0.0

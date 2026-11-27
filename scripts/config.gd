@@ -389,6 +389,7 @@ func _setup_input() -> void:
 	_bind("move_down", [KEY_S, KEY_DOWN])
 	_bind("dash", [KEY_SPACE])
 	_bind("potion", [KEY_Q])
+	_bind("bar_toggle", [KEY_E])
 
 
 func _bind(action: String, keys: Array) -> void:

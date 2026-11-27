@@ -91,7 +91,7 @@ func _collect() -> Dictionary:
 			"xp": player.xp, "level": player.level, "carry": player.carry,
 			"fuel": player.lantern.fuel,
 			"slots": Array(bar.slots), "stash": Array(bar.stash), "levels": bar.levels,
-			"branches": bar.branches, "madness": player.madness.value,
+			"branches": bar.branches, "madness": player.madness.value, "bar_on": bar.active,
 			"talismans": Array(player.talismans), "equipped": Array(player.equipped),
 		},
 		"fort": {
@@ -291,6 +291,7 @@ func _apply_player(p: Dictionary) -> void:
 	for k in lv:
 		bar.levels[k] = int(lv[k])
 	bar.branches = p.get("branches", {})
+	bar.active = bool(p.get("bar_on", false))
 	player.madness.value = float(p.get("madness", 0.0))
 	# die „Umgekehrte Sanduhr“ ist jetzt das „Pendel“
 	player.talismans.assign(Array(p.get("talismans", [])).map(func(x): return "pendulum" if x == "hourglass" else x))

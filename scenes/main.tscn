@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
@@ -27,6 +27,7 @@
 [ext_resource type="Script" path="res://scripts/fortress/gate_lamp.gd" id="25"]
 [ext_resource type="Script" path="res://scripts/ui/place_buttons.gd" id="26"]
 [ext_resource type="Script" path="res://scripts/ui/event_panel.gd" id="27"]
+[ext_resource type="Script" path="res://scripts/ui/bar_toggle.gd" id="28"]
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
@@ -168,6 +169,10 @@ mouse_filter = 2
 script = ExtResource("26")
 player = NodePath("../../Player")
 fortress = NodePath("../../Fortress")
+
+[node name="BarToggle" type="Button" parent="UI" node_paths=PackedStringArray("player")]
+script = ExtResource("28")
+player = NodePath("../../Player")
 
 [node name="TravelButton" type="Button" parent="UI" node_paths=PackedStringArray("player", "beacon")]
 script = ExtResource("18")

@@ -267,12 +267,9 @@ func _draw_skill_bar(font: Font, bar: Node) -> void:
 			names.append(SkillData.short_name(m))
 		draw_string(font, Vector2(x0, y0 + slot_h + 34), "Vorgemerkt: " + ", ".join(names),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.7, 0.75, 1.0))
-	elif not running:
-		draw_string(font, Vector2(x0, y0 + slot_h + 34), "Leiste ruht – kein Gegner in der Nähe",
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.4))
-	if running and bar.waiting:
-		draw_string(font, Vector2(x0, y0 + slot_h + 58), "Leiste wartet – Gegner zu weit weg",
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.8, 0.5, 0.7))
+	elif not bar.active:
+		draw_string(font, Vector2(x0, y0 + slot_h + 34), "Leiste aus – „Leiste: AN“ drücken (Taste E)",
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.45))
 
 
 ## Zeichnet einen beschrifteten Balken.
