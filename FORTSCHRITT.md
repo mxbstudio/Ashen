@@ -388,6 +388,13 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   Im Menü bleibt er weiter seiner Zone zugeteilt.
 - Probelauf (Westsenke abgeholzt, 3 Holzfäller): sie holen Holz in Osthain und bringen es heim, statt zu warten.
 
+### Dunkle Skills stärker mit klarem Geist (Max)
+- Gegenstück zu den Licht-Skills: **alle dunklen Skills sind stärker, je klarer der Geist ist** (×1,3 bei Wahn 0 bis
+  ×0,7 bei Wahn 100) – Schattenriss, Leerenschrei (macht jetzt auch so Schaden-Unterschiede) und Schattenpakt
+  (Bonus ×3 bei Wahn 0 bis ×1 bei Wahn 100, vorher genau umgekehrt). Einheitlicher Text:
+  „Nährt den Wahnsinn. Stärker, je klarer dein Geist ist“. Damit: Dunkel ist stark, solange man klar ist – und
+  macht wahnsinnig; Licht wird stark, wenn man wahnsinnig ist – und macht wieder klar.
+
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

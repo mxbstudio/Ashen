@@ -117,7 +117,7 @@ func perform(id: String, mods: Array, mult := 1.0, extra := 0) -> void:
 			strength *= 2.0
 		elif _br("pact", "b"):
 			strength *= 0.5
-		dmg_mult *= 1.0 + player.madness.value / 50.0 * strength
+		dmg_mult *= 1.0 + (100.0 - player.madness.value) / 50.0 * strength   # klarer Geist: stärker
 		if not _br("pact", "b"):
 			player.madness.add(Config.pact_madness * (2.0 if _br("pact", "a") else 1.0))
 	dmg_mult *= 1.0 + Config.oath_next * mods.count("oath")
@@ -138,6 +138,7 @@ func perform(id: String, mods: Array, mult := 1.0, extra := 0) -> void:
 		if _br("vigil", "b"):
 			dmg_mult *= 1.2
 	if SkillData.is_dark(id):
+		dmg_mult *= 1.3 - 0.6 * player.madness.value / 100.0   # Dunkel-Skills: je klarer der Geist, desto stärker
 		if _tal("madstone"):
 			dmg_mult *= 1.5
 		player.madness.add(Config.rift_madness if id == "rift" else Config.scream_madness)
@@ -376,7 +377,7 @@ func _rift(mult: float, ctx: Dictionary) -> void:
 	player.face_nearest_enemy()
 	var fwd: Vector3 = player.facing
 	var length := Config.rift_length * (2.0 if _br("rift", "a") else 1.0)
-	var dmg: float = Config.rift_damage * mult * (1.0 + player.madness.value / 100.0)
+	var dmg: float = Config.rift_damage * mult
 	var hits := 0
 	var max_hits := 99
 	for e in enemies():

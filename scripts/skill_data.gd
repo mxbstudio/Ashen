@@ -7,7 +7,8 @@
 ## - Lage zählt: Spiegel kopiert das Feld links davon, Schwur wirkt im letzten Feld auf die ganze Runde.
 ## - Abzweigungen: beim Aufstieg auf Stufe 3 wählt man für jeden Skill eine von zwei Regeln.
 ## - Dunkle Skills (nur bei Wahnsinn): nähren den Wahnsinn. Licht-Skills senken ihn.
-##   Beide sind stärker, je wahnsinniger man ist (einheitlich: „Stärker, je wahnsinniger du bist“).
+##   Licht-Skills sind stärker, je wahnsinniger man ist („Stärker, je wahnsinniger du bist“),
+##   dunkle Skills stärker, je klarer der Geist ist („Stärker, je klarer dein Geist ist“).
 class_name SkillData
 extends RefCounted
 
@@ -44,11 +45,11 @@ const DEFS := {
 			"desc": "Nächster Angriff senkt den Wahnsinn um 3"},
 	# --- dunkle Skills (nur bei Wahnsinn ab 25 im Angebot) ---
 	"rift": {"name": "Schattenriss", "short": "Riss", "type": ATTACK, "elem": "Schatten", "dark": true,
-			"desc": "Schattenklinge trifft alles in einer Linie. Nährt den Wahnsinn. Stärker, je wahnsinniger du bist"},
+			"desc": "Schattenklinge trifft alles in einer Linie. Nährt den Wahnsinn. Stärker, je klarer dein Geist ist"},
 	"scream": {"name": "Leerenschrei", "short": "Schrei", "type": ATTACK, "elem": "Schatten", "dark": true,
-			"desc": "Gegner rundum fliehen voller Furcht. Nährt den Wahnsinn"},
+			"desc": "Gegner rundum fliehen voller Furcht. Nährt den Wahnsinn. Stärker, je klarer dein Geist ist"},
 	"pact": {"name": "Schattenpakt", "short": "Pakt", "type": MODIFIER, "elem": "Schatten", "dark": true,
-			"desc": "Nächster Angriff stärker. Nährt den Wahnsinn. Stärker, je wahnsinniger du bist"},
+			"desc": "Nächster Angriff stärker. Nährt den Wahnsinn. Stärker, je klarer dein Geist ist"},
 }
 
 ## Abzweigungen ab Stufe 3: [Name, Regel]
