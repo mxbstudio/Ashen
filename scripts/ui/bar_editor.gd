@@ -52,7 +52,7 @@ func _process(_delta: float) -> void:
 	var show: bool = player.is_alive() and not visible and not get_tree().paused
 	if _open_button.visible != show:
 		_open_button.visible = show
-	_open_button.position = Vector2(UiStyle.column(get_viewport_rect().size).position.x + 10, 236)
+	_open_button.position = Vector2(UiStyle.column(get_viewport_rect().size).position.x + 10, 272)
 
 
 func open() -> void:

@@ -160,6 +160,7 @@ func _defend(delta: float) -> void:
 	var dmg := Config.resident_bow_damage if shooter.has_bow else Config.resident_defense_damage
 	if shooter.has_trait("schuetze"):
 		dmg *= 2.0
+	dmg *= shooter.combat_factor()   # Kampftraining (v0.4)
 	var arrow := Node3D.new()
 	arrow.set_script(ArrowScript)
 	fortress.add_child(arrow)

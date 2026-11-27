@@ -11,6 +11,14 @@ signal resident_died(reason: String)
 signal message(text: String)
 
 const ResidentScript := preload("res://scripts/fortress/resident.gd")
+const HutScript := preload("res://scripts/fortress/hut.gd")
+
+## Bauplätze für eigene Häuser (an der Süd- und Ostmauer, innen)
+const HUT_SPOTS := [Vector3(-10.4, 0, 10.6), Vector3(-8.4, 0, 10.6), Vector3(-6.4, 0, 10.6), Vector3(-4.4, 0, 10.6),
+		Vector3(-2.7, 0, 10.6), Vector3(2.7, 0, 10.6), Vector3(4.4, 0, 10.6), Vector3(6.4, 0, 10.6),
+		Vector3(8.4, 0, 10.6), Vector3(10.4, 0, 8.6), Vector3(10.6, 0, 3.0), Vector3(10.6, 0, 1.0),
+		Vector3(10.6, 0, -3.2), Vector3(10.6, 0, -5.2), Vector3(-2.6, 0, -6.4)]
+const TRAINING_POS := Vector3(-4.0, 0, -9.0)   # Übungsplatz innen neben dem Tor
 
 var wood := 0.0                    # Holz im Feuer/Lager
 var food := 0.0
@@ -33,6 +41,10 @@ var graves: Array = []             # [Name, Todesursache] – Gräber an der Wes
 var away: Array = []               # Bewohner, die gerade unterwegs sind (Ereignis): [Identität, Restzeit, Begleitung?]
 var ration_t := 0.0                # s mit gekürzten Rationen (Ereignis)
 var tools := {"wood": 0, "stone": 0, "food": 0}   # Werkzeug-Stufen: Axt, Spitzhacke, Sammelkorb
+var day := 1                       # Tag (v0.4)
+var day_time := 0.0                # s seit Tagesbeginn
+var huts: Array = []               # Bauplätze/Häuser der Bewohner
+var _last_phase := "work"
 var _desert_acc := 0.0
 var _grave_nodes: Array[Node3D] = []
 var _rng := RandomNumberGenerator.new()
@@ -47,6 +59,13 @@ func _ready() -> void:
 		if c.is_in_group("buildings") or c.has_method("build"):
 			buildings.append(c)
 	_rng.randomize()
+	for p in HUT_SPOTS:
+		var h := Node3D.new()
+		h.set_script(HutScript)
+		add_child(h)
+		h.position = p
+		huts.append(h)
+	_make_training_post()
 	for i in Config.residents_start:
 		var a := TAU * i / Config.residents_start
 		_add_resident(Vector3(cos(a), 0, sin(a)) * 3.5)
@@ -175,9 +194,12 @@ func _process(delta: float) -> void:
 func advance(dt: float) -> void:
 	if _fire_dead:
 		return
-	# Gebäude produzieren
+	# Gebäude produzieren – nur in der Arbeitszeit
 	for b in buildings:
-		var out: Dictionary = b.advance(dt)
+		if phase() != "work" and b.kind != "tower":
+			continue
+		# Gebäude arbeiten nur in der Arbeitszeit, dafür entsprechend schneller – pro Tag liefern sie so viel wie früher
+		var out: Dictionary = b.advance(dt / Config.work_share if b.kind != "tower" else dt)
 		wood = minf(wood + out["wood"], wood_cap())
 		food = minf(food + out["food"], food_cap())
 		if out.get("bows", 0) > 0:
@@ -203,6 +225,8 @@ func advance(dt: float) -> void:
 		if changed:
 			_assign_jobs()
 		_auto_jobs()
+	_clock_step(dt)
+	_needs_step(dt)
 	_mood_step(dt)
 	# Feuer verbrennt Holz (Feuerhüter sparen etwas)
 	_burn_acc += dt * fire_burn_factor()
@@ -214,26 +238,9 @@ func advance(dt: float) -> void:
 		_fire_dead = true
 		fire_out.emit()
 		return
-	# Bewohner essen
-	if residents.size() > 0:
-		var appetite := 0.0
-		for r in residents:
-			appetite += r.appetite()
-		if ration_t > 0.0:
-			ration_t -= dt
-			appetite *= 0.5
-		_eat_acc += dt * appetite
-		while _eat_acc >= Config.food_seconds_per_person:
-			_eat_acc -= Config.food_seconds_per_person
-			food -= 1.0
-		if food <= 0.0:
-			food = 0.0
-			_starve_acc += dt
-			while _starve_acc >= Config.starve_seconds and residents.size() > 0:
-				_starve_acc -= Config.starve_seconds
-				kill_resident("%s ist verhungert.")
-		else:
-			_starve_acc = 0.0
+	# Essen: jeder Bewohner isst selbst (am Feuer oder zu Hause), siehe resident.gd – Hunger in _needs_step
+	if ration_t > 0.0:
+		ration_t -= dt
 	# Überlebende finden das Licht
 	_survivor_acc += dt
 	while _survivor_acc >= Config.survivor_interval:
@@ -255,7 +262,7 @@ func kill_resident(reason: String, victim: Node3D = null) -> void:
 	if victim == null or not residents.has(victim):
 		victim = residents[-1]
 		for r in residents:
-			if r.job == null and not r.has_zone_job():
+			if r.job == null and not r.has_zone_job() and not r.is_child():
 				victim = r
 				break
 	if "%s" in reason:
@@ -280,6 +287,11 @@ func remove_resident(victim: Node3D, reason: String, death := false, keep_bond :
 				r.grief = Config.grief_time
 				r.mood = maxf(r.mood - 30.0, 0.0)
 				message.emit("%s trauert um %s." % [r.res_name, victim.res_name])
+	if victim.house:
+		victim.house.move_out(victim)
+	for h in huts:
+		if h.claimed_by == victim:
+			h.claimed_by = null
 	if not keep_bond:
 		for r in residents:
 			if r.bond_name == victim.res_name:
@@ -642,7 +654,7 @@ func mood_target() -> float:
 func _mood_step(dt: float) -> void:
 	var target := mood_target()
 	for r in residents:
-		var own := target - (30.0 if r.grief > 0.0 else 0.0)
+		var own := target - (30.0 if r.grief > 0.0 else 0.0) + personal_mood(r)
 		r.mood = move_toward(r.mood, own, Config.mood_rate * dt)
 		r.grief = maxf(r.grief - dt, 0.0)
 	# Verzweifelte verlassen vielleicht die Festung (einmal pro Minute würfeln)
@@ -849,7 +861,9 @@ func update_defense() -> void:
 	for r in residents:
 		if taken >= posts.size():
 			return
-		if r.state == 0 and r.hp >= r.max_hp() * 0.4:
+		if r.state in [0, 9] and r.hp >= r.max_hp() * 0.4 and not r.is_child():
+			if r.state == 9:
+				r._end_life()
 			var p: Array = posts[taken]
 			r.defend(p[0], p[1])
 			taken += 1
@@ -863,3 +877,230 @@ func end_defense() -> void:
 ## Bewohner, die oben auf dem Turm stehen.
 func defenders() -> Array:
 	return residents.filter(func(r): return r.state == 8 and r.on_post)
+
+
+# --- Eigenes Leben (v0.4): Tagesablauf, Bedürfnisse, Häuser, Paare, Kinder -------------
+
+## "work" (Arbeitszeit), "free" (Freizeit) oder "night" (Nachtruhe)
+func phase() -> String:
+	var k := day_time / Config.day_length
+	if k < Config.work_share:
+		return "work"
+	if k < Config.work_share + Config.free_share:
+		return "free"
+	return "night"
+
+
+## Sekunden bis zum Ende der aktuellen Phase (für die Uhr im HUD).
+func phase_left() -> float:
+	var k := day_time / Config.day_length
+	var end := 1.0
+	if k < Config.work_share:
+		end = Config.work_share
+	elif k < Config.work_share + Config.free_share:
+		end = Config.work_share + Config.free_share
+	return end * Config.day_length - day_time
+
+
+func phase_name() -> String:
+	return {"work": "Arbeitszeit", "free": "Freizeit", "night": "Nachtruhe"}[phase()]
+
+
+func _clock_step(dt: float) -> void:
+	day_time += dt
+	while day_time >= Config.day_length:
+		day_time -= Config.day_length
+		day += 1
+	var p := phase()
+	if p != _last_phase:
+		_last_phase = p
+		match p:
+			"work": message.emit("Tag %d – an die Arbeit" % day)
+			"free": message.emit("Feierabend – Freizeit")
+			"night":
+				message.emit("Nachtruhe")
+				_night_births()
+
+
+## Hunger und Müdigkeit. Ohne jede Sättigung verliert man Leben – und verhungert.
+func _needs_step(dt: float) -> void:
+	var drain := Config.meal_satiety / Config.food_seconds_per_person
+	var tired := 100.0 / (Config.day_length * (Config.work_share + Config.free_share) * 1.15)
+	for r in residents.duplicate():
+		r.age += dt
+		r.satiety = maxf(r.satiety - drain * r.appetite() * dt, 0.0)
+		if not r._lying:
+			r.energy = maxf(r.energy - tired * dt, 0.0)
+		if r.satiety <= 0.0:
+			r.hp -= Config.starve_damage * dt
+			if r.hp <= 0.0:
+				kill_resident("%s ist verhungert.", r)
+
+
+## Persönliche Stimmung: Haus, Partner, Kinder heben sie – Hunger und Müdigkeit drücken sie.
+func personal_mood(r: Node3D) -> float:
+	var m := 0.0
+	if r.satiety < 25.0:
+		m -= 15.0
+	if r.energy < 25.0:
+		m -= 8.0
+	if r.is_child():
+		return m + 5.0
+	if r.house:
+		m += 6.0
+	elif day > 1:
+		m -= 4.0
+	if r.bond_kind == "Paar":
+		m += 5.0
+	if children_of(r) > 0:
+		m += 4.0
+	return m
+
+
+func children_of(r: Node3D) -> int:
+	if r.house == null:
+		return 0
+	var n := 0
+	for c in r.house.residents:
+		if is_instance_valid(c) and c.is_child():
+			n += 1
+	return n
+
+
+## Bauplatz für diesen Bewohner (sein reservierter, sonst ein freier – der wird reserviert).
+func hut_for(r: Node3D) -> Node3D:
+	for h in huts:
+		if h.claimed_by == r and not h.built:
+			return h
+	for h in huts:
+		if h.is_free():
+			h.claimed_by = r
+			return h
+	return null
+
+
+## Haus fertig: der Bewohner (und sein Partner, falls der noch keins hat) zieht ein.
+func give_house(r: Node3D, hut: Node3D) -> void:
+	hut.build_for(r)
+	r.house = hut
+	Sfx.play_at("gate", hut.global_position, 0.0, 0.0)
+	message.emit("%s hat sich ein Haus gebaut." % r.res_name)
+	var p: Node3D = find_resident(r.bond_name) if r.bond_kind == "Paar" else null
+	if p and p.house == null:
+		p.house = hut
+		hut.move_in(p)
+
+
+## Nächste helle Zone, in der es gerade etwas von dieser Art gibt ("" = keine).
+func nearest_zone_with(kind: String, from: Vector3) -> String:
+	var best := ""
+	var best_d := INF
+	for z in ZoneDefs.ZONES:
+		if zone_has(z["id"], kind):
+			var d := Zones.center(get_tree(), z["id"]).distance_to(from)
+			if d < best_d:
+				best_d = d
+				best = z["id"]
+	return best
+
+
+func training_spot() -> Vector3:
+	return TRAINING_POS
+
+
+## Gemeinsame Zeit am Feuer: zwei Erwachsene ohne Partner (und keine Geschwister) kommen sich näher.
+var _court := {}                   # "A|B" -> Sekunden
+func courtship_tick(r: Node3D, dt: float) -> void:
+	if r.is_child() or r.bond_kind == "Paar" or r.mood < 40.0:
+		return
+	for o in residents:
+		if o == r or o.state != 9 or o._act != "social" or o.is_child() or o.bond_kind == "Paar":
+			continue
+		if o.bond_name == r.res_name or o.mood < 40.0:
+			continue
+		if o.global_position.distance_to(r.global_position) > 4.0:
+			continue
+		var names := [r.res_name, o.res_name]
+		names.sort()
+		var key := "|".join(names)
+		_court[key] = _court.get(key, 0.0) + dt * 0.5   # beide melden sich – also je die halbe Zeit
+		if _court[key] >= Config.courtship_needed:
+			_court.erase(key)
+			bond(r, o, "Paar")
+			message.emit("%s und %s sind jetzt ein Paar." % [r.res_name, o.res_name])
+			r.mood = minf(r.mood + 15.0, 100.0)
+			o.mood = minf(o.mood + 15.0, 100.0)
+			# zusammenziehen: wer ein Haus hat, nimmt den anderen auf
+			var h: Node3D = r.house if r.house else o.house
+			if h:
+				for x in [r, o]:
+					if x.house and x.house != h:
+						x.house.move_out(x)
+					x.house = h
+					h.move_in(x)
+		return
+
+
+## Nachts: Paare mit eigenem Haus bekommen manchmal ein Kind (wenn genug zu essen da ist).
+func _night_births() -> void:
+	var done := {}
+	for r in residents.duplicate():
+		if r.bond_kind != "Paar" or r.house == null or r.is_child() or done.has(r):
+			continue
+		var p := find_resident(r.bond_name)
+		if p == null or p.house != r.house:
+			continue
+		done[p] = true
+		done[r] = true
+		if residents.size() >= Config.residents_max or food < residents.size() * 1.5:
+			continue
+		if (r.mood + p.mood) / 2.0 < 55.0 or _rng.randf() > Config.child_chance:
+			continue
+		var traits := []
+		for t in [r.traits, p.traits]:
+			if not t.is_empty():
+				traits.append(t[_rng.randi() % t.size()])
+		var id := new_identity()
+		id["traits"] = traits.slice(0, 1) if (_rng.randf() < 0.6 and not traits.is_empty()) else ResidentData.roll_traits(_rng)
+		id["age"] = 0.0
+		id["satiety"] = 90.0
+		var c := _add_resident(r.house.bed_pos(), id)
+		c.house = r.house
+		r.house.move_in(c)
+		Sfx.play_at("levelup", r.house.global_position, -6.0, 0.0)
+		message.emit("%s und %s haben ein Kind bekommen: %s" % [r.res_name, p.res_name, c.res_name])
+		mood_shock(4.0)
+
+
+## Übungsplatz: zwei Holzpfähle mit Querbalken.
+func _make_training_post() -> void:
+	var post := Node3D.new()
+	add_child(post)
+	post.position = TRAINING_POS
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.45, 0.33, 0.2)
+	for x in [-0.6, 0.6]:
+		var m := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.18, 1.6, 0.18)
+		m.mesh = bm
+		m.material_override = mat
+		m.position = Vector3(x, 0.8, 0)
+		post.add_child(m)
+	var bar := MeshInstance3D.new()
+	var bb := BoxMesh.new()
+	bb.size = Vector3(1.5, 0.15, 0.15)
+	bar.mesh = bb
+	bar.material_override = mat
+	bar.position = Vector3(0, 1.3, 0)
+	post.add_child(bar)
+	var l := Label3D.new()
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.fixed_size = true
+	l.pixel_size = 0.0007
+	l.font_size = 24
+	l.outline_size = 6
+	l.modulate = Color(1, 0.85, 0.65, 0.7)
+	l.text = "Übungsplatz"
+	l.position.y = 2.1
+	post.add_child(l)

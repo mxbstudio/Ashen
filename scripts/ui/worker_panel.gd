@@ -57,7 +57,7 @@ func _process(_delta: float) -> void:
 	var show: bool = player.is_alive() and not visible and not get_tree().paused
 	if _open_button.visible != show:
 		_open_button.visible = show
-	_open_button.position = Vector2(UiStyle.column(get_viewport_rect().size).position.x + 150, 236)
+	_open_button.position = Vector2(UiStyle.column(get_viewport_rect().size).position.x + 150, 272)
 
 
 func open() -> void:
@@ -211,9 +211,23 @@ func _people() -> Control:
 		var traits := []
 		for t in r.traits:
 			traits.append("%s (%s)" % [ResidentData.trait_name(t), ResidentData.trait_desc(t)])
-		var line := "%s · %s %d" % [r.res_name, ResidentData.mood_word(r.mood), roundi(r.mood)]
+		var line := "%s%s · %s %d" % [r.res_name, " (Kind)" if r.is_child() else "", ResidentData.mood_word(r.mood), roundi(r.mood)]
 		var extra := []
-		extra.append(_job_text(r))
+		if r.state == 9 and r.activity != "":
+			extra.append("jetzt: " + r.activity)
+		elif not r.is_child():
+			extra.append(_job_text(r))
+		# Bedürfnisse und eigenes Leben
+		var needs := []
+		needs.append("satt" if r.satiety >= 60.0 else ("hungrig" if r.satiety >= 25.0 else "hungert!"))
+		needs.append("ausgeruht" if r.energy >= 50.0 else ("müde" if r.energy >= 25.0 else "erschöpft"))
+		if r.house:
+			needs.append("Haus (Vorrat %d)" % int(r.pantry))
+		elif not r.is_child():
+			needs.append("kein Haus (%d/%d Holz)" % [r.house_wood, Config.house_wood])
+		if int(r.combat) > 0:
+			needs.append("Kampf %d" % int(r.combat))
+		extra.append(", ".join(needs))
 		if r.bond_name != "":
 			extra.append("%s mit %s" % [r.bond_kind, r.bond_name])
 		if r.grief > 0.0:
@@ -233,9 +247,11 @@ func _people() -> Control:
 		var l := UiStyle.label("Gräber (%d): %s" % [names.size(), ", ".join(names)], 20, Color(0.7, 0.7, 0.75))
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		col.add_child(l)
-	col.add_child(UiStyle.label("Stimmung: satt, sicheres Feuer und Prediger heben sie; Hunger, Tote und der Wahn des Hüters "
-			+ "drücken sie. Zuversichtliche arbeiten schneller, Verzweifelte langsamer – und verlassen vielleicht die Festung.",
-			18, Color(1, 1, 1, 0.5)))
+	col.add_child(UiStyle.label("Tagesablauf: Arbeitszeit – Freizeit – Nachtruhe. In der Freizeit sorgt jeder für sich: "
+			+ "essen, Holz fürs eigene Haus hacken und bauen, Nahrung für zu Hause sammeln, trainieren (Kampf-Stufe: zäher "
+			+ "und treffsicherer), am Feuer zusammensitzen – daraus werden Paare, und Paare mit Haus bekommen Kinder. "
+			+ "Stimmung: satt, ausgeruht, Haus, Partner, Kinder, sicheres Feuer und Prediger heben sie; Hunger, Müdigkeit, "
+			+ "Tote und der Wahn des Hüters drücken sie.", 18, Color(1, 1, 1, 0.5)))
 	return col
 
 

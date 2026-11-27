@@ -1,6 +1,6 @@
 # Aschen – Fortschritt
 
-**Stand: v0.3 „Tiefe“ zum Testen: Leiste als Puzzle (Kombos, Abzweigungen, Talismane), Bewohner mit Eigenleben, Wahnsinn.** v0.2 fertig bis auf Werte-Feinschliff. Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.4 „Bewohner mit eigenem Leben“ zum Testen. Davor v0.3 „Tiefe“: Leiste als Puzzle (Kombos, Abzweigungen, Talismane), Bewohner mit Eigenleben, Wahnsinn.** v0.2 fertig bis auf Werte-Feinschliff. Prototyp v0.1 war fertig mit Build #14.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -157,7 +157,8 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - HUD-Übersicht: oben links Festung (Feuer/Holz mit Restzeit bzw. „Feuer flackert …“ als Vorzeichen, Nahrung, Bewohner); oben rechts Leben, Laterne, Tränke, Stufe/EP, Trage, Vorrat; oben Mitte Belagerung/Boss; Mitte kurze Meldungen; unten Skill-Leiste mit Marker über Joystick/Dash/Trank.
 
 ## Für eine spätere Etappe gemerkt (Max)
-- **Bewohner mit eigenständigem Leben**: Jeder hat Hunger und andere Bedürfnisse, die er sich selbst erfüllt.
+- ~~**Bewohner mit eigenständigem Leben**~~ → in v0.4 umgesetzt (siehe oben).
+- (alt) **Bewohner mit eigenständigem Leben**: Jeder hat Hunger und andere Bedürfnisse, die er sich selbst erfüllt.
   **Arbeitszeiten**, in denen fürs Lager gearbeitet wird; in der **Freizeit** z. B. selbst Holz hacken und ein
   **eigenes Haus bauen**, Nahrung für zu Hause sammeln, **sich paaren und Kinder bekommen**, **für den Kampf trainieren** usw.
   (Noch nicht umgesetzt – eigene Etappe.)
@@ -168,6 +169,43 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - **Gebiete erhellen statt selbst sammeln**: Draußen Gebiete hell machen (z. B. per Leuchtfeuer), dann Bewohner als Holzfäller und Jäger/Sammler dorthin schicken.
 - **Gebäude-Upgrades.**
 - **Begehbarer Wachturm**: erhöht stehen und von dort schießen.
+
+---
+
+# Version v0.4 – Bewohner mit eigenem Leben (zum Testen)
+
+Max: „versuchen wir das“ (gemerkte Idee: Bedürfnisse, Arbeitszeit/Freizeit, eigene Häuser, Paare, Kinder, Training).
+
+- **Tagesablauf** (5 min = 1 Tag): **Arbeitszeit** 70 % – **Freizeit** 20 % – **Nachtruhe** 10 %.
+  Uhr in der Festungsanzeige: „Tag 3 · Freizeit 0:45“. Meldungen bei jedem Wechsel.
+  - Arbeit (Gebäude, Zonen, Karren) nur in der Arbeitszeit. Gebäude arbeiten dafür entsprechend schneller –
+    pro Tag liefern sie so viel wie vorher. Der Wachturm schießt immer. Belagerung: alle heim/auf den Turm, egal wann.
+- **Bedürfnisse** je Bewohner:
+  - **Sättigung**: sinkt (im Schnitt wie früher 1 Nahrung / 75 s, Vielfraß doppelt, Kinder halb). Gegessen wird
+    *selbst*: am Feuer aus dem Lager der Festung oder zu Hause aus dem eigenen Vorrat – in der Freizeit, bei großem
+    Hunger auch mitten in der Arbeit. Gekürzte Rationen (Ereignis): halbe Portionen. Ohne Essen: Sättigung 0 →
+    Leben sinkt → „verhungert“. (Der alte gemeinsame Verbrauch und das „alle 30 s stirbt einer“ sind weg.)
+  - **Energie**: sinkt im Wachsein; nachts wird geschlafen (liegt am Boden) – im eigenen Haus erholsamer als am Feuer.
+    Übermüdet (< 25): arbeitet langsamer.
+- **Freizeit** – jeder entscheidet selbst, der Reihe nach:
+  essen (wenn hungrig) → **Holz fürs eigene Haus hacken** (in einer hellen Zone, 8 Holz, 5 pro Gang) und es **bauen**
+  (15 s, Bauplätze an Süd- und Ostmauer, 15 Stück) → **Nahrung für zu Hause** sammeln (Vorrat bis 6) →
+  **Kampftraining** am neuen **Übungsplatz** neben dem Tor (Kampf-Stufe 0–5: +10 % Leben, +20 % Schaden je Stufe,
+  auch beim Schießen vom Turm) → **am Feuer zusammensitzen**.
+- **Paare und Kinder**: Wer allein ist, sucht öfter Gesellschaft. Wer zusammen am Feuer sitzt (beide ohne Partner, keine Geschwister, Stimmung ≥ 40), wird nach
+  25 s gemeinsamer Zeit ein **Paar** – und zieht zusammen, wenn einer ein Haus hat. Paare mit Haus bekommen nachts
+  manchmal ein **Kind** (35 %, wenn genug Nahrung da ist, Stimmung ≥ 55 und Platz für Bewohner). Kinder sind kleiner,
+  spielen am Feuer, essen halb so viel, arbeiten und kämpfen nicht – nach 2 Tagen sind sie erwachsen.
+  Eigenschaften erben sie oft von den Eltern.
+- **Stimmung** zusätzlich persönlich: Haus +6 (ab Tag 2 ohne Haus −4), Partner +5, Kind +4, hungrig −15, müde −8.
+- **Menü „Bewohner“**: je Person, was sie gerade tut („jetzt: hackt Holz fürs eigene Haus (6/10)“), satt/hungrig,
+  ausgeruht/müde, Haus und Vorrat, Kampf-Stufe; Kinder sind markiert.
+- **Speicherstand**: Tag und Uhrzeit, Häuser, wer wo wohnt, Bedürfnisse, Kampf-Stufe, Alter, Vorrat.
+- Neue Werte: Abschnitt „Eigenes Leben der Bewohner (v0.4)“ in `scripts/config.gd`.
+- Skripte: `scripts/fortress/hut.gd` (Haus), Abschnitt „Eigenes Leben“ in `resident.gd` und `fortress.gd`.
+- Probelauf (5 Tage, 2 Sammler, 2 Holzfäller, Pilzkeller, Trümmerhof): Nahrung bleibt stabil (10–33), niemand
+  verhungert, die ersten Häuser entstehen ab Tag 4 (erste Fassung, danach Haus billiger gemacht), Überlebende kommen
+  dazu bis 12 Bewohner. Paare und Kinder brauchen erfahrungsgemäß einige Tage.
 
 ---
 

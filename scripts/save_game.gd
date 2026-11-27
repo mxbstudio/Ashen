@@ -101,6 +101,8 @@ func _collect() -> Dictionary:
 			"survivor": fortress._survivor_acc, "zone_jobs": fortress.zone_jobs,
 			"residents": fortress.residents.map(func(r): return r.identity()),
 			"graves": fortress.graves, "away": fortress.away, "ration": fortress.ration_t, "tools": fortress.tools,
+			"day": fortress.day, "day_time": fortress.day_time,
+			"huts": fortress.huts.map(func(h): return h.built),
 			"buildings": {},
 		},
 		"shrines": get_tree().get_nodes_in_group("shrines").map(func(sh): return sh.opened),
@@ -263,6 +265,25 @@ func _apply_fortress(f: Dictionary) -> void:
 			fortress._add_resident(Vector3(cos(a), 0, sin(a)) * 3.5)
 		for i in list.size():
 			fortress.residents[i].hp = float(list[i])
+	# Häuser (v0.4) und wer darin wohnt
+	fortress.day = int(f.get("day", 1))
+	fortress.day_time = float(f.get("day_time", 0.0))
+	fortress._last_phase = fortress.phase()
+	var hb: Array = f.get("huts", [])
+	for i in mini(hb.size(), fortress.huts.size()):
+		if bool(hb[i]):
+			fortress.huts[i].built = true
+			fortress.huts[i]._build_visual()
+	if with_identity:
+		for h in fortress.huts:
+			h.residents.clear()
+		for i in mini(list.size(), fortress.residents.size()):
+			var hi := int(list[i].get("house", -1))
+			if hi >= 0 and hi < fortress.huts.size():
+				fortress.residents[i].house = fortress.huts[hi]
+				fortress.huts[hi].move_in(fortress.residents[i])
+		for h in fortress.huts:
+			h.update_label()
 	fortress.graves = f.get("graves", [])
 	fortress.update_graves()
 	fortress.away = f.get("away", [])

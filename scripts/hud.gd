@@ -332,7 +332,7 @@ func _draw_fortress(font: Font) -> void:
 		return
 	var x := UiStyle.column(size).position.x + MARGIN
 	var y := 40.0
-	draw_rect(Rect2(x - 6, y - 4, 360, 188), Color(0, 0, 0, 0.4))
+	draw_rect(Rect2(x - 6, y - 4, 360, 222), Color(0, 0, 0, 0.4))
 	var secs := int(fortress.wood_seconds_left())
 	var low_wood: bool = fortress.wood < 5
 	var blink := 0.5 + 0.5 * sin(_t * 8.0)
@@ -370,6 +370,11 @@ func _draw_fortress(font: Font) -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, torch_col)
 	draw_string(font, Vector2(x, y + 168), "Stein: %d   Bögen: %d" % [int(fortress.stone), fortress.bows_total()],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.82, 0.82, 0.92))
+	# Uhr: Tag, Phase, Restzeit der Phase
+	var left := int(fortress.phase_left())
+	var pcol: Color = {"work": Color(1, 0.9, 0.6), "free": Color(0.6, 0.9, 1.0), "night": Color(0.7, 0.7, 1.0)}[fortress.phase()]
+	draw_string(font, Vector2(x, y + 204), "Tag %d · %s %d:%02d" % [fortress.day, fortress.phase_name(), left / 60, left % 60],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, pcol)
 
 
 func _draw_toasts(font: Font) -> void:

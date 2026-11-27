@@ -254,6 +254,26 @@ var tool_speed_per_level := 0.35   # jede Werkzeug-Stufe: Abbauen +35 % schnelle
 var tool_cost_wood := [6, 10, 16]  # Holz für Stufe 1 / 2 / 3
 var tool_cost_stone := [4, 8, 14]  # Stein für Stufe 1 / 2 / 3
 
+# --- Eigenes Leben der Bewohner (v0.4) ----------------------------------------------
+var day_length := 300.0            # s – ein Tag: Arbeitszeit, Freizeit, Nachtruhe
+var work_share := 0.7              # Anteil Arbeitszeit am Tag
+var free_share := 0.2              # Anteil Freizeit (der Rest ist Nachtruhe)
+var meal_satiety := 34.0           # so viel Sättigung (0–100) bringt 1 Nahrung; verbraucht wird wie früher 1 Nahrung / food_seconds_per_person
+var hungry_below := 60.0           # in der Freizeit isst, wer darunter ist
+var starving_below := 20.0         # darunter wird auch während der Arbeit gegessen
+var starve_damage := 0.5           # Leben pro s ohne jede Sättigung
+var sleep_home_factor := 1.0       # Erholung im eigenen Haus
+var sleep_fire_factor := 0.6       # Erholung am Feuer (ohne Haus)
+var house_wood := 8                # Holz, das ein Bewohner für sein Haus selbst hackt
+var house_build_time := 15.0       # s Bauzeit
+var pantry_max := 6                # so viel Nahrung passt in den eigenen Vorrat
+var own_carry := 5                 # so viel trägt man in der Freizeit für sich auf einmal
+var train_seconds_per_level := 120.0 # s Training für eine Kampf-Stufe
+var combat_max := 5
+var courtship_needed := 25.0       # s gemeinsame Zeit am Feuer, bis zwei ein Paar werden
+var child_chance := 0.35           # pro Nacht für ein Paar mit Haus
+var child_grow := 600.0            # s bis ein Kind erwachsen ist (2 Tage)
+
 # --- Wahnsinn (v0.3) -----------------------------------------------------------
 var madness_dark_rate := 0.15      # pro s draußen außerhalb fester Lichtquellen
 var madness_low_lantern_rate := 0.35 # zusätzlich pro s, wenn die Laterne unter 30 % ist

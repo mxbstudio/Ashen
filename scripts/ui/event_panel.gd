@@ -77,7 +77,7 @@ func _pick() -> Dictionary:
 
 
 func _home_residents() -> Array:
-	return fortress.residents.filter(func(r): return r.state == 0)
+	return fortress.residents.filter(func(r): return (r.state == 0 or r.state == 9) and not r.is_child())
 
 
 func _any(arr: Array) -> Node3D:
