@@ -1,9 +1,11 @@
-## Belagerungen: alle paar Minuten. Ablauf:
-##   1. Vorzeichen (30 s vorher): das Feuer flackert unruhig – kein Countdown.
-##   2. Die Glocke läutet: Gegner erscheinen vor dem Tor und schlagen darauf ein.
+## Belagerungen kommen nachts (v0.6): in Nacht 2, 4, 6, 8 … und immer in der letzten Nacht (Config.nights_to_win).
+## Ablauf:
+##   1. Vorzeichen (30 s vor der Nachtruhe): das Feuer flackert unruhig.
+##   2. Mit der Nachtruhe läutet die Glocke: Gegner erscheinen vor dem Tor und schlagen darauf ein.
 ##   3. Bewohner steigen auf den Wachturm und schießen von dort (ohne Turm: niemand). Der Hüter kann draußen mitkämpfen.
 ##   4. Ende: alle Angreifer tot -> überstanden. Tor fällt -> ein Bewohner stirbt, Angreifer ziehen ab.
-## Nach dem Boss folgt die letzte Belagerung: hält das Tor, ist das Spiel gewonnen.
+## Hält das Tor in der letzten Nacht, ist das Spiel gewonnen. Fällt es, kommen sie in der nächsten Nacht wieder.
+## Wer vorher den Hauptmann besiegt, hat es im letzten Sturm leichter.
 extends Node
 
 signal siege_started(final: bool)
@@ -20,9 +22,9 @@ const Lost := preload("res://scripts/enemies/lost.gd")
 @export var spawner: Node3D
 @export var player: Node3D
 
-var time_to_bell := 0.0            # Sekunden bis zur nächsten Glocke (nur intern, kein Countdown im HUD)
 var active := false
-var final_pending := false         # Boss besiegt -> nächste Belagerung ist die letzte
+var won := false                   # letzter Sturm gehalten
+var last_night := 0                # in dieser Nacht (= Tag) gab es zuletzt eine Belagerung
 var is_final := false
 var count := 0                     # wie viele Belagerungen schon waren
 var _to_spawn := 0
@@ -30,18 +32,35 @@ var _spawn_t := 0.0
 var _enemies: Array[Node3D] = []
 var _defense_t := 0.0
 var _omen_announced := false
+var _announced_day := 1            # für die Morgen-Meldung „Heute Nacht: Belagerung!“
 var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	add_to_group("siege")
 	_rng.randomize()
-	time_to_bell = Config.siege_interval
 	gate.broken.connect(_on_gate_broken)
 
 
+## Kommt in Nacht n eine Belagerung? Die letzte Nacht (und jede danach, falls das Tor fiel) immer.
+func is_siege_night(n: int) -> bool:
+	if n >= Config.nights_to_win:
+		return true
+	return n >= Config.siege_first_night and (n - Config.siege_first_night) % maxi(Config.siege_every, 1) == 0
+
+
+## Kommt heute Nacht noch eine Belagerung?
+func siege_tonight() -> bool:
+	return not won and is_siege_night(fortress.day) and last_night < fortress.day
+
+
+func is_final_night() -> bool:
+	return fortress.day >= Config.nights_to_win
+
+
 func omen_active() -> bool:
-	return not active and time_to_bell <= Config.siege_warning
+	return not active and siege_tonight() and fortress.phase() == "free" \
+			and fortress.phase_left() <= Config.siege_warning
 
 
 var _rumble_t := 0.0
@@ -50,7 +69,14 @@ var _rumble_t := 0.0
 func _process(delta: float) -> void:
 	if not fortress.is_fire_burning():
 		return
-	advance(delta)
+	_update_omen()
+	if fortress.day != _announced_day:
+		_announced_day = fortress.day
+		if siege_tonight():
+			get_tree().call_group("hud", "toast", "Die letzte Nacht – der letzte Sturm kommt!" if is_final_night()
+					else "Heute Nacht: Belagerung!")
+	if not active and siege_tonight() and fortress.phase() == "night":
+		_start()
 	if omen_active():
 		_rumble_t -= delta
 		if _rumble_t <= 0.0:
@@ -62,11 +88,7 @@ func _process(delta: float) -> void:
 		_check_end()
 
 
-## Zeit vergehen lassen (auch beim Zeitsprung nach dem Tod).
-func advance(dt: float) -> void:
-	if active:
-		return
-	time_to_bell -= dt
+func _update_omen() -> void:
 	var omen := omen_active()
 	fire.omen = omen
 	player.lantern.omen = omen
@@ -76,24 +98,18 @@ func advance(dt: float) -> void:
 		if fortress.zone_workers_total() > 0:
 			get_tree().call_group("hud", "toast", "Die Bewohner draußen kehren heim.")
 		Sfx.play("omen", 0.0, 0.0)
-	if time_to_bell <= 0.0:
-		_start()
-
-
-## Boss besiegt: die letzte Belagerung kommt bald.
-func boss_defeated() -> void:
-	final_pending = true
-	if not active:
-		time_to_bell = Config.siege_warning + 5.0
-		_omen_announced = false
 
 
 func _start() -> void:
 	active = true
 	fire.omen = false
-	is_final = final_pending
+	is_final = is_final_night()
+	last_night = fortress.day
 	count += 1
-	_to_spawn = Config.final_siege_size if is_final else Config.siege_size + Config.siege_growth * (count - 1)
+	if is_final:
+		_to_spawn = Config.final_siege_size_boss if get_parent().get("boss_defeated") else Config.final_siege_size
+	else:
+		_to_spawn = Config.siege_size + Config.siege_growth * (count - 1)
 	_spawn_t = 0.0
 	_enemies.clear()
 	spawner.enabled = false
@@ -205,11 +221,7 @@ func _end(held: bool) -> void:
 	_omen_announced = false
 	var was_final := is_final
 	if was_final and held:
-		final_pending = false
-	elif was_final:
-		time_to_bell = Config.siege_retry_delay + Config.siege_warning
-	else:
-		time_to_bell = Config.siege_interval
+		won = true
 	if held:
 		get_tree().call_group("hud", "toast", "Belagerung überstanden!")
 	siege_ended.emit(held, was_final)

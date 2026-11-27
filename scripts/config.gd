@@ -84,15 +84,17 @@ var food_per_node := 5            # Nahrung pro Pilzstelle (v0.1: 3)
 var resource_regrow := 120.0       # s, bis eine leere Pilzstelle nachwächst (v0.1: 150)
 
 # --- Belagerung ------------------------------------------------------------
-var siege_interval := 480.0        # s (8 min)
-var siege_warning := 30.0          # s Vorzeichen
+var nights_to_win := 10           # Ziel (v0.6): so viele Nächte überleben – die letzte Nacht bringt den letzten Sturm
+var siege_first_night := 2         # erste Belagerung in dieser Nacht (Nacht 1 ist eine Schonfrist) …
+var siege_every := 2               # … danach jede 2. Nacht (2, 4, 6, 8) und immer in der letzten Nacht
+var siege_warning := 30.0          # s Vorzeichen (vor Beginn der Nachtruhe)
 var gate_health := 200.0
 var siege_size := 18               # Gegner in der ersten Belagerung
 var siege_growth := 6              # jede weitere Belagerung: so viele mehr
-var final_siege_size := 30         # letzte Belagerung nach dem Boss
+var final_siege_size := 40         # letzter Sturm in der letzten Nacht …
+var final_siege_size_boss := 26    # … so groß, wenn der Hauptmann vorher besiegt wurde
 var siege_batch := 4               # so viele erscheinen auf einmal
 var siege_batch_interval := 3.0    # s zwischen zwei Gruppen
-var siege_retry_delay := 60.0      # s Pause, falls das Tor in der letzten Belagerung fällt
 var gate_dps_crawler := 1.6        # Schaden pro Sekunde am Tor
 var gate_dps_lighteater := 1.0
 var gate_dps_lost := 5.0

@@ -26,7 +26,7 @@ func _ready() -> void:
 	# kurzer Ziel-Hinweis beim Start
 	get_tree().call_group("hud", "toast", "Halte das Feuer am Brennen.", 6.0)
 	get_tree().call_group("hud", "toast", "Erhelle Zonen draußen, schicke Bewohner hin.", 6.0)
-	get_tree().call_group("hud", "toast", "Besiege den Hauptmann im Norden.", 6.0)
+	get_tree().call_group("hud", "toast", "Überlebe %d Nächte." % Config.nights_to_win, 6.0)
 
 
 func _spawn_boss() -> void:
@@ -60,7 +60,6 @@ func _on_player_died() -> void:
 	# Beim Tod vergeht Zeit: die Festung verbraucht weiter Holz und Nahrung,
 	# und die nächste Belagerung rückt näher.
 	fortress.advance(Config.death_time_loss)
-	siege.advance(Config.death_time_loss)
 	get_tree().call_group("torches", "advance", Config.death_time_loss)
 	get_tree().call_group("hud", "toast", "%d Sekunden sind vergangen" % int(Config.death_time_loss))
 
@@ -68,8 +67,7 @@ func _on_player_died() -> void:
 func _on_boss_defeated() -> void:
 	boss_defeated = true
 	get_tree().call_group("hud", "toast", "Der Hauptmann ist gefallen …")
-	get_tree().call_group("hud", "toast", "Die Dunkelheit sammelt sich zum letzten Sturm!")
-	siege.boss_defeated()
+	get_tree().call_group("hud", "toast", "Der letzte Sturm wird schwächer sein.")
 
 
 func _on_siege_ended(held: bool, final: bool) -> void:
@@ -77,9 +75,9 @@ func _on_siege_ended(held: bool, final: bool) -> void:
 		fortress.mood_shock(10.0)   # gehalten: die Bewohner schöpfen Mut
 	if final and held:
 		game_over.show_end("Das Feuer brennt weiter",
-				"Der Hauptmann ist besiegt und das Tor hat gehalten.\nSieg!")
+				"%d Nächte überstanden – das Tor hat gehalten.\nSieg!" % Config.nights_to_win)
 	elif final:
-		get_tree().call_group("hud", "toast", "Das Tor ist gefallen – sie kommen wieder!")
+		get_tree().call_group("hud", "toast", "Das Tor ist gefallen – sie kommen nächste Nacht wieder!")
 
 
 func _on_fire_out() -> void:

@@ -373,15 +373,18 @@ func _draw_fortress(font: Font) -> void:
 	# Uhr: Tag, Phase, Restzeit der Phase
 	var left := int(fortress.phase_left())
 	var pcol: Color = {"work": Color(1, 0.9, 0.6), "free": Color(0.6, 0.9, 1.0), "night": Color(0.7, 0.7, 1.0)}[fortress.phase()]
-	var clock_txt := "Tag %d · %s %d:%02d" % [fortress.day, fortress.phase_name(), left / 60, left % 60]
+	var clock_txt := "Tag %d/%d · %s %d:%02d" % [fortress.day, Config.nights_to_win, fortress.phase_name(), left / 60, left % 60]
 	draw_string(font, Vector2(x, y + 204), clock_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, pcol)
 	# Sonne/Mond hinter der Uhr
 	var n: float = Lights.night
 	var icon := Vector2(x + font.get_string_size(clock_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x + 20, y + 196)
+	var blood: bool = siege != null and (siege.siege_tonight() or siege.active)   # Belagerungsnacht: roter Mond
 	if n < 0.5:
 		draw_circle(icon, 9.0, Color(1.0, 0.82, 0.45, 1.0 - n))
+		if blood:
+			draw_circle(icon + Vector2(22, 0), 5.0, Color(0.9, 0.2, 0.15, 0.9))   # roter Punkt: heute Nacht Belagerung
 	else:
-		draw_circle(icon, 9.0, Color(0.8, 0.84, 1.0, n))
+		draw_circle(icon, 9.0, Color(0.95, 0.3, 0.25, n) if blood else Color(0.8, 0.84, 1.0, n))
 		draw_circle(icon + Vector2(4, -3), 8.0, Color(0.02, 0.02, 0.03, n))
 
 

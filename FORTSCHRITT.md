@@ -1,11 +1,11 @@
 # Aschen – Fortschritt
 
-**Stand: v0.5 „Tag und Nacht“ zum Testen (Tag hell und ruhiger, Nacht dunkel und gefährlicher). Davor v0.4 „Bewohner mit eigenem Leben“, v0.3 „Tiefe“: Leiste als Puzzle (Kombos, Abzweigungen, Talismane), Bewohner mit Eigenleben, Wahnsinn.** v0.2 fertig bis auf Werte-Feinschliff. Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.6 „Überlebe 10 Nächte“ zum Testen (klares Ziel, Belagerungen in festen Nächten). Davor v0.5 „Tag und Nacht“ (Max: „Passt soweit alles“), v0.4 „Bewohner mit eigenem Leben“, v0.3 „Tiefe“.** Prototyp v0.1 war fertig mit Build #14.
 
 ## Nächster Chat
-**Erst Max' Test von v0.5 „Tag und Nacht“**: Stärke passt? (Werte im Abschnitt „Tag und Nacht (v0.5)“ in
-`scripts/config.gd`). Offene Frage an Max: Die volle Nacht dauert nur 30 s (Nachtruhe 10 %) plus Dämmerung –
-soll die Nacht länger werden (z. B. Nachtruhe 20 %, Arbeitszeit 60 %)? Danach mit Max die nächste Etappe wählen.
+**Erst Max' Test von v0.6 „Überlebe 10 Nächte“**: Passt die Länge (10 Nächte ≈ 50 min)? Passen Abstand und Größe
+der Belagerungen? Danach aus „Für eine spätere Etappe gemerkt“ wählen: Mehr Gegner & abwechslungsreichere
+Belagerungen · Jede Partie anders (zufällige Karte, Herkünfte, „Asche“) · Echte Grafik und Klang (zum Schluss).
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -179,7 +179,30 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 
 ---
 
-# Version v0.5 – Tag und Nacht (zum Testen)
+# Version v0.6 – Überlebe 10 Nächte (zum Testen)
+
+Max hat „Klares Ziel + Nächte“ als nächste Etappe gewählt (erster Schritt zu „Jede Partie anders“).
+
+- **Ziel: 10 Nächte überleben.** Die Uhr zeigt „Tag 3/10 · Freizeit 0:45“. Startmeldung „Überlebe 10 Nächte.“
+- **Belagerungen kommen nachts** statt alle 8 Minuten: in **Nacht 2, 4, 6, 8** und in der **letzten Nacht** (10).
+  Nacht 1 ist eine Schonfrist. Die Glocke läutet zu Beginn der Nachtruhe; das Vorzeichen (Feuer flackert)
+  kommt 30 s vorher. Größe wie bisher: 18, 24, 30, 36 Angreifer.
+- **Morgens Bescheid**: „Heute Nacht: Belagerung!“ bzw. „Die letzte Nacht – der letzte Sturm kommt!“.
+  Neben der Sonne steht dann ein roter Punkt, nachts wird der Mond rot (Blutmond).
+- **Letzter Sturm** in Nacht 10: **40 Angreifer**. Hält das Tor → **Sieg** („10 Nächte überstanden“).
+  Fällt es → ein Bewohner stirbt, und sie kommen in der **nächsten Nacht wieder** (bis das Tor hält).
+- **Der Hauptmann ist jetzt freiwillig**: Wer ihn vorher besiegt, hat im letzten Sturm nur **26** statt 40 Angreifer
+  (vorher war er Pflicht und löste den letzten Sturm aus).
+- Weggefallen: `siege_interval` (alle 8 min) und `siege_retry_delay`. Neu in `scripts/config.gd`:
+  `nights_to_win` 10, `siege_first_night` 2, `siege_every` 2, `final_siege_size` 40 (vorher 30),
+  `final_siege_size_boss` 26. Im Werte-Menü: „Nächte bis zum Sieg“, „Belagerung jede … Nacht“.
+- Speicherstand: Anzahl Belagerungen und die Nacht der letzten Belagerung (ältere Stände laden weiter).
+- Automatisch geprüft (Godot 4.7.2): Belagerungsnächte 2/4/10/11 richtig, Vorzeichen vor Nacht 2, Belagerung
+  startet mit der Nachtruhe, letzte Nacht → letzter Sturm → Siegbildschirm; Spiel läuft fehlerfrei.
+
+---
+
+# Version v0.5 – Tag und Nacht (fertig, Max: „Passt soweit alles“)
 
 Max: „nachts dunkler, Gegner nachts gefährlicher, tagsüber etwas ruhiger“. Vorschlag (mittlere Stärke) umgesetzt:
 

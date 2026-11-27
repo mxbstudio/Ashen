@@ -118,7 +118,7 @@ func _collect() -> Dictionary:
 				func(t): return [t.global_position.x, t.global_position.z, t.fuel, t.depot.stock]),
 		"small_torches": get_tree().get_nodes_in_group("small_torches").map(
 				func(t): return [t.global_position.x, t.global_position.z, t.fuel]),
-		"siege": {"time": siege.time_to_bell, "count": siege.count, "final": siege.final_pending},
+		"siege": {"count": siege.count, "last_night": siege.last_night},
 		"boss_defeated": get_parent().boss_defeated,
 	}
 	for b in fortress.buildings:
@@ -161,8 +161,7 @@ func apply(d: Dictionary) -> void:
 	_apply_player(d.get("player", {}))
 	var s: Dictionary = d.get("siege", {})
 	siege.count = int(s.get("count", 0))
-	siege.final_pending = bool(s.get("final", false))
-	siege.time_to_bell = maxf(float(s.get("time", Config.siege_interval)), Config.siege_warning + 15.0)
+	siege.last_night = int(s.get("last_night", 0))
 	var ev := get_tree().get_first_node_in_group("events")
 	if ev and d.has("event_t"):
 		ev.time_left = float(d["event_t"])
