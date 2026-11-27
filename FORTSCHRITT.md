@@ -322,10 +322,10 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
     Abzweigung: *Durchbohren* (alle auf der Linie) oder *Blenden* (2 s erschüttert → Sichel zerschmettert).
   - *Andacht* (Modifikator): nächster Angriff senkt den Wahnsinn um 3.
     Abzweigung: *Tiefe Andacht* (doppelt) oder *Lichtsegen* (+20 % Schaden).
-- **Angriffe laden erst in Reichweite**: Steht im aktuellen Feld ein Angriff und ist kein Gegner in *seiner* Reichweite
-  (Sichel 2,8 m, Glocke 4,5 m, Bogen/Glut/Lanze 14 m …), lädt das Feld nicht und die Leiste wartet dort
-  (Anzeige „Sichel wartet – Gegner zu weit weg“). Modifikatoren laden immer. Die Reihenfolge in der Leiste wird damit
-  wichtiger: Sichel vorn hält die Leiste an, bis jemand nah genug ist.
+- **Angriffe laden erst in Reichweite**: Die Leiste lädt, sobald *irgendein* Angriff der Leiste einen Gegner in
+  Reichweite hat, plus 2 m Puffer (Sichel 2,8 m, Glocke 4,5 m, Bogen/Glut/Lanze 14 m … – es zählt die größte).
+  Sonst wartet sie („Leiste wartet – Gegner zu weit weg“). So schießt der Bogen auch, wenn die Sichel in der Leiste
+  steckt (erste Fassung hielt die Leiste am Sichel-Feld an – Max: so nicht). Wert: `bar_range_margin` (2 m).
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

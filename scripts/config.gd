@@ -163,6 +163,7 @@ var cast_modifier := 0.2
 
 # --- Skills (Wirkung) -----------------------------------------------------
 var combat_range := 14.0           # m – nur wenn ein Gegner so nah ist, läuft die Leiste
+var bar_range_margin := 2.0        # m – die Leiste lädt schon, wenn ein Gegner so viel weiter weg ist als die größte Angriffs-Reichweite
 var sickle_damage := 12.0
 var sickle_range := 2.8            # m Reichweite des Bogens vor dem Hüter
 var sickle_angle := 150.0          # Grad Öffnungswinkel

@@ -71,6 +71,15 @@ func in_range(id: String) -> bool:
 	return nearest_enemy(skill_range(id)) != null
 
 
+## Hat irgendein Angriff der Leiste einen Gegner in Reichweite (+ Config.bar_range_margin)?
+func bar_in_range() -> bool:
+	var best := 0.0
+	for id in player.skill_bar.slots:
+		if SkillData.is_attack(id):
+			best = maxf(best, skill_range(id))
+	return best > 0.0 and nearest_enemy(best + Config.bar_range_margin) != null
+
+
 func enemy_near() -> bool:
 	return nearest_enemy(Config.combat_range + player.range_bonus()) != null
 

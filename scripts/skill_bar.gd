@@ -18,7 +18,7 @@ var index := 0                     # aktueller Slot
 var progress := 0.0                # Sekunden, die der aktuelle Cast schon läuft
 var pending_mods: Array[String] = []   # vorgemerkte Modifikatoren
 var running := false
-var waiting := false               # Angriff im aktuellen Feld hat keinen Gegner in Reichweite -> lädt nicht
+var waiting := false               # kein Angriff der Leiste hat einen Gegner in Reichweite -> nichts lädt
 var stash: Array[String] = []          # Vorrat: besessene Skills, die nicht in der Leiste sind
 var levels := {"sickle": 1, "bow": 1}  # jeder Skill nur einmal – dafür mit Stufe
 var branches := {}                     # gewählte Abzweigung je Skill: "a" oder "b" (ab Stufe 3)
@@ -105,9 +105,9 @@ func _physics_process(delta: float) -> void:
 		while slots[index] == "" and guard < slots.size():
 			_advance_index()
 			guard += 1
-	# Angriffe laden erst, wenn ein Gegner in IHRER Reichweite ist (Modifikatoren laden immer)
-	var cur := slots[index]
-	waiting = SkillData.is_attack(cur) and not player.combat.in_range(cur)
+	# Die Leiste lädt, sobald irgendein Angriff der Leiste einen Gegner in Reichweite hat (+ etwas Puffer).
+	# Die größte Reichweite zählt – so schießt der Bogen auch, wenn die Sichel in der Leiste steckt.
+	waiting = not player.combat.bar_in_range()
 	if waiting:
 		return
 	progress += delta
