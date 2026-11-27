@@ -138,6 +138,7 @@ func _ready() -> void:
 	var reset := UiStyle.button("Alles auf Standard", Color(0.7, 0.7, 0.7), 24, Vector2(0, 80))
 	reset.pressed.connect(_reset_all)
 	_box.add_child(reset)
+	UiStyle.pass_touch(_box)
 	# fester "Weiter"-Knopf unten
 	var done := UiStyle.button("Weiter", Color(0.5, 0.9, 0.5), 32, Vector2(0, 100))
 	done.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)

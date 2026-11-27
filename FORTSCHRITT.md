@@ -240,6 +240,12 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   Ab 75 springen Trugbilder dich an. Bei 100 zehrt der Wahn am Leben (2/s, tötet aber nicht).
 - Verbindung der drei Teile: Wer draußen ins Risiko geht, wird stärker – belastet damit aber die Festung.
 
+### Nach Max' Test von v0.3
+- **Scrollen repariert**: In „Leiste umbauen“ konnte man am Handy nicht richtig nach unten scrollen – die großen Knöpfe
+  (Felder, Talismane) haben das Wischen abgefangen. Jetzt geben Knöpfe in scrollbaren Menüs das Wischen an die Liste
+  weiter (`UiStyle.pass_touch`); Antippen löst sie weiter aus, Wischen nicht. Gilt auch für „Bewohner einteilen“
+  und das Werte-Menü.
+
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.
 Im Werte-Menü neue Gruppen: „Leiste & Talismane“, „Wahnsinn“, „Bewohner-Stimmung“.

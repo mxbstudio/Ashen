@@ -122,6 +122,7 @@ func _rebuild() -> void:
 	done.pressed.connect(close)
 	bottom.add_child(done)
 	_box.add_child(bottom)
+	UiStyle.pass_touch(_box)
 
 
 func _info_text() -> String:

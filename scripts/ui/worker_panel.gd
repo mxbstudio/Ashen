@@ -117,6 +117,7 @@ func _rebuild() -> void:
 			_box.add_child(_row(z["id"], "food", "Sammler", lit))
 		if z.get("rocks", 0) > 0:
 			_box.add_child(_row(z["id"], "stone", "Steinbrecher", lit))
+	UiStyle.pass_touch(_box)
 
 
 func _row(zone_id: String, kind: String, title: String, lit: bool) -> Control:
