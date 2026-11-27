@@ -92,6 +92,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0, -0.5)
 script = ExtResource("6")
 kind = "carts"
 
+[node name="Tavern" type="Node3D" parent="Fortress"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, 0.5)
+script = ExtResource("6")
+kind = "tavern"
+
 [node name="Tower" type="Node3D" parent="Fortress"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -8)
 script = ExtResource("6")

@@ -132,6 +132,14 @@ func _ready() -> void:
 	_hp_bar.setup(0.8)
 	_hp_bar.position.y = 1.9
 	_hp_bar._fill.material_override.albedo_color = Color(0.4, 0.85, 0.4)
+	# Hungerleiste: dünn, weiß, unter der Lebensleiste
+	_hunger_bar = Node3D.new()
+	_hunger_bar.set_script(HpBar)
+	add_child(_hunger_bar)
+	_hunger_bar.setup(0.8)
+	_hunger_bar.scale = Vector3(0.8, 0.45, 0.8)
+	_hunger_bar.position.y = 1.8
+	_hunger_bar._fill.material_override.albedo_color = Color(0.95, 0.95, 0.95)
 	_name_label = Label3D.new()
 	_name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_name_label.fixed_size = true
@@ -153,7 +161,7 @@ func setup_identity(d: Dictionary) -> void:
 	bond_name = d.get("bond", "")
 	bond_kind = d.get("bond_kind", "")
 	grief = float(d.get("grief", 0.0))
-	satiety = float(d.get("satiety", 80.0))
+	satiety = float(d.get("satiety", _rng.randf_range(45.0, 95.0)))   # verschieden satt -> essen nicht alle gleichzeitig
 	energy = float(d.get("energy", 100.0))
 	combat = float(d.get("combat", 0.0))
 	age = float(d.get("age", 99999.0))
@@ -326,6 +334,11 @@ func _process(delta: float) -> void:
 		_cart.visible = driving
 	_cart_load_mesh.visible = _cart_total() > 0
 	_update_name_label()
+	_hunger_bar.set_fraction(maxf(satiety / 100.0, 0.002))
+	if satiety < Config.hungry_below:
+		_hunger_bar._fill.material_override.albedo_color = Color(1, 0.55, 0.45) if fmod(Time.get_ticks_msec() / 400.0, 2.0) < 1.0 else Color(0.95, 0.95, 0.95)
+	else:
+		_hunger_bar._fill.material_override.albedo_color = Color(0.95, 0.95, 0.95)
 	_life_tick -= delta
 	if _life_tick <= 0.0:
 		_life_tick = 0.5
@@ -983,6 +996,8 @@ var _no_chop := 0.0                 # s, in denen „Holz fürs Haus“ nicht ge
 var _no_forage := 0.0
 var _lying := false
 var _was_child := false
+var _eat_tavern := 0               # Stufe des Gasthauses, in dem er gerade isst (0 = am Lager)
+var _hunger_bar: Node3D
 
 
 func is_child() -> bool:
@@ -1037,7 +1052,7 @@ func _life_decide() -> void:
 			_start_life()
 	elif state in [State.OUT, State.WORK] and not _fleeing:
 		# Feierabend (oder großer Hunger): mit der Ladung heim
-		if phase != "work" or satiety < Config.starving_below * 0.75:
+		if phase != "work" or satiety < Config.hungry_below:
 			_go_home()
 
 
@@ -1065,6 +1080,8 @@ func _choose_act() -> String:
 		return "sleep"
 	if satiety < Config.hungry_below:
 		return "eat"
+	if house and pantry >= 1.0 and satiety < Config.snack_below and not is_child():
+		return "snack"
 	if is_child():
 		return "play"
 	if Zones.recalled(get_tree()):
@@ -1093,11 +1110,13 @@ func _start_act(a: String) -> void:
 	var fire := Vector3.ZERO
 	match a:
 		"eat":
-			activity = "isst"
-			if house and pantry >= 1.0:
-				_path_to(house.bed_pos())
-			else:
-				_path_to(_around(fire, 2.2, 3.0))
+			var place: Dictionary = f.eat_place()
+			_eat_tavern = place["tavern"]
+			activity = "isst im Gasthaus" if _eat_tavern > 0 else "holt sich etwas am Lager"
+			_path_to(place["pos"])
+		"snack":
+			activity = "isst zu Hause aus dem eigenen Vorrat"
+			_path_to(house.bed_pos())
 		"sleep":
 			activity = "schläft" + ("" if house else " am Feuer")
 			_path_to(house.bed_pos() if house else _around(fire, 2.5, 3.5))
@@ -1154,9 +1173,20 @@ func _life_step(delta: float) -> void:
 			if not _follow_path(delta, _speed()):
 				return
 			_act_t += delta
-			if _act_t < 2.0:
+			if _act_t < (4.0 if _eat_tavern > 0 else 2.0):
 				return
 			_eat(f)
+			_after_act()
+		"snack":
+			if not _follow_path(delta, _speed()):
+				return
+			_act_t += delta
+			if _act_t < 2.0:
+				return
+			var n := minf(pantry, (95.0 - satiety) / Config.meal_satiety)
+			if n > 0.0:
+				pantry -= n
+				satiety = minf(satiety + n * Config.meal_satiety, 100.0)
 			_after_act()
 		"sleep":
 			if not _lying:
@@ -1216,24 +1246,25 @@ func _after_act() -> void:
 		_start_act(_choose_act())
 
 
-## Essen: aus dem eigenen Vorrat, sonst aus dem Lager der Festung.
+## Essen: im Gasthaus (sättigt besser, hebt die Stimmung) oder am Lager (nicht so befriedigend).
 func _eat(f: Node3D) -> void:
-	var want := (95.0 - satiety) / Config.meal_satiety   # Nahrung, die er bräuchte
+	var per_food := Config.meal_satiety * (1.0 + Config.tavern_satiety_per_level * _eat_tavern)
+	var want := (95.0 - satiety) / per_food   # Nahrung, die er bräuchte
 	if want <= 0.0:
 		return
 	var cost := 0.5 if f.ration_t > 0.0 else 1.0       # gekürzte Rationen: halb so viel
 	var got := 0.0
-	if house and pantry > 0.0:
-		got = minf(want, pantry)
-		pantry -= got
-	var rest := want - got
-	if rest > 0.0 and f.food > 0.0:
-		var take := minf(rest * cost, f.food)
+	if f.food > 0.0:
+		var take := minf(want * cost, f.food)
 		f.food -= take
-		got += take / cost
-	satiety = minf(satiety + got * Config.meal_satiety, 100.0)
+		got = take / cost
+	satiety = minf(satiety + got * per_food, 100.0)
 	if got <= 0.0:
 		_number("nichts zu essen …", Color(1, 0.5, 0.4))
+	elif _eat_tavern > 0:
+		mood = minf(mood + Config.tavern_mood * _eat_tavern, 100.0)
+	else:
+		mood = maxf(mood - 3.0, 0.0)   # am Lager schnell etwas hinunterschlingen – nicht befriedigend
 
 
 func _chop_step(delta: float, f: Node3D) -> void:

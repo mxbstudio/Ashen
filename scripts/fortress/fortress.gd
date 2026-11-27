@@ -1104,3 +1104,22 @@ func _make_training_post() -> void:
 	l.text = "Übungsplatz"
 	l.position.y = 2.1
 	post.add_child(l)
+
+
+
+# --- Essen: Gasthaus oder Lager (v0.4) ---------------------------------------------------
+
+func tavern_level() -> int:
+	return _level_of("tavern")
+
+
+## Wo isst man? Im Gasthaus, sonst am Lager (Vorratslager, ohne das am Feuer). {"pos", "tavern": Stufe}
+func eat_place() -> Dictionary:
+	for b in buildings:
+		if b.kind == "tavern" and b.built:
+			return {"pos": b.work_spot() + Vector3(_rng.randf_range(-0.8, 0.8), 0, _rng.randf_range(-0.8, 0.8)), "tavern": b.level}
+	for b in buildings:
+		if b.kind == "storehouse" and b.built:
+			return {"pos": b.work_spot() + Vector3(_rng.randf_range(-0.6, 0.6), 0, _rng.randf_range(-0.6, 0.6)), "tavern": 0}
+	var a := _rng.randf() * TAU
+	return {"pos": Vector3(cos(a), 0, sin(a)) * 2.6, "tavern": 0}

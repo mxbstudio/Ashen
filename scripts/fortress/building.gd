@@ -8,7 +8,7 @@ extends Node3D
 const ArrowScript := preload("res://scripts/arrow.gd")
 const MAX_LEVEL := 3
 
-@export var kind := "storehouse"   # storehouse, scrapyard, mushroom, tower, workshop, carts
+@export var kind := "storehouse"   # storehouse, scrapyard, mushroom, tower, workshop, carts, tavern
 
 var level := 0                     # 0 = noch nicht gebaut
 var built := false                 # = level >= 1
@@ -22,7 +22,7 @@ var _plot: MeshInstance3D
 var _flags: Array[MeshInstance3D] = []
 
 const NAMES := {"storehouse": "Vorratslager", "scrapyard": "Trümmerhof",
-		"mushroom": "Pilzkeller", "tower": "Wachturm", "workshop": "Werkstatt", "carts": "Karrenschuppen"}
+		"mushroom": "Pilzkeller", "tower": "Wachturm", "workshop": "Werkstatt", "carts": "Karrenschuppen", "tavern": "Gasthaus"}
 
 
 func display_name() -> String:
@@ -38,6 +38,7 @@ func cost() -> int:
 		"tower": return Config.cost_tower
 		"workshop": return Config.cost_workshop
 		"carts": return Config.cost_carts
+		"tavern": return Config.cost_tavern
 	return 0
 
 
@@ -54,7 +55,7 @@ func can_improve() -> bool:
 
 
 func needs_worker() -> bool:
-	return kind != "storehouse"
+	return kind != "storehouse" and kind != "tavern"
 
 
 ## Wie viele Bewohner können hier arbeiten?
@@ -115,6 +116,8 @@ func description(l := 1) -> String:
 		"storehouse": return "+%d Lagerplatz für Holz und Nahrung" % (Config.storehouse_bonus * l)
 		"scrapyard": return "%s, je +1 Holz alle %d s" % [_places(l), int(Config.scrapyard_seconds_per_wood)]
 		"mushroom": return "%s, je +1 Nahrung alle %d s" % [_places(l), int(Config.mushroom_seconds_per_food)]
+		"tavern": return "Bewohner essen hier: 1 Nahrung sättigt +%d %%, Stimmung +%d" % [
+				roundi(Config.tavern_satiety_per_level * l * 100), roundi(Config.tavern_mood * l)]
 		"carts": return "%d Karren – holen Holz, Nahrung, Stein von den Lagerplätzen an den Fackeln (je %d)" % [
 				capacity(l), Config.cart_capacity]
 		"workshop": return "%s, je 1 Bogen alle %d s (%d Holz pro Bogen)" % [_places(l),

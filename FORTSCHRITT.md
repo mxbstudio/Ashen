@@ -203,6 +203,15 @@ Max: „versuchen wir das“ (gemerkte Idee: Bedürfnisse, Arbeitszeit/Freizeit,
 - **Speicherstand**: Tag und Uhrzeit, Häuser, wer wo wohnt, Bedürfnisse, Kampf-Stufe, Alter, Vorrat.
 - Neue Werte: Abschnitt „Eigenes Leben der Bewohner (v0.4)“ in `scripts/config.gd`.
 - Skripte: `scripts/fortress/hut.gd` (Haus), Abschnitt „Eigenes Leben“ in `resident.gd` und `fortress.gd`.
+- **Gasthaus** (Wunsch Max; neuer Bauplatz links vom Feuer, 10 Holz, 3 Stufen) und **Hungerleiste**:
+  - Über jedem Bewohner eine **dünne weiße Hungerleiste** unter der Lebensleiste (blinkt rötlich unter 25 %).
+  - **Unter 25 % Sättigung muss gegessen werden** – sofort, auch mitten in der Arbeit (draußen: mit der Ladung heim).
+    Gegessen wird im **Gasthaus** (4 s; jede Stufe macht 1 Nahrung 15 % sättigender, Stimmung +4 je Stufe) –
+    gibt es keins, **am Lager** (Vorratslager bzw. am Feuer; schnell hinuntergeschlungen, Stimmung −3).
+  - **Eigener Vorrat** zu Hause: höchstens **2 Nahrung** (vorher 6 – zu viel gebunkert). Nur für einen Imbiss in
+    der Freizeit (unter 60 %).
+  - Start-Sättigung zufällig (45–95 %), damit nicht alle gleichzeitig essen gehen.
+  - Probelauf (3 Tage, Gasthaus): Nahrung stabil (21–39), niemand verhungert.
 - Probelauf (5 Tage, 2 Sammler, 2 Holzfäller, Pilzkeller, Trümmerhof): Nahrung bleibt stabil (10–33), niemand
   verhungert, die ersten Häuser entstehen ab Tag 4 (erste Fassung, danach Haus billiger gemacht), Überlebende kommen
   dazu bis 12 Bewohner. Paare und Kinder brauchen erfahrungsgemäß einige Tage.
