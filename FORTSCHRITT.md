@@ -1,11 +1,11 @@
 # Aschen – Fortschritt
 
-**Stand: v0.4 „Bewohner mit eigenem Leben“ zum Testen. Davor v0.3 „Tiefe“: Leiste als Puzzle (Kombos, Abzweigungen, Talismane), Bewohner mit Eigenleben, Wahnsinn.** v0.2 fertig bis auf Werte-Feinschliff. Prototyp v0.1 war fertig mit Build #14.
+**Stand: v0.5 „Tag und Nacht“ zum Testen (Tag hell und ruhiger, Nacht dunkel und gefährlicher). Davor v0.4 „Bewohner mit eigenem Leben“, v0.3 „Tiefe“: Leiste als Puzzle (Kombos, Abzweigungen, Talismane), Bewohner mit Eigenleben, Wahnsinn.** v0.2 fertig bis auf Werte-Feinschliff. Prototyp v0.1 war fertig mit Build #14.
 
 ## Nächster Chat
-**Geplant: Tag und Nacht sichtbar machen** (Max hat sich dafür entschieden). Bisher läuft nur die Uhr
-(Arbeitszeit – Freizeit – Nachtruhe, siehe v0.4). Idee: nachts dunkler (Mond/Umgebungslicht), Gegner nachts
-gefährlicher/zahlreicher, tagsüber etwas Luft; passend zum Licht-Thema des Spiels. Mit Max abstimmen, wie stark.
+**Erst Max' Test von v0.5 „Tag und Nacht“**: Stärke passt? (Werte im Abschnitt „Tag und Nacht (v0.5)“ in
+`scripts/config.gd`). Offene Frage an Max: Die volle Nacht dauert nur 30 s (Nachtruhe 10 %) plus Dämmerung –
+soll die Nacht länger werden (z. B. Nachtruhe 20 %, Arbeitszeit 60 %)? Danach mit Max die nächste Etappe wählen.
 
 Spielen im Handy-Browser: **https://mxbstudio.github.io/Ashen/**
 Die Build-Nummer oben links im Spiel (z. B. `#5 (abc1234)`) zeigt, welcher Stand geladen ist.
@@ -176,6 +176,30 @@ Bei jedem Push baut `.github/workflows/web-export.yml` die Web-Version und legt 
 - **Gebiete erhellen statt selbst sammeln**: Draußen Gebiete hell machen (z. B. per Leuchtfeuer), dann Bewohner als Holzfäller und Jäger/Sammler dorthin schicken.
 - **Gebäude-Upgrades.**
 - **Begehbarer Wachturm**: erhöht stehen und von dort schießen.
+
+---
+
+# Version v0.5 – Tag und Nacht (zum Testen)
+
+Max: „nachts dunkler, Gegner nachts gefährlicher, tagsüber etwas ruhiger“. Vorschlag (mittlere Stärke) umgesetzt:
+
+- **Verlauf** (folgt der Uhr aus v0.4, weich überblendet): Arbeitszeit = **Tag** (die ersten ≈ 21 s
+  Morgendämmerung) · Freizeit = **Abenddämmerung** (60 s, rötlicher Himmel) · Nachtruhe = **volle Nacht** (30 s).
+- **Aussehen**: Tag = fahler, warmgrauer Aschetag (Umgebungslicht 0,6, „Sonne“ 0,55) – deutlich heller als bisher,
+  aber Feuer und Laterne zählen weiter. Nacht = kaltes Mondlicht, etwas dunkler als bisher (Umgebung 0,2, Mond 0,1;
+  bisher immer 0,3 / 0,15). Nach dem Zeitsprung beim Tod gleitet das Licht in 2 s nach.
+- **Gegner** (Tag → Nacht): höchstens **10 → 16** gleichzeitig, Nachschub alle **4,5 s → 2 s** (vorher immer 3 s),
+  Schaden **×0,85 → ×1,25** (zusätzlich zum Dunkelheits-Bonus +50 %; gilt auch gegen Bewohner),
+  Anteil Verlorene **20 % → 35 %**, Raubzüge auf Fackeln **×0,67 → ×2** so oft.
+- **Wahnsinn** draußen im Dunkeln steigt am Tag ×0,75, nachts ×1,5.
+- **HUD**: Sonne bzw. Mondsichel hinter der Uhr. Meldungen: „Tag 2 – es wird hell, an die Arbeit“,
+  „Feierabend – es dämmert“, „Nachtruhe – die Dunkelheit wird stärker“.
+- Unverändert: „im Licht“ zählt weiter nur für Lichtkreise (Feuer, Laterne, Fackeln) – auch am Tag macht ein Gegner
+  außerhalb davon +50 % Schaden. Belagerungen kommen wie bisher unabhängig von der Tageszeit.
+- Neue Werte: Abschnitt „Tag und Nacht (v0.5)“ in `scripts/config.gd`; Skript `scripts/day_night.gd`;
+  Nacht-Anteil: `fortress.night()`, abrufbar überall als `Lights.night` / `Lights.by_time(tag, nacht)`.
+- Automatisch geprüft (Godot 4.7.2): Spiel läuft fehlerfrei; Bildschirmfotos Tag/Dämmerung/Nacht angesehen;
+  nachts deutlich mehr Gegner unterwegs.
 
 ---
 

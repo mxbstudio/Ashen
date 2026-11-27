@@ -4,6 +4,12 @@
 extends Node
 
 var _sources: Array[Node3D] = []
+var night := 0.0   # Nacht-Anteil 0 (Tag) … 1 (Nacht), gesetzt von scripts/day_night.gd
+
+
+## Wert zwischen Tag (day) und Nacht (night) – je nach Tageszeit.
+func by_time(day: float, at_night: float) -> float:
+	return lerpf(day, at_night, night)
 
 
 func register(source: Node3D) -> void:

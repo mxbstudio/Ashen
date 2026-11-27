@@ -32,19 +32,21 @@ func _process(delta: float) -> void:
 	_timer -= delta
 	if _timer > 0.0:
 		return
-	_timer = Config.spawn_interval
+	# Tag und Nacht: nachts kommt öfter Nachschub und es streifen mehr Gegner umher
+	_timer = Lights.by_time(Config.spawn_interval_day, Config.spawn_interval_night)
+	var limit := roundi(Lights.by_time(Config.max_enemies_day, Config.max_enemies))
 	# Sitzt der Hüter sicher am Feuer, streifen nur halb so viele Gegner umher
-	var limit := Config.max_enemies
 	if Lights.fixed_source_at(player.global_position) != null:
-		limit = Config.max_enemies / 2
+		limit /= 2
 	var free_slots := limit - alive_count()
 	if free_slots <= 0:
 		return
-	# Mischung: meist Kriecher-Rudel, manchmal Lichtfresser oder ein Verlorener
+	# Mischung: meist Kriecher-Rudel, manchmal Lichtfresser oder ein Verlorener (nachts öfter)
+	var lost_share := Lights.by_time(Config.lost_share_day, Config.lost_share_night)
 	var roll := _rng.randf()
-	if roll < 0.55:
+	if roll < 0.55 * (1.0 - lost_share) / 0.8:
 		_spawn_group(Crawler, mini(_rng.randi_range(3, 4), free_slots))
-	elif roll < 0.8:
+	elif roll < 1.0 - lost_share:
 		_spawn_group(LightEater, 1)
 	else:
 		_spawn_group(Lost, 1)
@@ -81,7 +83,7 @@ func _find_spawn_point() -> Vector3:
 
 ## Raubzug: ein Lichtfresser fliegt zu einer zufälligen brennenden Fackel.
 func _raid_step(delta: float) -> void:
-	_raid_timer -= delta
+	_raid_timer -= delta * Lights.by_time(Config.raid_speed_day, Config.raid_speed_night)
 	if _raid_timer > 0.0:
 		return
 	_raid_timer = Config.torch_raid_interval

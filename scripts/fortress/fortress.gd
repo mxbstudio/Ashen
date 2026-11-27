@@ -902,6 +902,19 @@ func phase_left() -> float:
 	return end * Config.day_length - day_time
 
 
+## Nacht-Anteil (v0.5): 0 = heller Tag, 1 = tiefe Nacht. Weich übergeblendet –
+## Morgendämmerung zu Beginn der Arbeitszeit, Abenddämmerung über die ganze Freizeit, Nachtruhe = volle Nacht.
+func night() -> float:
+	var k := fposmod(day_time + _tick, Config.day_length) / Config.day_length
+	if k < Config.dawn_share:
+		return 1.0 - smoothstep(0.0, Config.dawn_share, k)
+	if k < Config.work_share:
+		return 0.0
+	if k < Config.work_share + Config.free_share:
+		return smoothstep(Config.work_share, Config.work_share + Config.free_share, k)
+	return 1.0
+
+
 func phase_name() -> String:
 	return {"work": "Arbeitszeit", "free": "Freizeit", "night": "Nachtruhe"}[phase()]
 
@@ -915,10 +928,10 @@ func _clock_step(dt: float) -> void:
 	if p != _last_phase:
 		_last_phase = p
 		match p:
-			"work": message.emit("Tag %d – an die Arbeit" % day)
-			"free": message.emit("Feierabend – Freizeit")
+			"work": message.emit("Tag %d – es wird hell, an die Arbeit" % day)
+			"free": message.emit("Feierabend – es dämmert")
 			"night":
-				message.emit("Nachtruhe")
+				message.emit("Nachtruhe – die Dunkelheit wird stärker")
 				_night_births()
 
 

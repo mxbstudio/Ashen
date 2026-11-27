@@ -122,7 +122,7 @@ func _update_value(delta: float) -> void:
 		rate += Config.madness_empty_rate
 	elif f < 0.3:
 		rate += Config.madness_low_lantern_rate
-	add(rate * delta)
+	add(rate * Lights.by_time(Config.madness_day_factor, Config.madness_night_factor) * delta)
 
 
 ## Trugbild: ein Paar glühender Augen im Dunkeln. rushing = springt auf den Hüter zu (ab Stufe 3).

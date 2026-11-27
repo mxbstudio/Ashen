@@ -254,6 +254,22 @@ var tool_speed_per_level := 0.35   # jede Werkzeug-Stufe: Abbauen +35 % schnelle
 var tool_cost_wood := [6, 10, 16]  # Holz für Stufe 1 / 2 / 3
 var tool_cost_stone := [4, 8, 14]  # Stein für Stufe 1 / 2 / 3
 
+# --- Tag und Nacht (v0.5) ---------------------------------------------------------------
+# Nacht-Anteil 0 (Tag) … 1 (Nacht): Arbeitszeit = Tag, Freizeit = Abenddämmerung, Nachtruhe = Nacht,
+# zu Beginn der Arbeitszeit Morgendämmerung. Alle Tag/Nacht-Werte werden dazwischen weich überblendet.
+var dawn_share := 0.07             # Anteil des Tages für die Morgendämmerung (≈ 21 s)
+var spawn_interval_day := 4.5      # s zwischen zwei Nachschüben am Tag (Nacht: spawn_interval_night)
+var spawn_interval_night := 2.0
+var max_enemies_day := 10          # höchstens so viele Gegner am Tag (Nacht: max_enemies)
+var enemy_damage_day := 0.85       # Gegnerschaden am Tag ×0,85 …
+var enemy_damage_night := 1.25     # … und nachts ×1,25 (zusätzlich zum Dunkelheits-Bonus)
+var lost_share_day := 0.2          # Anteil Verlorene am Nachschub am Tag …
+var lost_share_night := 0.35       # … und nachts
+var raid_speed_day := 0.67         # Raubzüge auf Fackeln: am Tag seltener (×0,67 so oft) …
+var raid_speed_night := 2.0        # … nachts doppelt so oft
+var madness_day_factor := 0.75     # Wahnsinn draußen im Dunkeln steigt am Tag langsamer …
+var madness_night_factor := 1.5    # … und nachts schneller
+
 # --- Eigenes Leben der Bewohner (v0.4) ----------------------------------------------
 var day_length := 300.0            # s – ein Tag: Arbeitszeit, Freizeit, Nachtruhe
 var work_share := 0.7              # Anteil Arbeitszeit am Tag

@@ -2,6 +2,7 @@
 extends Node3D
 
 const BossScript := preload("res://scripts/enemies/boss.gd")
+const DayNightScript := preload("res://scripts/day_night.gd")
 
 @onready var player: CharacterBody3D = $Player
 @onready var fortress: Node3D = $Fortress
@@ -15,6 +16,12 @@ func _ready() -> void:
 	player.died.connect(_on_player_died)
 	fortress.fire_out.connect(_on_fire_out)
 	siege.siege_ended.connect(_on_siege_ended)
+	# Tag und Nacht: Licht der Welt folgt der Uhr der Festung
+	var dn: Node = DayNightScript.new()
+	dn.fortress = fortress
+	dn.environment = $WorldEnvironment.environment
+	dn.sky_light = $Moon
+	add_child(dn)
 	_spawn_boss()
 	# kurzer Ziel-Hinweis beim Start
 	get_tree().call_group("hud", "toast", "Halte das Feuer am Brennen.", 6.0)

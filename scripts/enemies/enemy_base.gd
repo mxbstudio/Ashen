@@ -165,7 +165,7 @@ func in_darkness() -> bool:
 
 ## Schaden am Hüter – im Dunkeln um den Dunkelheits-Bonus erhöht.
 func hurt_player(base_damage: float) -> void:
-	var amount := base_damage
+	var amount := base_damage * Lights.by_time(Config.enemy_damage_day, Config.enemy_damage_night)
 	if in_darkness():
 		amount *= 1.0 + Config.dark_damage_bonus
 	player.take_damage(amount, self)
@@ -363,6 +363,6 @@ func _hunt_think(_delta: float) -> Vector3:
 		return v.normalized() * speed
 	if _hunt_cd <= 0.0:
 		_hunt_cd = hunt_interval
-		var amount := hunt_damage * Config.resident_damage_factor * (1.0 + Config.dark_damage_bonus if in_darkness() else 1.0)
+		var amount := hunt_damage * Config.resident_damage_factor * Lights.by_time(Config.enemy_damage_day, Config.enemy_damage_night) * (1.0 + Config.dark_damage_bonus if in_darkness() else 1.0)
 		_prey.take_damage(amount, self)
 	return Vector3.ZERO
