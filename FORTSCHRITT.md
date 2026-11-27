@@ -326,6 +326,9 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   Skill-Leiste (Taste **E**). Die Leiste läuft nur, wenn sie an ist – egal wie weit die Gegner weg sind; beim Ausschalten
   beginnt sie beim nächsten Start wieder vorn. Am Spielstart ist sie aus; der Zustand wird gespeichert.
   (Vorher: lief nur mit Gegner in 14 m, dann zwischendurch Reichweiten-Prüfung je Angriff – beides ersetzt.)
+- **„Bitte Handy drehen“ am PC repariert**: Die Meldung kam, sobald das Fenster quer war und der Browser einen
+  Touch-Bildschirm meldete – das tun auch viele PC-Browser. Jetzt nur noch auf Android/iOS. Zusätzlich hat die Meldung
+  einen Knopf „Trotzdem spielen“.
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.
