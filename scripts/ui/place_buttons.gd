@@ -27,10 +27,9 @@ func _ready() -> void:
 		add_child(b)
 
 
-## Wie viel hat man von einer Sache (Trage + Lager; beim Holz bleibt das letzte im Lager)?
+## Wie viel hat man von einer Sache (Trage + Lager; beim Holz bleibt die Reserve fürs Feuer)?
 func _available(kind: String) -> int:
-	var store: int = int(fortress.wood) - 1 if kind == "wood" else int(fortress.stone)
-	return player.carry[kind] + maxi(store, 0)
+	return player.carry[kind] + fortress.spendable(kind)
 
 
 func _pay(kind: String, n: int) -> void:

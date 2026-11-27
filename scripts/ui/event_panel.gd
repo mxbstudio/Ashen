@@ -132,7 +132,7 @@ func _build(id: String) -> Dictionary:
 				"a": ["%s verbannen" % r.res_name, "−1 Bewohner, die anderen erschrecken", _banish.bind(r)],
 				"b": ["Gewähren lassen", "Zweifel breiten sich aus – auch in dir (+10 Wahnsinn)", _tolerate]}
 		"prayer":
-			if player.madness.value < 50.0 or fortress.food < 6:
+			if player.madness.value < 50.0 or fortress.spendable("food") < 5:
 				return {}
 			return {"id": id, "title": "Ein Gebet für den Hüter",
 				"text": "Die Bewohner haben deine Augen gesehen. Sie wollen für dich beten – und Nahrung opfern.",

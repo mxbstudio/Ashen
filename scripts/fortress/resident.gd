@@ -17,7 +17,7 @@ const HpBar := preload("res://scripts/hp_bar.gd")
 const DamageNumber := preload("res://scripts/damage_number.gd")
 const ArrowScript := preload("res://scripts/arrow.gd")
 
-enum State { HOME, OUT, WORK, BACK, DELIVER, TEND }
+enum State { HOME, OUT, WORK, BACK, DELIVER, TEND, CART_OUT, DROP }
 
 const GATE_IN := Vector3(0, 0, -9.5)     # innen vor dem Tor
 const GATE_OUT := Vector3(0, 0, -15.0)   # draußen vor dem Tor
@@ -37,6 +37,10 @@ var bond_name := ""                 # mit wem verbunden ("" = niemand)
 var bond_kind := ""                 # "Geschwister" oder "Paar"
 var grief := 0.0                    # s Trauer übrig
 var _name_label: Label3D
+var cart_load := {"wood": 0, "food": 0, "stone": 0}   # Karrenfahrer: Ladung auf dem Karren
+var _depot: Node3D = null           # Lagerplatz, zu dem er gerade fährt (Karren) bzw. geht (Ablegen)
+var _cart: Node3D                   # Karren (nur sichtbar, wenn er Karrenfahrer ist)
+var _cart_load_mesh: MeshInstance3D
 var state := State.HOME
 
 var _path: Array[Vector3] = []
@@ -124,6 +128,7 @@ func _ready() -> void:
 	_name_label.position.y = 2.2
 	_name_label.visible = false
 	add_child(_name_label)
+	_build_cart()
 	_pick_home_target()
 
 
@@ -281,6 +286,10 @@ func _process(delta: float) -> void:
 	_mat.albedo_color = Color(1, 0.75, 0.7) if _flash > 0.0 else Color(0.5, 0.45, 0.38)
 	_load_mesh.visible = cargo > 0 or state == State.DELIVER
 	_bow_mesh.visible = has_bow
+	var driving := is_driver() and state in [State.CART_OUT, State.BACK]
+	if _cart.visible != driving:
+		_cart.visible = driving
+	_cart_load_mesh.visible = _cart_total() > 0
 	_update_name_label()
 	if has_bow and is_exposed():
 		_defend(delta)
@@ -309,6 +318,13 @@ func _process(delta: float) -> void:
 				_abort_delivery()
 			elif _follow_path(delta, _speed()):
 				_finish_delivery()
+		State.CART_OUT:
+			_cart_out(delta)
+		State.DROP:
+			if not can_work() or not is_instance_valid(_depot):
+				_go_home()
+			elif _follow_path(delta, _speed()):
+				_drop_at_depot()
 
 
 ## Drinnen: heilen, ums Feuer bummeln bzw. am Gebäude arbeiten; mit Zonen-Arbeit wieder losgehen.
@@ -321,6 +337,12 @@ func _home(delta: float) -> void:
 	if can_work() and _wait <= 0.0 and hp >= max_hp() * 0.6:
 		_go_out()
 		return
+	if is_driver() and _wait <= 0.0 and hp >= max_hp() * 0.6 and not Zones.recalled(get_tree()) and not refuses():
+		var fort := get_tree().get_first_node_in_group("fortress")
+		var d: Node3D = fort.pick_depot(self) if fort and _cart_total() < Config.cart_capacity else null
+		if d:
+			_start_cart(d)
+			return
 	var to := _target - global_position
 	to.y = 0
 	if to.length() > 0.2:
@@ -352,7 +374,7 @@ func _work(delta: float) -> void:
 	if spot == Vector3.INF:
 		# nichts mehr zu holen: mit dem, was er hat, heim – sonst am Licht warten
 		if cargo > 0:
-			_go_home()
+			_unload_or_home()
 		else:
 			_step_towards(Zones.center(get_tree(), zone_id) + Vector3(1.5, 0, 1.5), _speed(), delta)
 		return
@@ -382,7 +404,7 @@ func _work(delta: float) -> void:
 				_work_after_delivery = true
 				_head_to_pit(pit)
 			else:
-				_go_home()
+				_unload_or_home()
 
 
 ## Nächste volle Pilzstelle bzw. Fels (Steinbrecher) in seiner Zone.
@@ -434,6 +456,17 @@ func _arrive_home() -> void:
 				_number("+%d %s" % [n, {"wood": "Holz", "food": "Nahrung", "stone": "Stein"}[cargo_kind]],
 						{"wood": Color(1, 0.75, 0.45), "food": Color(0.5, 1, 0.85), "stone": Color(0.8, 0.8, 0.9)}[cargo_kind])
 		cargo = 0
+	if _cart_total() > 0:
+		var fort := get_tree().get_first_node_in_group("fortress")
+		if fort:
+			var gave: Dictionary = fort.deposit(cart_load)
+			var parts := []
+			for k in [["wood", "Holz"], ["food", "Nahrung"], ["stone", "Stein"]]:
+				if gave[k[0]] > 0:
+					parts.append("+%d %s" % [gave[k[0]], k[1]])
+			if not parts.is_empty():
+				_number(", ".join(parts), Color(1, 0.85, 0.55))
+	_release_depot()
 	_pick_home_target()
 
 
@@ -509,7 +542,7 @@ func _torch_to_tend() -> Node3D:
 	if Zones.recalled(get_tree()):
 		return null
 	var fort := get_tree().get_first_node_in_group("fortress")
-	var has_wood: bool = (cargo_kind == "wood" and cargo > 0) or (fort and fort.wood >= 2.0)
+	var has_wood: bool = (cargo_kind == "wood" and cargo > 0) or (fort and fort.spendable("wood") >= 1)
 	if not has_wood:
 		return null
 	for t in get_tree().get_nodes_in_group("torches") + get_tree().get_nodes_in_group("fire_pits"):
@@ -546,7 +579,7 @@ func _tend_step(delta: float) -> void:
 	var fort := get_tree().get_first_node_in_group("fortress")
 	if cargo_kind == "wood" and cargo > 0:
 		cargo -= 1
-	elif fort and fort.wood >= 2.0:
+	elif fort and fort.spendable("wood") >= 1:
 		fort.wood -= 1.0
 	else:
 		_end_tend(true)
@@ -670,3 +703,123 @@ func shout(text: String) -> void:
 	tw.tween_property(l, "position:y", 3.2, 3.0)
 	tw.parallel().tween_property(l, "modulate:a", 0.0, 1.0).set_delay(2.0)
 	tw.tween_callback(l.queue_free)
+
+
+
+# --- Karren & Lagerplätze (v0.3) ---------------------------------------------------
+
+## Arbeitet er im Karrenschuppen?
+func is_driver() -> bool:
+	return job != null and is_instance_valid(job) and job.kind == "carts"
+
+
+func _cart_total() -> int:
+	return cart_load["wood"] + cart_load["food"] + cart_load["stone"]
+
+
+## Volle Ladung: gibt es Karren, an der Fackel ablegen und weiterarbeiten – sonst wie früher heim.
+func _unload_or_home() -> void:
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var d: Node3D = fort.depot_of(zone_id) if fort and fort.has_carts() else null
+	if d == null or d.space(cargo_kind) <= 0:
+		_go_home()
+		return
+	_depot = d
+	state = State.DROP
+	_path.clear()
+	_path.append(d.global_position + (global_position - d.global_position).normalized() * 1.1)
+
+
+func _drop_at_depot() -> void:
+	var n: int = _depot.put(cargo_kind, cargo)
+	if n > 0:
+		_number("+%d abgelegt" % n, Color(1, 0.85, 0.55))
+	cargo -= n
+	_depot = null
+	if cargo > 0:
+		_go_home()   # Lagerplatz voll: den Rest selbst heimtragen
+	else:
+		state = State.WORK
+		_node = null
+		_tree = -1
+
+
+## Karrenfahrer: hinaus zum Lagerplatz.
+func _start_cart(d: Node3D) -> void:
+	_depot = d
+	d.claimed_by = self
+	state = State.CART_OUT
+	_fleeing = false
+	_path.clear()
+	if not is_exposed():
+		_path.append(GATE_IN)
+		_path.append(GATE_OUT)
+	_path.append(d.global_position + Vector3(0, 0, 1.6))
+	_wait = 0.0
+
+
+func _cart_out(delta: float) -> void:
+	if Zones.recalled(get_tree()) or not is_instance_valid(_depot) or not Zones.is_lit(get_tree(), _depot.zone_id):
+		_go_home()
+		return
+	var spd := Config.cart_speed * (1.3 if has_trait("flink") else 1.0)
+	if not _follow_path(delta, spd):
+		return
+	_wait += delta
+	rotation.z = sin(_wait * 9.0) * 0.06
+	if _wait < 2.0:
+		return   # aufladen
+	var fort := get_tree().get_first_node_in_group("fortress")
+	var limits: Dictionary = fort.room() if fort else {}
+	for k in limits:
+		limits[k] = maxi(limits[k] - cart_load[k], 0)
+	var got: Dictionary = _depot.take(Config.cart_capacity - _cart_total(),
+			fort.cart_order() if fort else ["wood", "food", "stone"], limits)
+	for k in got:
+		cart_load[k] += got[k]
+	_number("Karren beladen (%d)" % _cart_total(), Color(1, 0.85, 0.55))
+	_go_home()
+
+
+func _release_depot() -> void:
+	if is_instance_valid(_depot) and _depot.claimed_by == self:
+		_depot.claimed_by = null
+	_depot = null
+
+
+## Einfacher Handkarren vor dem Bewohner (Kasten, zwei Räder, Ladung).
+func _build_cart() -> void:
+	_cart = Node3D.new()
+	_cart.position = Vector3(0, 0, 1.0)
+	add_child(_cart)
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.4, 0.28, 0.16)
+	var box := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.9, 0.35, 1.1)
+	box.mesh = bm
+	box.material_override = wood
+	box.position.y = 0.45
+	_cart.add_child(box)
+	for side in [-1, 1]:
+		var w := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.28
+		cm.bottom_radius = 0.28
+		cm.height = 0.08
+		cm.radial_segments = 10
+		w.mesh = cm
+		w.material_override = wood
+		w.rotation.z = PI / 2.0
+		w.position = Vector3(side * 0.5, 0.28, 0)
+		_cart.add_child(w)
+	_cart_load_mesh = MeshInstance3D.new()
+	var lm := BoxMesh.new()
+	lm.size = Vector3(0.75, 0.3, 0.95)
+	_cart_load_mesh.mesh = lm
+	var lmat := StandardMaterial3D.new()
+	lmat.albedo_color = Color(0.55, 0.45, 0.3)
+	_cart_load_mesh.material_override = lmat
+	_cart_load_mesh.position.y = 0.75
+	_cart.add_child(_cart_load_mesh)
+	_cart.visible = false

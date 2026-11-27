@@ -25,9 +25,9 @@ func _ready() -> void:
 	visible = false
 
 
-## Wie viel Holz steht gerade zur Verfügung (Trage + Lager ohne das letzte Scheit)?
+## Wie viel Holz steht gerade zur Verfügung (Trage + Lager ohne die Reserve fürs Feuer)?
 func _wood_available() -> int:
-	return player.carry["wood"] + maxi(int(fortress.wood) - 1, 0)
+	return player.carry["wood"] + fortress.spendable("wood")
 
 
 ## Wichtig: Sichtbarkeit nur EINMAL pro Bild setzen – sonst geht ein Fingertipp verloren.
@@ -45,7 +45,7 @@ func _process(_delta: float) -> void:
 		if not _target.built:
 			_cost = Config.torch_build_cost
 			text = "Fackelpfahl errichten (%d Holz)\n%s" % [_cost,
-					"macht %s hell" % _target.zone_name if have >= _cost else "Nicht genug Holz (Trage + Lager)"]
+					"macht %s hell" % _target.zone_name if have >= _cost else "Nicht genug Holz (%d bleiben fürs Feuer)" % Config.vital_reserve]
 		else:
 			_cost = 1
 			var s := int(_target.fuel)

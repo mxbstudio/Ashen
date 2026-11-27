@@ -8,7 +8,7 @@ extends Node3D
 const ArrowScript := preload("res://scripts/arrow.gd")
 const MAX_LEVEL := 3
 
-@export var kind := "storehouse"   # storehouse, scrapyard, mushroom, tower, workshop
+@export var kind := "storehouse"   # storehouse, scrapyard, mushroom, tower, workshop, carts
 
 var level := 0                     # 0 = noch nicht gebaut
 var built := false                 # = level >= 1
@@ -22,7 +22,7 @@ var _plot: MeshInstance3D
 var _flags: Array[MeshInstance3D] = []
 
 const NAMES := {"storehouse": "Vorratslager", "scrapyard": "Trümmerhof",
-		"mushroom": "Pilzkeller", "tower": "Wachturm", "workshop": "Werkstatt"}
+		"mushroom": "Pilzkeller", "tower": "Wachturm", "workshop": "Werkstatt", "carts": "Karrenschuppen"}
 
 
 func display_name() -> String:
@@ -37,6 +37,7 @@ func cost() -> int:
 		"mushroom": return Config.cost_mushroom
 		"tower": return Config.cost_tower
 		"workshop": return Config.cost_workshop
+		"carts": return Config.cost_carts
 	return 0
 
 
@@ -114,6 +115,8 @@ func description(l := 1) -> String:
 		"storehouse": return "+%d Lagerplatz für Holz und Nahrung" % (Config.storehouse_bonus * l)
 		"scrapyard": return "%s, je +1 Holz alle %d s" % [_places(l), int(Config.scrapyard_seconds_per_wood)]
 		"mushroom": return "%s, je +1 Nahrung alle %d s" % [_places(l), int(Config.mushroom_seconds_per_food)]
+		"carts": return "%d Karren – holen Holz, Nahrung, Stein von den Lagerplätzen an den Fackeln (je %d)" % [
+				capacity(l), Config.cart_capacity]
 		"workshop": return "%s, je 1 Bogen alle %d s (%d Holz pro Bogen)" % [_places(l),
 				int(Config.bow_craft_seconds), Config.bow_wood_cost]
 		"tower": return "Schaden %d · Reichweite %d m · alle %.1f s (braucht Bewohner)" % [
@@ -292,7 +295,7 @@ func advance(dt: float) -> Dictionary:
 			_timer += dt * work
 			while _timer >= Config.bow_craft_seconds:
 				if fort.bows_total() + out["bows"] >= fort.residents.size() \
-						or fort.wood + out["wood"] < Config.bow_wood_cost + 1:
+						or fort.wood + out["wood"] - Config.bow_wood_cost < Config.vital_reserve:
 					_timer = Config.bow_craft_seconds   # wartet auf Holz bzw. Bedarf
 					break
 				_timer -= Config.bow_craft_seconds

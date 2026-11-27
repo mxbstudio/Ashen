@@ -104,6 +104,7 @@ func _collect() -> Dictionary:
 			"buildings": {},
 		},
 		"shrines": get_tree().get_nodes_in_group("shrines").map(func(sh): return sh.opened),
+		"depots": get_tree().get_nodes_in_group("depots").map(func(dp): return [dp.zone_id, dp.stock]),
 		"event_t": get_tree().get_first_node_in_group("events").time_left,
 		"torches": {},
 		"beacon": beacon.lit,
@@ -207,6 +208,12 @@ func _apply_world(d: Dictionary) -> void:
 	if shrines.size() == shrine_nodes.size():
 		for i in shrine_nodes.size():
 			shrine_nodes[i].set_opened(bool(shrines[i]))
+	for e in d.get("depots", []):
+		for dp in get_tree().get_nodes_in_group("depots"):
+			if dp.zone_id == str(e[0]):
+				for k in dp.stock:
+					dp.stock[k] = int(e[1].get(k, 0))
+				dp.update_visuals()
 	var spots: Array = d.get("food_spots", [])
 	var nodes := get_tree().get_nodes_in_group("resources")
 	if spots.size() == nodes.size():

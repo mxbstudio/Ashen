@@ -18,6 +18,7 @@ const TorchScript := preload("res://scripts/zones/torch_post.gd")
 const ForestScript := preload("res://scripts/forest.gd")
 const RockScript := preload("res://scripts/rock_node.gd")
 const ShrineScript := preload("res://scripts/shrine.gd")
+const DepotScript := preload("res://scripts/zones/depot.gd")
 
 var _rock_mat := StandardMaterial3D.new()
 var _wall_mat := StandardMaterial3D.new()
@@ -33,7 +34,24 @@ func _ready() -> void:
 	_make_resources()
 	_make_torches()
 	_make_shrines()
+	_make_depots()
 	_make_obstacles()
+
+
+## Lagerplatz neben der Fackel jeder Zone (bzw. am Leuchtfeuer) – für Sammler und Karren.
+func _make_depots() -> void:
+	for z in ZoneDefs.ZONES:
+		var d := Node3D.new()
+		d.set_script(DepotScript)
+		d.zone_id = z["id"]
+		d.position = depot_pos(z)
+		add_child(d)
+
+
+static func depot_pos(z: Dictionary) -> Vector3:
+	if z["torch"] == null:
+		return z["center"] + Vector3(3.0, 0, 2.5)    # am Leuchtfeuer
+	return z["torch"] + Vector3(1.4, 0, 1.6)
 
 
 ## Schreine mit Talismanen im Dunkeln (v0.3).

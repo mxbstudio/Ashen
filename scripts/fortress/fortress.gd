@@ -142,9 +142,24 @@ func is_fire_burning() -> bool:
 	return not _fire_dead
 
 
-## Wie lange reicht das Holz noch (Sekunden)?
+## Wie lange reicht das Holz noch (Sekunden, genau – das angebrannte Scheit zählt mit)?
 func wood_seconds_left() -> float:
-	return wood * Config.fire_seconds_per_wood
+	return maxf(wood * Config.fire_seconds_per_wood - _burn_acc, 0.0) / fire_burn_factor()
+
+
+## Feuerhüter sparen Holz.
+func fire_burn_factor() -> float:
+	return 0.9 if trait_count("feuerhueter") > 0 else 1.0
+
+
+## Wie viel darf von Holz/Nahrung verbraucht werden? Unter Config.vital_reserve bleibt alles für Feuer und Essen.
+## Stein ist nicht überlebenswichtig.
+func spendable(kind: String) -> int:
+	match kind:
+		"wood": return maxi(int(wood) - Config.vital_reserve, 0)
+		"food": return maxi(int(food) - Config.vital_reserve, 0)
+		"stone": return int(stone)
+	return 0
 
 
 func _process(delta: float) -> void:
@@ -189,7 +204,7 @@ func advance(dt: float) -> void:
 		_auto_jobs()
 	_mood_step(dt)
 	# Feuer verbrennt Holz (Feuerhüter sparen etwas)
-	_burn_acc += dt * (0.9 if trait_count("feuerhueter") > 0 else 1.0)
+	_burn_acc += dt * fire_burn_factor()
 	while _burn_acc >= Config.fire_seconds_per_wood:
 		_burn_acc -= Config.fire_seconds_per_wood
 		wood -= 1.0
@@ -336,7 +351,7 @@ func _send_couriers() -> void:
 		if not pit.needs_wood() or (pit.courier and is_instance_valid(pit.courier)):
 			continue
 		var n := mini(Config.firepit_courier_wood, pit.wood_space())
-		if n <= 0 or wood < n + 1:
+		if n <= 0 or spendable("wood") < n:
 			continue
 		# nur freie Bewohner (ohne Gebäude und ohne Zone) springen ein
 		var best: Node3D = null
@@ -396,9 +411,9 @@ func deposit(carry: Dictionary) -> Dictionary:
 	return gave
 
 
-## Bauen oder verbessern möglich? Das letzte Holz bleibt immer fürs Feuer.
+## Bauen oder verbessern möglich? Die Reserve (5 Holz) bleibt immer fürs Feuer.
 func can_build(b: Node3D) -> bool:
-	return b.can_improve() and wood >= b.next_cost() + 1
+	return b.can_improve() and spendable("wood") >= b.next_cost()
 
 
 ## Bauen bzw. eine Stufe verbessern.
@@ -444,7 +459,7 @@ func _assign_jobs() -> void:
 		if r.is_free() and not _in_building(r):
 			free.append(r)
 	free.sort_custom(func(a, b): return (a.state == 0 and not a.auto_job) and not (b.state == 0 and not b.auto_job))
-	for kind in ["mushroom", "scrapyard", "workshop", "tower"]:
+	for kind in ["mushroom", "scrapyard", "workshop", "carts", "tower"]:
 		for b in buildings:
 			if b.kind != kind:
 				continue
@@ -710,8 +725,8 @@ func tool_blocker(kind: String) -> String:
 		return "höchste Stufe"
 	if _workshop_level() <= lvl:
 		return "braucht Werkstatt Stufe %d" % (lvl + 1)
-	if wood < Config.tool_cost_wood[lvl] + 1 or stone < Config.tool_cost_stone[lvl]:
-		return "zu wenig Holz/Stein"
+	if spendable("wood") < Config.tool_cost_wood[lvl] or stone < Config.tool_cost_stone[lvl]:
+		return "zu wenig Holz/Stein – %d Holz bleiben fürs Feuer" % Config.vital_reserve
 	return ""
 
 
@@ -725,3 +740,57 @@ func upgrade_tool(kind: String) -> bool:
 	Sfx.play("gate", 0.0, 0.0)
 	message.emit("%s Stufe %d: %s geht schneller" % [TOOL_NAMES[kind], lvl + 1, TOOL_VERBS[kind]])
 	return true
+
+
+
+# --- Karren & Lagerplätze (v0.3) ---------------------------------------------------
+
+## Fährt mindestens ein Karren? Dann legen die Sammler ihre Ladung an der Fackel ab.
+func has_carts() -> bool:
+	for b in buildings:
+		if b.kind == "carts" and b.built and not b.workers.is_empty():
+			return true
+	return false
+
+
+func depot_of(zone_id: String) -> Node3D:
+	for d in get_tree().get_nodes_in_group("depots"):
+		if d.zone_id == zone_id:
+			return d
+	return null
+
+
+## Lagerplatz für einen Karrenfahrer: hell, genug Vorrat, nicht schon von einem anderen angefahren – der vollste.
+func pick_depot(driver: Node3D) -> Node3D:
+	var best: Node3D = null
+	for d in get_tree().get_nodes_in_group("depots"):
+		if _useful(d) < Config.cart_min_load or not Zones.is_lit(get_tree(), d.zone_id):
+			continue
+		if d.claimed_by != null and is_instance_valid(d.claimed_by) and d.claimed_by != driver:
+			continue
+		if best == null or _useful(d) > _useful(best):
+			best = d
+	return best
+
+
+## Platz im Lager der Festung je Art.
+func room() -> Dictionary:
+	return {"wood": maxi(wood_cap() - int(wood), 0), "food": maxi(food_cap() - int(food), 0),
+			"stone": maxi(stone_cap() - int(stone), 0)}
+
+
+## Wie viel vom Lagerplatz passt gerade in die Festung? (Volles Holzlager -> Holz lohnt die Fahrt nicht.)
+func _useful(d: Node3D) -> int:
+	var r := room()
+	var n := 0
+	for k in r:
+		n += mini(d.stock[k], r[k])
+	return n
+
+
+## Was soll der Karren zuerst aufladen? Das, was das Lager am dringendsten braucht.
+func cart_order() -> Array:
+	var n := needs()
+	var order := ["wood", "food", "stone"]
+	order.sort_custom(func(a, b): return n[a] > n[b])
+	return order

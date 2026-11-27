@@ -279,6 +279,26 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
 - Neue Werte: `crawler_gaze_angle` (50°), `crawler_gaze_backoff` (3 m), `crawler_light_courage` (0,35), `tool_speed_per_level` (0,35), `tool_cost_wood`, `tool_cost_stone`;
   `lost_talisman_chance` 0,12 → 0,03.
 
+### Karren, sekundengenauer Feuer-Timer, Reserve (Wunsch Max)
+- **Lagerplätze** an jeder Fackel (und am Leuchtfeuer) (`scripts/zones/depot.gd`): kleine Stapel mit Schild
+  („Lager: 11 Holz · 6 Nahrung“), je Rohstoff höchstens 20.
+- **Karrenschuppen** (neuer Bauplatz rechts vom Feuer, 10 Holz, 3 Stufen = 1/2/3 Karren, je ein Bewohner als Fahrer).
+  - Gibt es einen Karren mit Fahrer, legen Holzfäller, Sammler und Steinbrecher ihre volle Ladung **an der Fackel ab**
+    und arbeiten sofort weiter (kein Weg zum Feuer mehr). Ist der Stapel voll, tragen sie selbst heim wie bisher.
+  - **Karrenfahrer** fahren zum hellsten/vollsten Lagerplatz (nur helle Zonen, ab 4 Einheiten, nie zwei zum selben),
+    laden 2 s auf (bis 15, das Dringendste zuerst, nur was in der Festung noch Platz hat) und bringen alles zum Feuer.
+    Mit Karren sind sie langsamer (2,2 m/s). Getroffen -> Flucht heim, die Ladung kommt mit. Bei Belagerung: alle heim.
+  - Probelauf (Westsenke, 2 Holzfäller, 1 Sammler, 1 Karren, 5 min): 24-mal an der Fackel abgelegt, 5 Karrenfahrten,
+    Holzlager der Festung durchgehend fast voll.
+  - Gespeichert: Vorrat der Lagerplätze. (Was gerade auf einem Karren liegt, geht beim Laden verloren.)
+- **Feuer-Timer sekundengenau**: zählt jetzt jede Sekunde herunter (vorher in 20-s-Schritten, weil nur ganze Scheite zählten).
+- **Reserve 5**: Holz und Nahrung im Lager dürfen nicht unter 5 fallen, wenn etwas *verbraucht* wird – Bauen,
+  Verbessern, Werkzeuge, Fackeln, Feuerstellen, Bögen, Nachlegen und Holz-Botengänge der Bewohner, Ereignisse.
+  Nur das Feuer und das Essen dürfen die letzten 5 nehmen. Holz aus der Trage des Hüters darf er weiter frei verwenden.
+  Knöpfe zeigen dann „Nicht genug Holz – 5 bleiben fürs Feuer“.
+- Neue Werte: `vital_reserve` (5), `cost_carts` (10), `cart_capacity` (15), `cart_speed` (2,2), `cart_min_load` (4),
+  `depot_cap` (20 je Rohstoff).
+
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.
 Im Werte-Menü neue Gruppen: „Leiste & Talismane“, „Wahnsinn“, „Bewohner-Stimmung“.
