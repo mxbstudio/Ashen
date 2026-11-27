@@ -364,6 +364,18 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   erscheint der Knopf **„Abladen (Haufen)“** (Taste G): die Trage kommt auf den Haufen, die Karren holen ihn ab,
   solange das Feuer dort brennt. Feuerstellen-Haufen werden mitgespeichert.
 
+### Ziehen und Ablegen, Belagerungs-Fehler (Max)
+- **Menü „Leiste“ per Ziehen und Ablegen** (Finger oder Maus): Feld auf Feld = tauschen · Vorrat-Skill auf ein Feld =
+  einsetzen (ein Skill, der dort war, wandert in den Vorrat) · Feld in den Bereich „Vorrat“ = herausnehmen.
+  Antippen funktioniert weiter wie bisher. Die Skill-Knöpfe scrollen das Menü dabei nicht mit.
+- **Fehler behoben: „1 Angreifer“, aber keiner zu sehen.** Ursache: Angreifer erschienen nur, solange unter der
+  Höchstzahl gleichzeitiger Gegner (16) Platz war – mitgezählt wurden aber auch der Hauptmann und umherstreifende
+  Gegner. War das voll, erschien der letzte Angreifer nie und die Belagerung blieb offen. Jetzt:
+  - es zählen nur die Angreifer selbst,
+  - beim Glockenschlag ziehen sich Streuner weit weg vom Hüter (> 20 m) zurück,
+  - ein Angreifer, der 5 s nicht näher ans Tor kommt (Baum, Fels), springt auf den Platz vor dem Tor,
+  - bei höchstens 3 übrigen Angreifern zeigen rote Wegweiser „Angreifer“ zu ihnen (auch von drinnen).
+
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

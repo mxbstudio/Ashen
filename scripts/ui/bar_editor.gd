@@ -1,4 +1,6 @@
 ## Skill-Leiste umbauen – überall über den Knopf „Leiste“ oben links (Spiel pausiert solange).
+## Ziehen und Ablegen: Feld auf Feld = tauschen · Vorrat auf Feld = einsetzen (der alte wandert in den Vorrat) ·
+## Feld in den Vorrat = herausnehmen. Antippen geht weiterhin.
 ## Bedienung: ein Feld antippen (wird markiert), dann
 ##  - ein anderes Feld antippen  -> die beiden tauschen
 ##  - einen Skill im Vorrat antippen -> kommt in das Feld
@@ -89,6 +91,8 @@ func _rebuild() -> void:
 		if i == _selected:
 			b.add_theme_stylebox_override("normal", UiStyle.box(Color(1, 0.8, 0.4, 0.5), Color.WHITE, 5))
 		b.pressed.connect(_on_slot.bind(i))
+		b.set_meta("draggable", true)
+		b.set_drag_forwarding(_drag.bind("slot", i), _can_drop.bind("slot", i), _drop.bind("slot", i))
 		row.add_child(b)
 	_box.add_child(row)
 
@@ -96,19 +100,30 @@ func _rebuild() -> void:
 	_info.custom_minimum_size = Vector2(0, 120)
 	_box.add_child(_info)
 
-	_box.add_child(UiStyle.label("Vorrat", 30, Color(1, 1, 1, 0.8)))
+	_box.add_child(UiStyle.label("Vorrat  (Skills hierher ziehen = herausnehmen)", 26, Color(1, 1, 1, 0.8)))
+	var stash_panel := PanelContainer.new()
+	stash_panel.add_theme_stylebox_override("panel", UiStyle.box(Color(1, 1, 1, 0.05), Color(1, 1, 1, 0.2)))
+	stash_panel.custom_minimum_size = Vector2(0, 110)
+	stash_panel.set_drag_forwarding(Callable(), _can_drop.bind("stash", -1), _drop.bind("stash", -1))
+	var stash_box := VBoxContainer.new()
+	stash_box.mouse_filter = Control.MOUSE_FILTER_PASS
+	stash_panel.add_child(stash_box)
 	var grid := GridContainer.new()
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
+	grid.mouse_filter = Control.MOUSE_FILTER_PASS
 	if bar.stash.is_empty():
-		_box.add_child(UiStyle.label("(leer – neue Skills gibt es beim Stufenaufstieg)", 22, Color(1, 1, 1, 0.4)))
+		stash_box.add_child(UiStyle.label("(leer – neue Skills gibt es beim Stufenaufstieg)", 22, Color(1, 1, 1, 0.4)))
 	for j in bar.stash.size():
 		var sid: String = bar.stash[j]
 		var sb := UiStyle.button(SkillData.short_with_level(sid, bar.level_of(sid)), SkillData.color(sid), 26, Vector2(200, 90))
 		sb.pressed.connect(_on_stash.bind(j))
+		sb.set_meta("draggable", true)
+		sb.set_drag_forwarding(_drag.bind("stash", j), _can_drop.bind("stash", j), _drop.bind("stash", j))
 		grid.add_child(sb)
-	_box.add_child(grid)
+	stash_box.add_child(grid)
+	_box.add_child(stash_panel)
 
 	_box.add_child(_talisman_section())
 	var bottom := HBoxContainer.new()
@@ -128,7 +143,7 @@ func _rebuild() -> void:
 
 func _info_text() -> String:
 	if _selected == -1:
-		return "Tippe ein Feld an."
+		return "Skills ziehen und ablegen – oder ein Feld antippen."
 	var id: String = player.skill_bar.slots[_selected]
 	var head := "Feld %d gewählt.\n" % (_selected + 1)
 	if id != "":
@@ -192,3 +207,44 @@ func _on_talisman(id: String) -> void:
 		return
 	_selected = -1
 	_rebuild()
+
+
+
+# --- Ziehen und Ablegen -------------------------------------------------------------
+
+## Ziehen beginnt: Feld („slot“) oder Vorrat („stash“). Leere Felder lassen sich nicht ziehen.
+func _drag(_at: Vector2, from: String, i: int) -> Variant:
+	var bar: Node = player.skill_bar
+	var id: String = bar.slots[i] if from == "slot" else bar.stash[i]
+	if id == "":
+		return null
+	var preview := UiStyle.button(SkillData.short_with_level(id, bar.level_of(id)), SkillData.color(id), 26, Vector2(180, 90))
+	preview.modulate.a = 0.85
+	var holder := Control.new()
+	holder.add_child(preview)
+	preview.position = -Vector2(90, 45)   # Vorschau unter dem Finger
+	set_drag_preview(holder)
+	return {"from": from, "i": i}
+
+
+func _can_drop(_at: Vector2, data: Variant, to: String, _j: int) -> bool:
+	if typeof(data) != TYPE_DICTIONARY or not data.has("from"):
+		return false
+	if to == "stash":
+		return data["from"] == "slot"   # nur Felder lassen sich in den Vorrat legen
+	return true
+
+
+func _drop(_at: Vector2, data: Variant, to: String, j: int) -> void:
+	var bar: Node = player.skill_bar
+	var from: String = data["from"]
+	var i: int = data["i"]
+	if to == "slot":
+		if from == "slot" and i != j:
+			bar.swap_slots(i, j)
+		elif from == "stash":
+			bar.put_from_stash(j, i)
+	elif to == "stash" and from == "slot":
+		bar.clear_slot(i)
+	_selected = -1
+	_rebuild.call_deferred()

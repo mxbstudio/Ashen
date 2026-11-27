@@ -97,6 +97,10 @@ func _start() -> void:
 	_spawn_t = 0.0
 	_enemies.clear()
 	spawner.enabled = false
+	# herumstreifende Gegner weit weg vom Hüter ziehen sich zurück – die Dunkelheit sammelt sich zum Sturm
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not e.is_in_group("boss") and e.siege_gate == null and e.global_position.distance_to(player.global_position) > 20.0:
+			e.queue_free()
 	get_tree().call_group("hud", "bell")
 	Sfx.play("bell", 2.0, 0.0)
 	get_tree().call_group("hud", "toast",
@@ -111,7 +115,9 @@ func _spawn_step(delta: float) -> void:
 	if _spawn_t > 0.0:
 		return
 	_spawn_t = Config.siege_batch_interval
-	var room := Config.max_enemies - get_tree().get_nodes_in_group("enemies").size()
+	# Platz: nur Angreifer zählen (nicht der Hauptmann, nicht herumstreifende Gegner) – sonst konnte der
+	# letzte Angreifer nie erscheinen und die Anzeige blieb bei „1 Angreifer“ stehen.
+	var room := Config.max_enemies - attackers_alive()
 	var n := mini(mini(Config.siege_batch, _to_spawn), room)
 	for i in n:
 		var roll := _rng.randf()
@@ -206,6 +212,15 @@ func _end(held: bool) -> void:
 	if held:
 		get_tree().call_group("hud", "toast", "Belagerung überstanden!")
 	siege_ended.emit(held, was_final)
+
+
+## Angreifer, die gerade leben (ohne die noch nicht erschienenen).
+func attackers_alive() -> int:
+	var n := 0
+	for e in _enemies:
+		if is_instance_valid(e) and e.is_alive():
+			n += 1
+	return n
 
 
 ## Lebende Angreifer (für das HUD).

@@ -299,12 +299,26 @@ func _in_siege_mode() -> bool:
 	return true
 
 
-## Zum Tor laufen und dagegen schlagen.
+var _siege_best := INF             # bisher kleinster Abstand zum Tor
+var _siege_stuck := 0.0            # s ohne Fortschritt
+
+
+## Zum Tor laufen und dagegen schlagen. Hängt ein Angreifer fest (Baum, Fels), springt er nach
+## einigen Sekunden auf den Platz vor dem Tor – sonst bliebe die Belagerung offen, ohne dass man ihn findet.
 func _siege_think(delta: float) -> Vector3:
 	var target := siege_gate.global_position + Vector3(_gate_slot, 0, -1.2 - hit_radius)
 	var v := target - global_position
 	v.y = 0
 	if v.length() > 0.5:
+		if v.length() < _siege_best - 0.3:
+			_siege_best = v.length()
+			_siege_stuck = 0.0
+		else:
+			_siege_stuck += delta
+			if _siege_stuck > 5.0:
+				_siege_stuck = 0.0
+				_siege_best = INF
+				global_position = siege_gate.global_position + Vector3(randf_range(-5, 5), 0, -7.0)
 		return v.normalized() * speed
 	siege_gate.take_damage(gate_dps * delta)
 	if randf() < delta * 1.5:

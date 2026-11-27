@@ -430,10 +430,17 @@ func _draw_bar_at(font: Font, x: float, y: float, w: float, label: String, frac:
 ## Wegweiser am Bildschirmrand: zum Tor (orange) und zum Leuchtfeuer (blau),
 ## wenn sie gerade nicht im Bild sind und der Hüter draußen ist.
 func _draw_pointers(font: Font) -> void:
-	if not player.is_alive() or player.global_position.z > -11.0:
+	if not player.is_alive():
 		return
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
+		return
+	# Belagerung fast vorbei: Wegweiser zu den letzten Angreifern (auch von drinnen)
+	if siege and siege.active and siege.attackers_left() <= 3:
+		for e in siege._enemies:
+			if is_instance_valid(e) and e.is_alive():
+				_pointer(font, cam, e.global_position, "Angreifer", Color(1, 0.3, 0.3))
+	if player.global_position.z > -11.0:
 		return
 	_pointer(font, cam, Vector3(0, 0, -12), "Tor", Color(1, 0.7, 0.3))
 	var beacon := get_tree().get_first_node_in_group("beacon")
@@ -442,6 +449,7 @@ func _draw_pointers(font: Font) -> void:
 	for t in get_tree().get_nodes_in_group("torches"):
 		if t.under_attack():
 			_pointer(font, cam, t.global_position, "Fackel!", Color(1, 0.35, 0.25))
+
 
 
 func _pointer(font: Font, cam: Camera3D, world: Vector3, label: String, col: Color) -> void:

@@ -72,7 +72,8 @@ static func key_hint(key: String) -> String:
 ## über die schmale Leiste). Ein normales Antippen löst den Knopf weiter aus. Nach jedem Neuaufbau aufrufen.
 static func pass_touch(root: Node) -> void:
 	for b in root.find_children("*", "BaseButton", true, false):
-		b.mouse_filter = Control.MOUSE_FILTER_PASS
+		if not b.has_meta("draggable"):   # ziehbare Knöpfe (Skills) behalten den Finger für sich
+			b.mouse_filter = Control.MOUSE_FILTER_PASS
 
 
 static func label(text: String, font_size := 26, col := Color(1, 1, 1, 0.9)) -> Label:
