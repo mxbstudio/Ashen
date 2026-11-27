@@ -137,7 +137,7 @@ func _choose(id: String) -> void:
 				var sid := id.substr(4)
 				var in_bar: bool = player.skill_bar.add_skill(sid)
 				if not in_bar:
-					get_tree().call_group("hud", "toast", "%s liegt im Vorrat – am Feuer einsetzen"
+					get_tree().call_group("hud", "toast", "%s liegt im Vorrat – über „Leiste“ einsetzen"
 							% SkillData.DEFS[sid]["name"])
 	_open_next()
 

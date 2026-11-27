@@ -154,10 +154,10 @@ func gain_talisman(id: String) -> void:
 		skill_bar.reset_cycle()
 		get_tree().call_group("hud", "toast", "Angelegt: " + TalismanData.name_of(id), 4.0)
 	else:
-		get_tree().call_group("hud", "toast", "Am Feuer unter „Leiste umbauen“ anlegen", 4.0)
+		get_tree().call_group("hud", "toast", "Über „Leiste“ oben links anlegen", 4.0)
 
 
-## Talisman an- oder ablegen (nur am Feuer). Gibt false zurück, wenn kein Platz frei ist.
+## Talisman an- oder ablegen (Menü „Leiste“). Gibt false zurück, wenn kein Platz frei ist.
 func toggle_talisman(id: String) -> bool:
 	if equipped.has(id):
 		equipped.erase(id)

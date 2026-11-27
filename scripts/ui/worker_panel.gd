@@ -1,4 +1,4 @@
-## Bewohner einteilen – nur am Feuer.
+## Bewohner einteilen – überall über den Knopf „Bewohner“ oben links (Spiel pausiert solange).
 ## Pro Zone draußen: Holzfäller und Sammler mit − / + einteilen.
 ## Arbeiten können sie nur in hellen Zonen; die übrigen Bewohner besetzen die Gebäude.
 ## Pausiert das Spiel, solange es offen ist.
@@ -42,8 +42,8 @@ func _ready() -> void:
 	done.offset_bottom = -30
 	done.pressed.connect(close)
 	add_child(done)
-	# Knopf am Feuer (über "Leiste umbauen")
-	_open_button = UiStyle.button("Bewohner einteilen", Color(0.6, 0.9, 0.7), 26, Vector2(300, 70))
+	# Knopf "Bewohner" oben links neben "Leiste" – überall erreichbar
+	_open_button = UiStyle.button("Bewohner", Color(0.6, 0.9, 0.7), 22, Vector2(150, 58))
 	_open_button.add_to_group("touch_blockers")
 	_open_button.pressed.connect(open)
 	_open_button.visible = false
@@ -52,14 +52,10 @@ func _ready() -> void:
 
 ## Wichtig: Sichtbarkeit nur ändern, wenn nötig – sonst geht ein Fingertipp verloren.
 func _process(_delta: float) -> void:
-	var src := Lights.refill_source_at(player.global_position)
-	var at_fire: bool = player.is_alive() and src != null and not src.is_in_group("beacon")
-	var show := at_fire and not visible and not get_tree().paused
+	var show: bool = player.is_alive() and not visible and not get_tree().paused
 	if _open_button.visible != show:
 		_open_button.visible = show
-	if show:
-		var vp := get_viewport_rect().size
-		_open_button.position = Vector2((vp.x - _open_button.size.x) / 2.0, vp.y - 650.0)
+	_open_button.position = Vector2(150, 236)
 
 
 func open() -> void:

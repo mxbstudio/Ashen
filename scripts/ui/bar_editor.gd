@@ -1,4 +1,4 @@
-## Skill-Leiste umbauen – nur am Feuer.
+## Skill-Leiste umbauen – überall über den Knopf „Leiste“ oben links (Spiel pausiert solange).
 ## Bedienung: ein Feld antippen (wird markiert), dann
 ##  - ein anderes Feld antippen  -> die beiden tauschen
 ##  - einen Skill im Vorrat antippen -> kommt in das Feld
@@ -36,20 +36,20 @@ func _ready() -> void:
 	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_box.add_theme_constant_override("separation", 18)
 	scroll.add_child(_box)
-	# Knopf "Leiste umbauen" – erscheint über der Skill-Leiste, wenn der Hüter am Feuer steht
-	_open_button = UiStyle.button("Leiste umbauen", Color(1, 0.7, 0.3), 26, Vector2(300, 70))
+	# Knopf "Leiste" oben links unter der Festungsanzeige – überall erreichbar
+	_open_button = UiStyle.button("Leiste", Color(1, 0.7, 0.3), 22, Vector2(130, 58))
 	_open_button.add_to_group("touch_blockers")
 	_open_button.pressed.connect(open)
 	_open_button.visible = false
 	add_sibling.call_deferred(_open_button)
 
 
+## Wichtig: Sichtbarkeit nur ändern, wenn nötig – sonst geht ein Fingertipp verloren.
 func _process(_delta: float) -> void:
-	var src := Lights.refill_source_at(player.global_position)
-	var at_fire: bool = player.is_alive() and src != null and not src.is_in_group("beacon")
-	_open_button.visible = at_fire and not visible and not get_tree().paused
-	var vp := get_viewport_rect().size
-	_open_button.position = Vector2((vp.x - _open_button.size.x) / 2.0, vp.y - 560.0)
+	var show: bool = player.is_alive() and not visible and not get_tree().paused
+	if _open_button.visible != show:
+		_open_button.visible = show
+	_open_button.position = Vector2(10, 236)
 
 
 func open() -> void:

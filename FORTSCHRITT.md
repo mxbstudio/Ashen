@@ -203,7 +203,7 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
 - **Talismane** (Ausrüstung, `scripts/talisman_data.gd`): 11 Stück, biegen Regeln um, z. B. *Umgekehrte Sanduhr*
   (Leiste läuft rückwärts), *Leerer Kelch* (leere Felder geben Laternenlicht), *Glockenseil* (jeder 3. Angriff doppelt),
   *Bleiche Hand* (Modifikatoren wirken zweimal), *Hast-Amulett* (schneller, aber verwundbarer), *Wahnstein* …
-  - Höchstens **2 angelegt**; an-/ablegen nur am Feuer im Menü „Leiste umbauen“ (unten, antippen).
+  - Höchstens **2 angelegt**; an-/ablegen im Menü „Leiste“ (unten, antippen) – inzwischen überall.
   - Fundorte: **6 Schreine** im Dunkeln (violettes Glühen, 1,5 s daneben stehen, +5 Wahnsinn), Verlorene (12 %),
     der Hauptmann, das Ereignis „Fund in den Trümmern“.
 - Umbau-Menü scrollt jetzt (wegen der Talismane).
@@ -245,6 +245,9 @@ Abzweigungs-Karten; Dauerlauf 10 Spielminuten (8-fach) mit Belagerung ohne Laufz
   (Felder, Talismane) haben das Wischen abgefangen. Jetzt geben Knöpfe in scrollbaren Menüs das Wischen an die Liste
   weiter (`UiStyle.pass_touch`); Antippen löst sie weiter aus, Wischen nicht. Gilt auch für „Bewohner einteilen“
   und das Werte-Menü.
+- **Leiste und Bewohner überall verwalten** (Wunsch Max): Zwei Knöpfe oben links unter der Festungsanzeige,
+  **„Leiste“** (Leiste umbauen, Vorrat, Talismane) und **„Bewohner“** (einteilen, Leute) – nicht mehr nur am Feuer.
+  Das Spiel pausiert, solange ein Menü offen ist. Die großen Knöpfe am Feuer gibt es dafür nicht mehr.
 
 ## Neue Werte (frei gewählt)
 Abschnitte „Leiste mit Tiefe“, „Wahnsinn“, „Bewohner mit Eigenleben“ in `scripts/config.gd`.

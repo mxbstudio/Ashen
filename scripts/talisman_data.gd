@@ -1,6 +1,6 @@
 ## Talismane (Ausrüstung): biegen die Regeln der Skill-Leiste um.
 ## Fundorte: Schreine draußen im Dunkeln, Verlorene (selten), der Hauptmann, manche Ereignisse.
-## Der Hüter trägt höchstens Config.talisman_slots gleichzeitig; anlegen nur am Feuer (Leiste umbauen).
+## Der Hüter trägt höchstens Config.talisman_slots gleichzeitig; anlegen im Menü „Leiste“ (überall).
 class_name TalismanData
 extends RefCounted
 
